@@ -1,36 +1,74 @@
 """Newsletters — distill structured knowledge into audience-tuned, reviewed surfaces.
 
-Public API (see ``docs/architecture.md §2``)::
+Two layers (see ``docs/vision.md`` and ``docs/architecture.md``):
 
-    from newsletters import synthesize, Corpus
+* **Truth** — ``Source → Claim(+Trace) → Distillation``.
+* **Surface** — a parameterized ``SurfaceTemplate`` bound to a truth, composed of typed
+  content ``blocks``, gated by a ``Review`` whose policy is carried per template.
 
-    out = synthesize(event=..., sources=[...], audience=Corpus.load("maintainers"))
-    surface = out.render("report")
-    surface.open_pull_request()      # human reviews before publish
+Two human-gated promotions form the grammar: ``promote_claim_to_kpi`` and
+``promote_report_to_article``. Problem-solving agents are external; ``capture`` turns a
+finished session into a traced Report.
 """
 
+from .capture import Decision, WorkSession, build_report, capture_session
+from .promote import promote_claim_to_kpi, promote_report_to_article
+from .render import render_library, render_surface
 from .semantic import (
+    Chapter,
     Claim,
+    ClaimsBlock,
     Corpus,
     Distillation,
+    FanoutBlock,
+    FanoutLink,
+    ItemsBlock,
+    KpiItem,
+    KpiStripBlock,
+    LetterItem,
+    Lineage,
+    ProseBlock,
+    PromptBlock,
+    Provenance,
+    QuoteBlock,
+    RationaleBlock,
     Review,
     ReviewState,
     Source,
     Surface,
-    SurfaceKind,
     Trace,
     synthesize,
 )
+from .templates import (
+    ARTICLE,
+    NEWSLETTER,
+    REPORT,
+    SHOW,
+    AudienceScope,
+    Cadence,
+    ReviewPolicy,
+    SignalColor,
+    SurfaceTemplate,
+    all_templates,
+    get_template,
+    register,
+)
 
 __all__ = [
-    "Claim",
-    "Corpus",
-    "Distillation",
-    "Review",
-    "ReviewState",
-    "Source",
-    "Surface",
-    "SurfaceKind",
-    "Trace",
-    "synthesize",
+    # truth
+    "Source", "Trace", "Claim", "Distillation", "Corpus", "synthesize",
+    # review / surface
+    "Review", "ReviewState", "Surface", "Provenance", "Lineage",
+    # content blocks
+    "ProseBlock", "ClaimsBlock", "KpiStripBlock", "QuoteBlock", "ItemsBlock",
+    "PromptBlock", "FanoutBlock", "RationaleBlock", "KpiItem", "Chapter", "LetterItem",
+    "FanoutLink",
+    # templates
+    "SurfaceTemplate", "Cadence", "SignalColor", "AudienceScope", "ReviewPolicy",
+    "SHOW", "REPORT", "ARTICLE", "NEWSLETTER", "register", "get_template", "all_templates",
+    # capture + promotion
+    "WorkSession", "Decision", "capture_session", "build_report",
+    "promote_claim_to_kpi", "promote_report_to_article",
+    # render
+    "render_surface", "render_library",
 ]

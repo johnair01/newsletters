@@ -130,3 +130,31 @@ servers. Corpora are loaded locally and never transmitted.
 - **Self-hostable, MIT, no telemetry** baked into the product. No external calls on content.
 - **Themeable:** full light + dark, driven entirely by tokens (see `design-system.md`).
 - **Forkable:** surfaces are slot-marked templates; an operator repopulates with their specifics.
+
+---
+
+## 7. Rev1 — as implemented (the model decisions)
+
+Rev1 (in `src/newsletters/`) refines §1–§3 with decisions reasoned out with the founder.
+The Reports in `content/rev1/` are the working record of *why*; this section is the *what*.
+
+- **Two layers, not five peers.** *Truth* (`Source → Claim(+Trace) → Distillation`) is
+  distinct from *Surface*. `report / article / newsletter / show` are **not four classes** —
+  they are presets over **one** parameterized `SurfaceTemplate` (`templates.py`). Cadence,
+  personalization, signal color, audience scope, and review policy are **typed config**;
+  only prose is templated. Operators register their own templates — forkability without a
+  core change.
+- **The review gate is per-template.** `ReviewPolicy` is carried by the template:
+  the **Report** self-approves (light PR); the **Article** requires a **peer** (approver ≠
+  author). Enforced at `publish()` — still no auto-publish path.
+- **Surfaces compose from typed content `blocks`** (prose, claims, kpi, quote, chapters,
+  items, prompt, fanout, rationale). The blocks *are* the slots.
+- **Problem-solving agents are external.** Newsletters owns capture + trust + publish, never
+  the agent. `capture.py` turns a finished `WorkSession` (a bundle of `Source`s) into a
+  traced Draft Report — deterministically, post-session, tool-agnostic. `Provenance` +
+  `Lineage` track the process on every surface. (Push-integration is the operator add-on.)
+- **Two human-gated promotions** form the grammar: `Claim → KPI` (measurable, bridges the
+  OKR domain in `models.py`) and `Report → Article` (durable, peer-reviewed).
+- **The renderer** (`render.py`) emits token-faithful standalone HTML (light + dark, the
+  signal colors, the gate badge) — `newsletters build` writes the Library to
+  `content/rev1/site/`. The agentic distill (`synthesize`) remains an external/Phase-4 stub.

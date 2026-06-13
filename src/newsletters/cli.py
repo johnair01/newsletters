@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import typer
+from pathlib import Path
 
-from . import SurfaceKind
-from .semantic import Claim, Corpus, Distillation, Source, Trace
+import typer
 
 app = typer.Typer(
     help="Newsletters — distill structured knowledge into reviewed, audience-tuned surfaces.",
@@ -25,45 +24,29 @@ def version() -> None:
 
 
 @app.command()
-def demo(
-    kind: SurfaceKind = typer.Option(SurfaceKind.REPORT, help="Which surface to render."),
-    reviewer: str = typer.Option("", help="Reviewer; provided => publish the surface."),
+def build(
+    out: str = typer.Option("content/rev1/site", help="Output directory for rendered HTML."),
 ) -> None:
-    """Run the typed pipeline on a fixture event end to end (no LLM, Phase-2 spine).
+    """Render the Rev1 dogfood surfaces + the Library index to standalone HTML."""
+    from .dogfood import build_site
 
-    Builds a tiny traced ``Distillation`` by hand, renders it to a ``Surface`` (Draft),
-    opens a review PR, and — only if a reviewer is given — publishes. Demonstrates the
-    gate without the agentic distill step (that lands in Phase 4).
-    """
-    src = Source(
-        id="latency-regression-2026-06-12",
-        context="apm",
-        transcript="p99 latency rose 3x after deploy 8f2a; rolled back at 14:20.",
-    )
-    distillation = Distillation(
-        narrative="A latency regression was introduced and rolled back the same day.",
-        audience=Corpus.load("maintainers"),
-        claims=[
-            Claim(
-                text="p99 latency tripled after deploy 8f2a.",
-                evidence=[Trace(source_id=src.id, locator="apm:p99")],
-                confidence=0.9,
-            ),
-        ],
-        traces=[src],
-    )
+    written = build_site(out)
+    for p in written:
+        typer.echo(f"  {p}")
+    typer.echo(f"\nrendered {len(written) - 1} surfaces + the library index -> {out}")
+    typer.echo(f"open {Path(out) / 'index.html'}")
 
-    surface = distillation.render(kind)
-    typer.echo(f"rendered {surface.kind.value} -> gate={surface.gate.value}")
-    surface.open_pull_request(pr_url="https://example/pr/1")
-    typer.echo(f"opened PR -> gate={surface.gate.value}")
-    if reviewer:
-        surface.publish(reviewer=reviewer)
-        typer.echo(f"published by {reviewer} -> gate={surface.gate.value}")
-    else:
-        typer.echo("no reviewer given -> left in review (no auto-publish path)")
-    typer.echo("")
-    typer.echo(surface.body)
+
+@app.command()
+def templates() -> None:
+    """List the registered surface templates (presets + any operator-registered)."""
+    from .templates import all_templates
+
+    for t in all_templates():
+        typer.echo(
+            f"  {t.name:<11} {t.display_name:<14} cadence={t.cadence.label:<16} "
+            f"personalized={t.personalized!s:<5} gate=[{t.review_policy.describe()}]"
+        )
 
 
 if __name__ == "__main__":

@@ -1,127 +1,182 @@
-"""Tests for the typed semantic spine — the three architectural invariants.
-
-These are the Phase-2 acceptance criteria from ``docs/roadmap.md``:
-publishing without review fails; an untraced published claim is rejected (and lives in
-``missing`` instead); a ``Corpus`` is never serialized into a ``Surface`` or ``Source``.
-"""
+"""Tests for the Rev1 semantic spine, templates, promotions, capture, and renderer."""
 
 import pytest
 
 from newsletters import (
+    ARTICLE,
+    NEWSLETTER,
+    REPORT,
+    SHOW,
     Claim,
+    ClaimsBlock,
     Corpus,
-    Distillation,
+    Decision,
+    ProseBlock,
     Review,
     ReviewState,
     Source,
     Surface,
-    SurfaceKind,
     Trace,
+    WorkSession,
+    all_templates,
+    build_report,
+    capture_session,
+    promote_claim_to_kpi,
+    promote_report_to_article,
+    render_library,
+    render_surface,
 )
+from newsletters.models import KpiStatus
 
 
-def _traced_distillation() -> Distillation:
-    src = Source(id="evt-1", transcript="something happened")
-    return Distillation(
-        narrative="A thing happened and was rolled back.",
-        audience=Corpus.load("maintainers"),
-        claims=[
-            Claim(text="the thing happened", evidence=[Trace(source_id="evt-1")], confidence=0.9),
-        ],
-        traces=[src],
+def _session() -> WorkSession:
+    return WorkSession(
+        id="s1", title="t", tool="Claude Code", sources=[Source(id="s1")],
+        decisions=[Decision(text="we decided X", source_id="s1", topics=["core"])],
     )
 
 
-# --- Invariant 1: no publish without a reviewer (no auto-publish path) --------- #
+def _report(author="Claude") -> Surface:
+    return build_report(_session(), surface_id="r1", title="R", author=author)
 
 
-def test_review_published_requires_reviewer():
+# --- templates ---------------------------------------------------------------- #
+
+def test_four_presets_registered():
+    names = {t.name for t in all_templates()}
+    assert {"show", "report", "article", "newsletter"} <= names
+    # ordered by distance: show is rawest, newsletter most distilled
+    ordered = [t.name for t in all_templates()]
+    assert ordered.index("show") < ordered.index("report") < ordered.index("newsletter")
+
+
+def test_report_is_light_article_is_peer():
+    assert REPORT.review_policy.require_peer is False
+    assert ARTICLE.review_policy.require_peer is True
+    assert NEWSLETTER.personalized is True and SHOW.personalized is False
+
+
+# --- Invariant 1: review policy per template (no auto-publish) ----------------- #
+
+def test_report_self_approves():
+    r = _report()
+    r.publish(reviewer="Claude")
+    assert r.is_published and r.review.reviewer == "Claude"
+
+
+def test_published_without_approval_is_rejected():
     with pytest.raises(ValueError):
-        Review(state=ReviewState.PUBLISHED)  # no reviewer
-    ok = Review(state=ReviewState.PUBLISHED, reviewer="alice")
-    assert ok.reviewer == "alice"
+        Review(state=ReviewState.PUBLISHED, policy=ARTICLE.review_policy, author="Claude")
 
 
-def test_surface_publish_requires_reviewer():
-    surface = _traced_distillation().render("report")
-    assert surface.gate is ReviewState.DRAFT
+def test_article_requires_a_peer_not_the_author():
+    r = _report(author="Claude")
+    r.publish(reviewer="Claude")
+    article = promote_report_to_article(r, surface_id="a1", title="A", author="Claude")
+    assert article.gate is ReviewState.IN_REVIEW  # opened for peer review
+    # author cannot self-approve a peer-reviewed surface
     with pytest.raises(ValueError):
-        surface.publish(reviewer="")
-    assert surface.gate is ReviewState.DRAFT  # unchanged after a failed publish
+        article.publish(reviewer="Claude")
+    assert not article.is_published
+    # a peer can
+    article.publish(reviewer="JJ")
+    assert article.is_published and article.review.reviewer == "JJ"
 
 
-def test_gate_transitions_draft_review_published():
-    surface = _traced_distillation().render("newsletter")
-    assert surface.gate is ReviewState.DRAFT
-    surface.open_pull_request(pr_url="https://example/pr/9")
-    assert surface.gate is ReviewState.IN_REVIEW
-    assert surface.review.pr_url == "https://example/pr/9"
-    surface.publish(reviewer="bob")
-    assert surface.gate is ReviewState.PUBLISHED
-    assert surface.is_published
-    assert surface.review.reviewer == "bob"
+# --- Invariant 2: untraced claims blocked ------------------------------------- #
 
-
-# --- Invariant 2: every published claim is traced; untraced => blocked --------- #
-
-
-def test_render_rejects_untraced_claims():
-    d = Distillation(
-        narrative="n",
-        claims=[Claim(text="unsupported assertion", evidence=[])],
-        traces=[Source(id="evt-1")],
-    )
-    assert d.untraced_claims
+def test_untraced_claim_blocks_review():
+    s = Surface(id="x", template=REPORT, title="X",
+                blocks=[ClaimsBlock(claims=[Claim(text="unsupported")])],
+                review=Review(policy=REPORT.review_policy, author="Claude"))
     with pytest.raises(ValueError):
-        d.render("report")
+        s.open_pull_request()
 
 
-def test_untraced_material_lives_in_missing_and_does_not_block():
-    # Move the unsubstantiated material to `missing` instead of claiming it; now render works.
-    d = Distillation(
-        narrative="n",
-        claims=[Claim(text="supported", evidence=[Trace(source_id="evt-1")])],
-        missing=["could not confirm the root cause"],
-        traces=[Source(id="evt-1")],
-    )
-    surface = d.render("article")
-    assert surface.gate is ReviewState.DRAFT
-    assert "supported" in surface.body
+def test_traced_claim_passes_review():
+    s = Surface(id="x", template=REPORT, title="X",
+                blocks=[ClaimsBlock(claims=[Claim(text="ok", evidence=[Trace(source_id="s1")])])],
+                review=Review(policy=REPORT.review_policy, author="Claude"))
+    s.open_pull_request()
+    assert s.gate is ReviewState.IN_REVIEW
 
 
-# --- Invariant 3: a Corpus is never serialized into a Surface or Source -------- #
+# --- Invariant 3: corpus never serialized into a surface ----------------------- #
+
+def test_private_corpus_not_serialized_into_surface():
+    corpus = Corpus(name="maintainers", weights={"core": 1.0}, read=["r1"], owned=["Core"])
+    # emphasis is read at render time; the surface stores only a label
+    s = Surface(id="x", template=NEWSLETTER, title="X", audience_label=f"{corpus.role}")
+    dumped = s.model_dump()
+    assert "weights" not in dumped and "read" not in dumped and "owned" not in dumped
+    j = s.model_dump_json()
+    assert "weights" not in j and "core" not in j
 
 
-def test_corpus_not_serialized_into_surface():
-    corpus = Corpus(name="maintainers", role="oncall", weights={"latency": 1.0})
-    d = _traced_distillation()
-    surface = d.render("report", audience=corpus)
-    dumped = surface.model_dump()
-    # Structurally there is no corpus field, and the corpus name must not leak into output.
-    assert "audience" not in dumped
-    assert "corpus" not in dumped
-    assert "maintainers" not in surface.body
-    assert "maintainers" not in surface.model_dump_json()
+def test_corpus_emphasis_orders_without_leaking():
+    corpus = Corpus(name="n", weights={"core": 1.0})
+    c_core = Claim(text="core", evidence=[Trace(source_id="s1")], topics=["core"])
+    c_other = Claim(text="other", evidence=[Trace(source_id="s1")], topics=["x"])
+    from newsletters import Distillation
+    d = Distillation(claims=[c_other, c_core])
+    assert d.claims_for(corpus)[0] is c_core
 
 
-def test_corpus_not_serialized_into_source():
-    dumped = Source(id="evt-1", transcript="x").model_dump()
-    assert "audience" not in dumped
-    assert "corpus" not in dumped
+# --- capture (post-session, deterministic) ------------------------------------ #
+
+def test_capture_session_traces_every_decision():
+    d = capture_session(_session())
+    assert d.claims and all(c.is_traced for c in d.claims)
+    assert d.claims[0].text == "we decided X"
 
 
-# --- Package API surface ------------------------------------------------------- #
+# --- promotions --------------------------------------------------------------- #
+
+def test_promote_claim_to_kpi_requires_trace():
+    with pytest.raises(ValueError):
+        promote_claim_to_kpi(Claim(text="untraced"), title="K", owner="o", data_link="x")
+    kpi = promote_claim_to_kpi(
+        Claim(text="t", evidence=[Trace(source_id="s1")]), title="K", owner="o",
+        data_link="https://x", status=KpiStatus.IN_PROGRESS)
+    assert kpi.title == "K" and kpi.status == KpiStatus.IN_PROGRESS
 
 
-def test_synthesize_is_stubbed_until_phase_4():
-    # Honest stub: it refuses rather than fabricating untraced claims.
+def test_promotion_records_lineage_both_ways():
+    r = _report()
+    r.publish(reviewer="Claude")
+    a = promote_report_to_article(r, surface_id="a1", title="A", author="Claude")
+    assert r.id in a.lineage.derived_from and a.id in r.lineage.produced
+
+
+# --- renderer ----------------------------------------------------------------- #
+
+def test_render_surface_is_faithful_html():
+    r = _report()
+    r.publish(reviewer="Claude")
+    html = render_surface(r)
+    assert "<!doctype html>" in html
+    assert "Published" in html and "sg-gate" in html
+    assert "--color-brand-primary" in html  # tokens embedded
+    assert r.title in html
+
+
+def test_render_does_not_leak_private_corpus():
+    corpus = Corpus(name="secret-reader", weights={"core": 0.9}, read=["x"])
+    s = Surface(id="n", template=NEWSLETTER, title="N", audience_label="a role",
+                review=Review(policy=NEWSLETTER.review_policy, author="Claude"))
+    s.publish(reviewer="Claude")
+    html = render_surface(s)
+    assert "weights" not in html and "secret-reader" not in html
+
+
+def test_render_library_lists_surfaces():
+    r = _report()
+    r.publish(reviewer="Claude")
+    html = render_library([r])
+    assert r.title in html and "The Library" in html
+
+
+def test_synthesize_is_external_stub():
+    from newsletters import synthesize
     with pytest.raises(NotImplementedError):
-        from newsletters import synthesize
-
-        synthesize(event="e", sources=["apm"], audience=Corpus.load("maintainers"))
-
-
-def test_surface_kind_round_trips():
-    assert SurfaceKind("report") is SurfaceKind.REPORT
-    surface = Surface(kind="show")
-    assert surface.kind is SurfaceKind.SHOW
+        synthesize(event="e", sources=["apm"], audience=Corpus.load("m"))
