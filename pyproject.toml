@@ -11,6 +11,7 @@ authors = [
     { name = "Nate Neibauer", email = "nneibauer044@gmail.com" },
 ]
 dependencies = [
+    "pydantic>=2",
     "pydantic-ai",
     "typer[all]",
     "sqlmodel",
@@ -35,4 +36,11 @@ python_version = "3.12"
 
 # Scripts
 [project.scripts]
-ask = "robot_parts.cli:app"
+newsletters = "newsletters.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
