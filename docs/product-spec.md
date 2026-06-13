@@ -2,9 +2,11 @@
 
 > Turn information into conversation. Conversation into action.
 
-This is the canonical description of **what** Newsletters is and does. Architecture lives in
-`architecture.md`; the visual contract in `design-system.md`; per-screen detail in
-`surfaces.md`. When code and this spec disagree, this spec wins (or you update it and say why).
+This is the canonical description of **what** Newsletters is and does. The *why beneath the
+why* — the city, the co-learning economy, what "truth" means here — lives in `vision.md`.
+Architecture lives in `architecture.md`; the visual contract in `design-system.md`; per-screen
+detail in `surfaces.md`. When code and this spec disagree, this spec wins (or you update it and
+say why).
 
 ---
 

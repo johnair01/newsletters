@@ -16,6 +16,7 @@ That is the source of truth for *what* to build. This file governs *how* we buil
 
 ## Build order — read these in sequence
 
+0. `docs/vision.md` — the north star: the city / co-learning economy, what "truth" means here.
 1. `docs/product-spec.md` — the why, the four surfaces, the publish loop, personalization.
 2. `docs/architecture.md` — the typed semantic model (Source / Distillation / Surface),
    the package API, MCP servers, the chosen tech stack.
