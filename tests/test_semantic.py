@@ -176,6 +176,31 @@ def test_render_library_lists_surfaces():
     assert r.title in html and "The Library" in html
 
 
+def test_diagram_block_renders_themeable_svg():
+    from newsletters import DiagramBlock
+    from newsletters.diagrams import two_layer
+    s = Surface(id="d", template=REPORT, title="D",
+                blocks=[DiagramBlock(title="T", svg=two_layer(), caption="c")],
+                review=Review(policy=REPORT.review_policy, author="Claude"))
+    s.publish(reviewer="Claude")
+    html = render_surface(s)
+    assert "<svg" in html and "viewBox" in html
+    # themed via tokens, not hardcoded colors
+    assert "var(--text)" in html and "#0068b5" not in two_layer()
+
+
+def test_build_surfaces_includes_plan_and_renders_all():
+    from newsletters.dogfood import build_surfaces
+    surfaces = build_surfaces()
+    ids = {s.id for s in surfaces}
+    assert "report-plan" in ids and "article-semantic-spine" in ids
+    # the plan is a Report awaiting review; the article awaits a peer
+    plan = next(s for s in surfaces if s.id == "report-plan")
+    assert plan.gate is ReviewState.IN_REVIEW
+    for s in surfaces:  # every surface renders without error
+        assert "<!doctype html>" in render_surface(s)
+
+
 def test_synthesize_is_external_stub():
     from newsletters import synthesize
     with pytest.raises(NotImplementedError):

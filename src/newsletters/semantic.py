@@ -261,6 +261,15 @@ class RationaleBlock(BaseModel):
     text: str = ""
 
 
+class DiagramBlock(BaseModel):
+    """An inline SVG diagram — renders the story visually, theming with the page."""
+
+    kind: Literal["diagram"] = "diagram"
+    title: Optional[str] = None
+    svg: str = ""
+    caption: Optional[str] = None
+
+
 Block = Annotated[
     Union[
         ProseBlock,
@@ -272,6 +281,7 @@ Block = Annotated[
         PromptBlock,
         FanoutBlock,
         RationaleBlock,
+        DiagramBlock,
     ],
     Field(discriminator="kind"),
 ]

@@ -13,9 +13,11 @@ from __future__ import annotations
 import html
 from typing import Iterable
 
+from .diagrams import fanout as _fanout_svg
 from .semantic import (
     ChaptersBlock,
     ClaimsBlock,
+    DiagramBlock,
     FanoutBlock,
     ItemsBlock,
     KpiStripBlock,
@@ -133,6 +135,10 @@ _CSS = """
 .item .bo{font-size:15px;line-height:1.6;color:var(--text);max-width:700px}
 .rationale{background:var(--color-brand-light);border-left:3px solid var(--signal);padding:18px 22px;max-width:760px}
 .rationale .h{font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--signal);margin-bottom:8px}
+.diagram{border:1px solid var(--line);border-left:3px solid var(--signal);background:var(--card);padding:24px 26px}
+.diagram svg{width:100%;height:auto;display:block;overflow:visible}
+.diagram .dh{font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--signal);margin-bottom:16px}
+.diagram figcaption{font-family:var(--font-mono);font-size:10.5px;color:var(--text-dim);margin-top:16px;letter-spacing:.03em;line-height:1.5}
 .fanout{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--line)}
 .fan-row{display:grid;grid-template-columns:120px 1fr;gap:18px;padding:14px 0;border-bottom:1px solid var(--line);align-items:baseline}
 .nl-foot{background:var(--chrome-bg);color:var(--chrome-dim);border-top:3px solid var(--color-brand-primary);padding:40px 44px;margin-top:50px;font-family:var(--font-mono);font-size:11px;letter-spacing:.04em}
@@ -268,6 +274,10 @@ def _block_html(b) -> str:
     if isinstance(b, RationaleBlock):
         h = f'<div class="h">{_e(b.heading)}</div>' if b.heading else ""
         return f'<div class="block"><div class="rationale">{h}<div class="bo">{_e(b.text)}</div></div></div>'
+    if isinstance(b, DiagramBlock):
+        h = f'<div class="dh">{_e(b.title)}</div>' if b.title else ""
+        cap = f"<figcaption>{_e(b.caption)}</figcaption>" if b.caption else ""
+        return f'<div class="block"><figure class="diagram">{h}{b.svg}{cap}</figure></div>'
     return ""
 
 
@@ -375,7 +385,11 @@ def render_library(surfaces: Iterable[Surface], *, theme: str = "light") -> str:
         '<div class="prose"><p>Every surface below is cut from the same traced, reviewed truth — '
         'built in the open as we built Newsletters itself. Reports are the investigations we '
         'approved; the Article is a lesson awaiting peer review; the Newsletter re-cuts the week '
-        'per reader; the Show records the process.</p></div></div>'
+        'per reader; the Show records the process.</p></div>'
+        '<figure class="diagram" style="margin-top:24px">'
+        '<div class="dh">How it fans out</div>' + _fanout_svg()
+        + '<figcaption>One reviewed record, four surfaces — the Newsletter re-cuts per '
+        'reader from their own private corpus.</figcaption></figure></div>'
     )
     body = f'<main class="wrap">{intro}{"".join(rows)}</main>'
     return _page(title="The Library", signal_css="var(--color-brand-primary)", body=body, active="Start here", theme=theme)

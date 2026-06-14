@@ -19,6 +19,7 @@ from .semantic import (
     Claim,
     ClaimsBlock,
     Corpus,
+    DiagramBlock,
     Distillation,
     FanoutBlock,
     FanoutLink,
@@ -61,8 +62,8 @@ __all__ = [
     "Review", "ReviewState", "Surface", "Provenance", "Lineage",
     # content blocks
     "ProseBlock", "ClaimsBlock", "KpiStripBlock", "QuoteBlock", "ItemsBlock",
-    "PromptBlock", "FanoutBlock", "RationaleBlock", "KpiItem", "Chapter", "LetterItem",
-    "FanoutLink",
+    "PromptBlock", "FanoutBlock", "RationaleBlock", "DiagramBlock", "KpiItem", "Chapter",
+    "LetterItem", "FanoutLink",
     # templates
     "SurfaceTemplate", "Cadence", "SignalColor", "AudienceScope", "ReviewPolicy",
     "SHOW", "REPORT", "ARTICLE", "NEWSLETTER", "register", "get_template", "all_templates",

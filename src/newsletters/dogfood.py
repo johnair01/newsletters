@@ -14,12 +14,14 @@ from __future__ import annotations
 from pathlib import Path
 
 from .capture import Decision, WorkSession, build_report
+from .diagrams import personalization, two_layer
 from .promote import promote_report_to_article
 from .render import render_library, render_surface
 from .semantic import (
     Claim,
     ClaimsBlock,
     Corpus,
+    DiagramBlock,
     FanoutBlock,
     FanoutLink,
     ItemsBlock,
@@ -28,6 +30,7 @@ from .semantic import (
     LetterItem,
     ProseBlock,
     PromptBlock,
+    Provenance,
     QuoteBlock,
     RationaleBlock,
     Review,
@@ -35,7 +38,7 @@ from .semantic import (
     Surface,
     Trace,
 )
-from .templates import NEWSLETTER, SHOW
+from .templates import NEWSLETTER, REPORT, SHOW
 
 AUTHOR = "Claude"
 PEER = "JJ Airuoyo"
@@ -167,6 +170,25 @@ def _sources_and_reports() -> list[Surface]:
         KpiItem(label="Surfaces unified", value="4 → 1", delta="one template", dir="up"),
         KpiItem(label="Promotions defined", value="2"),
     ]))
+    datamodel.blocks.insert(2, DiagramBlock(
+        title="The shape we settled on",
+        svg=two_layer(),
+        caption="Two layers, not five peers. Truth (Source → Claim → Distillation) is one "
+        "reviewed record; the four surfaces are presets that render it, each through the same "
+        "review gate. report / article / newsletter / show are not sibling classes — they are "
+        "parameterizations of one template.",
+    ))
+    datamodel.blocks.insert(3, ProseBlock(heading="What we considered, and why we didn't", text=(
+        "Five co-equal models (report, article, newsletter, show, claim) was the obvious "
+        "first cut — and the wrong one. It scatters the same truth across four schemas and "
+        "makes personalization, promotion, and provenance each a special case. Collapsing to "
+        "two layers makes them fall out for free: personalization is a render-time projection "
+        "of one Distillation; promotion is a typed transform between surfaces; provenance is a "
+        "field on the record, not a fifth noun.\n\n"
+        "We also weighed making the problem-solving agent part of the core. We didn't: the "
+        "agent is the one thing every operator already has and wants to keep. Drawing the "
+        "boundary at capture — not cognition — is what makes Newsletters adoptable by a "
+        "factory line, a platform team, or a solo maintainer without ripping out their tools.")))
     datamodel.blocks.append(QuoteBlock(
         text="Spend time. Write it down well. Make it traceable. That is how we get closer to "
         "where the issues are — and how the city learns.",
@@ -206,10 +228,20 @@ def _sources_and_reports() -> list[Surface]:
         "to faithful HTML so the range of what the core supports is visible, not just described.",
     )
     rev1.blocks.insert(0, KpiStripBlock(items=[
-        KpiItem(label="Core modules", value="6"),
-        KpiItem(label="Surfaces rendered", value="6"),
+        KpiItem(label="Core modules", value="7"),
+        KpiItem(label="Surfaces rendered", value="9"),
         KpiItem(label="Surface kinds", value="4", delta="from 1 template", dir="up"),
     ]))
+    rev1.blocks.insert(2, ProseBlock(heading="How it's built", text=(
+        "`templates.py` carries the four presets and a registry, so an operator adds their own "
+        "surface without touching core. `semantic.py` composes each surface from typed content "
+        "blocks — prose, claims, kpi, quote, chapters, items, prompt, fanout, rationale, and "
+        "now diagram — the blocks are the slots, and only the prose inside them is templated. "
+        "`render.py` ports tokens.css 1:1 into self-contained HTML; the diagrams are inline "
+        "SVG whose every stroke is a token, so they flip with light/dark like everything else. "
+        "`capture.py` lifts a finished session into a traced Draft Report; `promote.py` carries "
+        "the two reviewed promotions. The gate is enforced at `publish()` — the Article you are "
+        "about to peer-review literally cannot self-approve.")))
     rev1.blocks.append(PromptBlock(label="build the library", body="$ newsletters build\n"
         "rendered 6 surfaces + the library index -> content/rev1/site/"))
     rev1.blocks.append(FanoutBlock(links=[
@@ -272,6 +304,9 @@ def _newsletter_for(reader_key: str) -> Surface:
                 KpiItem(label="Reviews open", value="2", delta="1 peer", dir="up"),
             ]),
             ItemsBlock(heading="Also this week", items=items[1:]),
+            DiagramBlock(title="Why your copy differs", svg=personalization(),
+                         caption="The same reviewed record reaches every reader; only the "
+                         "emphasis is re-cut, from each reader's own private corpus."),
             QuoteBlock(text="One reviewed record, fanned out — each re-cut per reader from "
                        "their own corpus.", attr="— the signature interaction"),
             RationaleBlock(text=rationale),
@@ -325,6 +360,96 @@ def _show() -> Surface:
     return show
 
 
+def _plan_report() -> Surface:
+    """The GSD discuss → plan output, delivered as a Report JJ reviews (In Review)."""
+    roadmap = Source(id="doc-roadmap", context="docs/roadmap.md",
+                     transcript="The phased, dependency-ordered build plan (phases 0–6).")
+    phases = [
+        LetterItem(tag="phase 0 · next", title="Foundations — tokens, component kit, Next.js shell",
+                   body="Port tokens.css to :root + [data-theme=dark], self-host the three "
+                   "fonts, build the atoms (Eyebrow … GateBadge … ThemeToggle) and chrome "
+                   "(NLNav / NLFooter), wire light/dark end to end. Accept: a blank themed page "
+                   "renders in both themes with no console errors; a kitchen-sink route shows "
+                   "every component; tokens match design-system.md exactly."),
+        LetterItem(tag="phase 1", title="The Home (V1) — the approved front door",
+                   body="Build sections 1–8 of surfaces.md, the three-persona personalization "
+                   "demo with the sg-fade re-cut, and the responsive collapses. Accept: "
+                   "pixel-matches Newsletters - Home.html in both themes; renders without JS."),
+        LetterItem(tag="phase 3", title="The four surfaces, from Surface objects",
+                   body="Recreate Newsletter / Article / Report / Show in the real stack, each "
+                   "rendering from a typed Surface with a real GateBadge — our Rev1 renderer is "
+                   "the seed. Accept: matches each reference; gate is real, not hardcoded; the "
+                   "Article prints clean to PDF."),
+        LetterItem(tag="phase 4", title="The publish loop — human in the loop",
+                   body="Ingest adapters → the agentic distill() behind one swappable boundary "
+                   "→ open the draft as a real PR against /content → merge renders to the "
+                   "Library and sends per-reader. Accept: a fixture event flows end to end; no "
+                   "auto-publish path exists."),
+        LetterItem(tag="phase 5", title="Library, private corpora & MCP",
+                   body="The Hub archive; encrypted-at-rest corpora that never transmit; one "
+                   "MCP server per source system so data and corpora stay in the operator's "
+                   "environment. Accept: a corpus round-trips locally encrypted; the distiller "
+                   "reads sources only through MCP."),
+        LetterItem(tag="phase 6", title="Open-source release",
+                   body="Slot-marked templating for operator repopulation, MIT + self-host "
+                   "docs, verified no-telemetry / no-JS / WCAG AA. Accept: a fresh operator "
+                   "clones, repopulates slots, self-hosts, and publishes their first surface "
+                   "from the README alone."),
+    ]
+    claims = [
+        Claim(text="Phase 2 (the typed core) is done and green; the dependency-correct next "
+              "step is Phase 0 — tokens + component kit — so every later surface is consistent.",
+              evidence=[Trace(source_id="doc-roadmap", locator="Phase 0 / Phase 2")],
+              confidence=0.9, topics=["process", "design"]),
+        Claim(text="Phase 3 surfaces must render from Surface objects, not static copy — the "
+              "Rev1 renderer already proves this and becomes the seed.",
+              evidence=[Trace(source_id="doc-roadmap", locator="Phase 3 acceptance")],
+              confidence=0.9, topics=["core", "design"]),
+        Claim(text="Phase 4 keeps the gate load-bearing: agent drafts, PR reviews, merge "
+              "publishes — there is no auto-publish path.",
+              evidence=[Trace(source_id="doc-roadmap", locator="Phase 4 acceptance")],
+              confidence=0.95, topics=["process"]),
+        Claim(text="Every phase keeps docs in sync and holds the visual contract — flat "
+              "editorial, radius 0, the 3px accent, the three-font system.",
+              evidence=[Trace(source_id="doc-roadmap", locator="Cross-cutting")],
+              confidence=0.9, topics=["design", "process"]),
+    ]
+    plan = Surface(
+        id="report-plan", template=REPORT,
+        title="The build plan — GSD discuss → plan, phases 0–6",
+        eyebrow="Report · the plan you review",
+        byline=[AUTHOR],
+        blocks=[
+            KpiStripBlock(items=[
+                KpiItem(label="Phases", value="2 / 7", delta="core done", dir="up"),
+                KpiItem(label="Up next", value="Phase 0"),
+                KpiItem(label="Open for review", value="this plan"),
+            ]),
+            ProseBlock(text="This is the GSD discuss → plan output, delivered the way you asked "
+                       "— as a Report you fully review before any code is cut. It reads the spec "
+                       "set as the source of truth and sequences the remaining phases in "
+                       "dependency order. The typed core (Phase 2) is already done; the "
+                       "dependency-correct next move is Phase 0, the design foundation every "
+                       "later surface sits on. Approve, amend, or send it back."),
+            DiagramBlock(title="What the phases build toward", svg=two_layer(),
+                         caption="Every remaining phase serves this picture: the typed truth "
+                         "(done), the surfaces that render it (Phase 0/1/3), and the human-gated "
+                         "loop that publishes them (Phase 4+)."),
+            ItemsBlock(heading="The phases, in order", items=phases),
+            ClaimsBlock(heading="Plan claims — traced to the roadmap", claims=claims),
+            FanoutBlock(heading="On approval, this produces", links=[
+                FanoutLink(kind="report", title="Phase 0 — atomic task plan (next GSD cut)"),
+            ]),
+        ],
+        traces=[roadmap],
+        review=Review(policy=REPORT.review_policy, author=AUTHOR),
+        provenance=Provenance(tool="GSD", session_id="gsd-discuss-plan",
+                              artifacts=["docs/roadmap.md", "docs/architecture.md"]),
+    )
+    plan.open_pull_request(pr_url="(awaiting your review)")  # In Review on purpose
+    return plan
+
+
 def _article(datamodel_report: Surface) -> Surface:
     article = promote_report_to_article(
         datamodel_report,
@@ -353,10 +478,11 @@ def _article(datamodel_report: Surface) -> Surface:
 def build_surfaces() -> list[Surface]:
     """Assemble the full Rev1 surface set (ordered by distillation distance)."""
     kickoff, datamodel, rev1 = _sources_and_reports()
+    plan = _plan_report()
     article = _article(datamodel)
     show = _show()
     newsletters = [_newsletter_for(k) for k in ("jj", "nate", "newcomer")]
-    return [show, kickoff, datamodel, rev1, article, *newsletters]
+    return [show, kickoff, datamodel, rev1, plan, article, *newsletters]
 
 
 def build_site(out_dir: str | Path = "content/rev1/site") -> list[Path]:
