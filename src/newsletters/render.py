@@ -148,10 +148,11 @@ _CSS = """
 """
 
 _TOGGLE_JS = (
-    "<script>(function(){var r=document.getElementById('root');var b="
-    "document.getElementById('tg');if(!b)return;b.addEventListener('click',function(){"
-    "var d=r.getAttribute('data-theme')==='dark';r.setAttribute('data-theme',d?'light':'dark');"
-    "b.textContent=d?'\\u263e Dark':'\\u2600 Light';});})();</script>"
+    "<script>(function(){var r=document.getElementById('root'),b=document.getElementById('tg');"
+    "if(!b)return;function sync(){var dark=r.getAttribute('data-theme')==='dark';"
+    "b.textContent=dark?'\\u263e Dark':'\\u2600 Light';}sync();"
+    "b.addEventListener('click',function(){var dark=r.getAttribute('data-theme')==='dark';"
+    "r.setAttribute('data-theme',dark?'light':'dark');sync();});})();</script>"
 )
 
 _NAV_ITEMS = [("Start here", "index.html"), ("Newsletters", None), ("Articles", None), ("The Show", None)]
@@ -270,16 +271,19 @@ def _block_html(b) -> str:
     return ""
 
 
-def _nav(active: str) -> str:
+def _nav(active: str, theme: str = "light") -> str:
     links = "".join(
         f'<a href="{href or "index.html"}" class="{"active" if label == active else ""}">{label}</a>'
         for label, href in _NAV_ITEMS
     )
+    # Label reflects the CURRENT theme (sun = light, moon = dark); JS keeps it in sync on
+    # toggle, and this static default is correct even with JavaScript disabled.
+    label = "&#9790; Dark" if theme == "dark" else "&#9728; Light"
     return (
         '<nav class="nl-nav"><div class="nl-brand">Newsletters '
         '<span class="sub">working in the open</span></div>'
         f'<div class="nl-links">{links}</div>'
-        '<button class="nl-toggle" id="tg">&#9728; Light</button></nav>'
+        f'<button class="nl-toggle" id="tg">{label}</button></nav>'
     )
 
 
@@ -299,7 +303,7 @@ def _page(*, title: str, signal_css: str, body: str, active: str, theme: str = "
         f'<meta name=viewport content="width=device-width,initial-scale=1">'
         f"<title>{_e(title)} — Newsletters</title><style>{_CSS}</style></head><body>"
         f'<div class="signals" id="root" data-theme="{theme}" style="--signal:{signal_css}">'
-        f"{_nav(active)}{body}{_footer()}</div>{_TOGGLE_JS}</body></html>"
+        f"{_nav(active, theme)}{body}{_footer()}</div>{_TOGGLE_JS}</body></html>"
     )
 
 
