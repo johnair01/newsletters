@@ -429,22 +429,27 @@ def assert_conforms(backend: DistillPort, sources: list[Source]) -> Distillation
 | A5 | The Phase-1 faithfulness default should be the traced-claim structural check (not span-containment) | Pattern 5 | Low — Phase 3 (PROV-02) owns span-containment; Phase 1 only needs a live, injectable, deterministic seam. |
 | A6 | The project's larger `core/` re-layout from ARCHITECTURE.md should NOT happen in Phase 1 | Recommended Project Structure | Low — minimizing churn protects the merged spine; the re-layout can be a dedicated later refactor. |
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+*All three questions were resolved during Phase-1 planning (plan-check, 2026-06-14). Resolutions are encoded in `SKELETON.md` and the plans.*
 
 1. **`DistillationResult` wrapper vs. `coverage` field on `Distillation`.**
    - What we know: D-05 wants `unextracted[]` distinct from `missing[]`; `Distillation` already has `missing[]`.
    - What's unclear: Whether to keep `Distillation` immutable-in-shape (wrapper) or extend it (field).
    - Recommendation: Wrapper (`DistillationResult`) to protect Rev1 stability; confirm in plan-check.
+   - **RESOLVED:** `DistillationResult` wrapper (existing `Distillation` + new `Coverage` manifest). Encoded in `SKELETON.md` and `01-01-PLAN.md` (Task 2) — keeps the Rev1 `Distillation` shape stable.
 
 2. **The `distill(sources)` signature vs. the by-hand richer input.**
    - What we know: SOCK-01 fixes `distill(sources) -> Distillation`; the manual modality needs `Decision[]`.
    - What's unclear: Constructor-inject the session vs. widen the input to a `DistillInput`.
    - Recommendation: Constructor injection for Phase 1 (signature-exact); revisit if/when adapter phases need a uniform input.
+   - **RESOLVED:** Constructor injection of the `WorkSession` into `ManualBackend`, keeping `distill(sources)` signature-exact (SOCK-01). Encoded in `01-01-PLAN.md` (Task 3).
 
 3. **Does `synthesize()` get rewired to the registry now, or stay a stub?**
    - What we know: `synthesize()` raises `NotImplementedError` and `test_synthesize_is_external_stub` asserts that.
    - What's unclear: Whether Phase 1 should make `synthesize()` resolve a backend (which would break that test) or leave it untouched.
    - Recommendation: Leave `synthesize()` as the external/AI stub; expose the socket via the new `distill/` API and a possible `distill(sources, backend="manual")` convenience. Keep the existing test green. Decide in plan-check.
+   - **RESOLVED:** Leave `synthesize()` untouched as the external/AI stub (`test_synthesize_is_external_stub` stays green); the socket is exposed via the new `newsletters.distill` API. Encoded in `SKELETON.md` and `01-01-PLAN.md`.
 
 ## Environment Availability
 
