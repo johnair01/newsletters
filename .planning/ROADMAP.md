@@ -48,7 +48,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. An operator can author claims+traces by hand via the manual backend and emit a valid `Distillation` with zero AI dependencies
   3. Any backend reports a coverage manifest with an explicit `unextracted[]` list, so no content is silently dropped
   4. A conformance suite runs against any registered backend and fails it if traces are missing, coverage is unreported, or the faithfulness contract is violated
-**Plans**: TBD
+**Plans**: 2 plans (2 waves)
+Plans:
+- [ ] 01-01-PLAN.md — Walking skeleton: DistillPort + registry + ManualBackend + Coverage/Locator contract, end-to-end through the socket with zero AI (SOCK-01..04, D-04, D-06)
+- [ ] 01-02-PLAN.md — Conformance suite (SOCK-05) + the no-auto-publish / AI-optional hard rules proven by test; injectable faithfulness seam
 
 ### Phase 2: AI-Optional Packaging Boundary
 **Goal**: Make the deterministic spine ship with zero AI dependencies, and turn that property into a standing CI invariant that every subsequent phase must keep green.
@@ -189,7 +192,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Distill Socket Contract | 0/TBD | Not started | - |
+| 1. Distill Socket Contract | 0/2 | Planned | - |
 | 2. AI-Optional Packaging Boundary | 0/TBD | Not started | - |
 | 3. Content-Addressed Provenance & Faithfulness Gate | 0/TBD | Not started | - |
 | 4. Shared Adapter Normalizer & Email Adapter | 0/TBD | Not started | - |
