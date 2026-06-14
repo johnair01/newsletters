@@ -20,6 +20,26 @@ surfaces where every claim traces to its evidence and nothing publishes without 
 deterministic, auditable trust layer is what makes that legibility *believable*; AI is an optional
 accelerator, never an authority. If everything else fails, *this* must hold.
 
+## How it's used
+
+One engine, every context: **Sources → Report (reviewed) → Article (peer-reviewed) → Newsletter
+(audience-cut)** — each arrow a human-gated promotion. Sources span emails, chats, M365
+transcripts/summaries, SQL, PowerPoints, code, and **live interviews**. The robots are
+**interviewers** — they interview you, your work, and your codebase — and run **low-token by
+default** (cheapest models; format consistency keeps extraction cheap). Distill is **generic**, not
+template-specific.
+
+| Context | Report (reviewed) | → Article (peer-reviewed) | → Newsletter |
+|---|---|---|---|
+| Work — quality event | investigation → filled template-report; engine finds gaps, interviews you | faithful event article, reviewed by your boss | rolls into the weekly |
+| Work — weeklies | per **swim lane** (its KPIs/topics): robots pull emails/M365/SQL; stream owner reviews | swim-lane weekly summary | your weekly, cut across all swim lanes |
+| Work — interns | interns interview people, find bottlenecks → validated reports | good ideas promoted up | shared up the org |
+| PulseIQ | interviews + code/business changes → tracked reports | victories / losses / decisions | team newsletter |
+| Newsletters itself | choices, growth, adoption → reports | the decisions | the open build story |
+
+An Article can also explain an **artifact** (e.g., a code file) in human terms — the robot deciding
+what matters.
+
 ## Requirements
 
 ### Validated
@@ -64,10 +84,11 @@ accelerator, never an authority. If everything else fails, *this* must hold.
 - **Versioning vs phases.** "V2 / V3" are *product lines* (V2 = this open-source Newsletters; V3 =
   PulseIQ, private). The GSD 12-phase roadmap is the *current build of V2* — a different axis from
   the product-line versions; don't conflate them.
-- **Usage narrative.** A token-constrained team lead does real work, captures the artifacts it
-  produces (PowerPoint / Power BI / Excel / Email / decisions), **designs the target surface first
-  then gathers the data**, distils (often by hand) into traced claims, reviews via PR, and
-  publishes a Library that shows how the work was done — for teammates, stakeholders, and newcomers.
+- **Usage narrative.** See **How it's used** above. In short: a token-constrained lead's real work
+  (PowerPoints, email, M365, SQL, code, interviews) is gathered **low-token and generically** into
+  traced Reports, promoted through peer review to Articles and Newsletters — a Library that shows how
+  the work was done, for teammates, stakeholders, and newcomers. **Design the surface first, then
+  gather the data.**
 - **Prior art:** Onyx/Danswer & RAGFlow (private ingest), GenProve/Valsci/sciwrite-lint (claim
   provenance, science-focused), listmonk/Keila (delivery). No OSS does the integrated whole — that
   gap is the opportunity.
@@ -93,6 +114,9 @@ accelerator, never an authority. If everything else fails, *this* must hold.
 | Design the surface first, then gather data | Decide what the artifact should look like, then go find the inputs | — Pending |
 | Learning/onboarding is a first-class surface | Teaching newcomers / training cohorts is a primary use, not an afterthought | — Pending |
 | Connection/relationship view — parked | "Make sense of how things connect" is real but deferred until after core V2 | — Pending |
+| Low-token, generic extraction (not no-AI, not per-template) | Cheapest models + format consistency; manual is the floor | — Pending |
+| Agents are interviewers (a distill modality) | Interview you / your work / your codebase to fill gaps faithfully | — Pending |
+| Promotion chain Report → Article → Newsletter is the spine | Each human-gated; the real-world shape of the model's promotions | — Pending |
 
 ## Evolution
 

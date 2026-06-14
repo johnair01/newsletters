@@ -20,7 +20,9 @@
   (needs a planning-research cycle). The work-surface interview (real content for Phase 11) hasn't
   happened. The Home 8-section spec needs confirming in writing before Phase 9.
 
-**Next step:** `/gsd-discuss-phase 1` (socket contract) — or the work-surface interview first.
+**Next step:** `/gsd-plan-phase 1` — Phase-1 discuss is complete (engine, five contexts, and the
+three distill modalities captured in `01-CONTEXT.md`). The `DistillPort` exact Python shape stays
+`[OPEN]` for the planning-research cycle.
 
 ## The truths (load-bearing — break one, it's a conversation, not a commit)
 
@@ -29,7 +31,9 @@
 2. **AI is optional, never an authority.** The deterministic spine runs with zero AI; AI is a
    swappable backend behind one boundary.
 3. **Faithful, not suggestive.** Distil extracts and traces; it never editorialises.
-4. **Manual-first.** A token-constrained human authoring by hand is the primary user, not a fallback.
+4. **Low-token & generic by default.** Cheapest models; format consistency is the lever that keeps
+   extraction cheap; manual authoring is the floor. **Agents are interviewers** — of you, your work,
+   your codebase. (Refined 2026-06-14 from "manual-first": there *is* AI at work, just budgeted.)
 5. **Teaching build.** Understanding the *why* is the bar; "it works" is not.
 
 ## Decisions, and why (teaching log — decide once, don't re-litigate)
@@ -48,3 +52,11 @@
   discipline layered on GSD (verify each subagent against the live repo; one dependent change at a time).
 - **Design the surface first, then hunt the data** — decide what the artifact should look like, then
   go find the inputs.
+- **The engine is one promotion chain** — Sources → Report → Article → Newsletter, each human-gated.
+  Grounded in five worked contexts (work quality-events, work weeklies-by-swim-lane, interns, PulseIQ,
+  Newsletters itself). See `PROJECT.md` → How it's used.
+- **The distill socket has three modalities** — author by hand / generic low-token extraction /
+  agentic interview — all emitting one reviewed `Distillation` (Phase-1 decision; see
+  `.planning/phases/01-distill-socket-contract/01-CONTEXT.md`).
+- **Generic, not template-specific** — extraction handles formats (PowerPoint, email, …) generically;
+  no bespoke per-report parsers.
