@@ -175,3 +175,9 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# GSD ships its CLI under .claude/**/lib/ (gsd-core/bin/lib, hooks/lib, scripts/lib).
+# The generic `lib/` ignore above (Python venv convention) would otherwise swallow it,
+# leaving fresh clones with a broken `gsd-tools.cjs` (missing ./lib/*.cjs). Keep it tracked.
+!.claude/**/lib/
+!.claude/**/lib/**
