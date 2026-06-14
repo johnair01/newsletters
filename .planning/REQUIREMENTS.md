@@ -79,16 +79,44 @@
 
 ## Traceability
 
-Populated during roadmap creation.
+Mapped during roadmap creation (2026-06-14). Every v1 requirement maps to exactly one phase.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (to be mapped by roadmapper) | — | Pending |
+| SOCK-01 | Phase 1 — Distill Socket Contract | Pending |
+| SOCK-02 | Phase 1 — Distill Socket Contract | Pending |
+| SOCK-03 | Phase 1 — Distill Socket Contract | Pending |
+| SOCK-04 | Phase 1 — Distill Socket Contract | Pending |
+| SOCK-05 | Phase 1 — Distill Socket Contract | Pending |
+| PKG-01 | Phase 2 — AI-Optional Packaging Boundary | Pending |
+| PKG-02 | Phase 2 — AI-Optional Packaging Boundary | Pending |
+| PKG-03 | Phase 2 — AI-Optional Packaging Boundary | Pending |
+| PKG-04 | Phase 2 — AI-Optional Packaging Boundary | Pending |
+| PROV-01 | Phase 3 — Content-Addressed Provenance & Faithfulness Gate | Pending |
+| PROV-02 | Phase 3 — Content-Addressed Provenance & Faithfulness Gate | Pending |
+| ADAPT-01 | Phase 4 — Shared Adapter Normalizer & Email Adapter | Pending |
+| ADAPT-02 | Phase 4 — Shared Adapter Normalizer & Email Adapter | Pending |
+| ADAPT-06 | Phase 4 — Shared Adapter Normalizer & Email Adapter | Pending |
+| ADAPT-03 | Phase 5 — Excel Adapter | Pending |
+| ADAPT-04 | Phase 6 — PowerPoint Adapter | Pending |
+| ADAPT-05 | Phase 7 — Power BI Adapter | Pending |
+| SITE-01 | Phase 8 — Site Content Model & Stable IDs | Pending |
+| SITE-02 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Pending |
+| SITE-03 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Pending |
+| SITE-04 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Pending |
+| SITE-05 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Pending |
+| SITE-06 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Pending |
+| PROV-03 | Phase 10 — Reviewer Surfacing & Merge-Block Gate | Pending |
+| PROV-04 | Phase 10 — Reviewer Surfacing & Merge-Block Gate | Pending |
+| WORK-01 | Phase 11 — Work-Surface Installation | Pending |
+| WORK-02 | Phase 11 — Work-Surface Installation | Pending |
+| WORK-03 | Phase 11 — Work-Surface Installation | Pending |
 
 **Coverage:**
 - v1 requirements: 28 total
-- Mapped to phases: 0 (pending roadmap)
+- Mapped to phases: 28/28 (100%) — no orphans, no duplicates
+- v2 deferred: AI-01, AI-02 (AI backend track); PERS-01 (V3 config hook only)
 
 ---
 *Requirements defined: 2026-06-14*
-*Last updated: 2026-06-14 after initialization*
+*Last updated: 2026-06-14 after roadmap traceability mapping*

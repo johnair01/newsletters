@@ -1,0 +1,188 @@
+# Roadmap: Newsletters (Rev2)
+
+## Overview
+
+Rev2 operationalises the validated Rev1 spine (`Source/Claim/Trace/Distillation/Surface`, deterministic
+capture, review gate, HTML renderer — already merged on this branch) into a formally-defined,
+backend-agnostic trust pipeline. The journey: first lock the **distill socket contract** (the one
+boundary that gates every backend — coverage manifest, content-addressed traces, entailment gate,
+conformance suite) and stand up the **AI-optional packaging invariant** so the deterministic spine
+ships with zero AI deps from day one. With the contract fixed, two tracks open in parallel — the
+**Rev2 site/renderer** (depends only on type shapes) and the **format adapters** (Email → Excel →
+PPTX → Power BI, ascending complexity). Provenance surfacing and the merge-blocking CI gate close the
+human-review loop, and finally the **work-surface installation** proves the whole thing on a real
+codebase. AI backend (v2: AI-01/02) is explicitly out of v1 scope — the deterministic backends are
+proven first; AI conforms to them later, never the reverse.
+
+## Phases
+
+**Phase Numbering:**
+- Integer phases (1, 2, 3): Planned milestone work
+- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+
+Decimal phases appear between their surrounding integers in numeric order.
+
+- [ ] **Phase 1: Distill Socket Contract** - One `DistillPort` with coverage manifest, conformance suite, and manual backend
+- [ ] **Phase 2: AI-Optional Packaging Boundary** - Bare `pip install .` runs the full spine with zero AI deps, CI-enforced every phase
+- [ ] **Phase 3: Content-Addressed Provenance & Faithfulness Gate** - Traces pin content hashes; every claim entailed by its evidence span
+- [ ] **Phase 4: Shared Adapter Normalizer & Email Adapter** - One faithful-extraction rule; first stdlib adapter end-to-end
+- [ ] **Phase 5: Excel Adapter** - openpyxl cell/sheet extraction with formula-cache gaps routed to `unextracted[]`
+- [ ] **Phase 6: PowerPoint Adapter** - python-pptx slide/shape extraction reporting unreadable shapes
+- [ ] **Phase 7: Power BI Adapter** - PBIP/TMDL text extraction reporting row-cap and aggregation limits
+- [ ] **Phase 8: Site Content Model & Stable IDs** - `Site/Collection/Page` with position-independent per-surface IDs
+- [ ] **Phase 9: Rev2 Site IA, Navigation & Source Links** - Real Home, Library status-board, four-destination nav, working source links
+- [ ] **Phase 10: Reviewer Surfacing & Merge-Block Gate** - `missing[]`/`unextracted[]` shown on every surface; CI blocks unsafe merges
+- [ ] **Phase 11: Work-Surface Installation** - Install on a real codebase, author Reports by hand, Library shows how the work was done
+
+## Phase Details
+
+### Phase 1: Distill Socket Contract
+**Goal**: Establish the one backend boundary every distill backend speaks through — including the coverage manifest, the conformance suite, and a working manual backend that proves the socket end-to-end with zero AI.
+**Mode:** mvp
+**Depends on**: Nothing (Rev1 spine is present/merged on this branch)
+**Requirements**: SOCK-01, SOCK-02, SOCK-03, SOCK-04, SOCK-05
+**Success Criteria** (what must be TRUE):
+  1. An operator can register a distill backend by name and run `distill(sources) -> Distillation` without the pipeline knowing which backend produced the result
+  2. An operator can author claims+traces by hand via the manual backend and emit a valid `Distillation` with zero AI dependencies
+  3. Any backend reports a coverage manifest with an explicit `unextracted[]` list, so no content is silently dropped
+  4. A conformance suite runs against any registered backend and fails it if traces are missing, coverage is unreported, or the faithfulness contract is violated
+**Plans**: TBD
+
+### Phase 2: AI-Optional Packaging Boundary
+**Goal**: Make the deterministic spine ship with zero AI dependencies, and turn that property into a standing CI invariant that every subsequent phase must keep green.
+**Mode:** mvp
+**Depends on**: Phase 1
+**Requirements**: PKG-01, PKG-02, PKG-03, PKG-04
+**Success Criteria** (what must be TRUE):
+  1. `pip install .` with no extras installs a fully working pipeline that runs capture → review → render end-to-end with zero AI dependencies
+  2. All AI/LLM dependencies live behind an `[ai]` extra and are lazy-imported only inside the AI backend module
+  3. A CI gate runs the full pipeline on a bare (no-extras) install and fails if any AI import is reachable from core
+  4. An import-linter contract forbids `core` from importing any AI package, and CI enforces it
+**Plans**: TBD
+
+### Phase 3: Content-Addressed Provenance & Faithfulness Gate
+**Goal**: Make traces resistant to source drift and make unfaithful claims structurally unable to pass as audited — content-address every trace and enforce entailment at the socket boundary for all backends.
+**Mode:** mvp
+**Depends on**: Phase 1
+**Requirements**: PROV-01, PROV-02
+**Success Criteria** (what must be TRUE):
+  1. Every claim's `Trace` is content-addressed (hash + offset + verbatim span), not positional, so editing a source flips dependent claims to STALE instead of silently mis-attributing
+  2. A faithfulness gate verifies each emitted claim is entailed by its traced evidence span, using deterministic span-containment in no-AI mode
+  3. A claim whose text cannot be located in or entailed by its own trace is routed to `missing[]`, never surfaced as a fact
+**Plans**: TBD
+
+### Phase 4: Shared Adapter Normalizer & Email Adapter
+**Goal**: Put the faithful-extraction rule in exactly one place (the shared normalizer) and prove it with the first, simplest adapter — Email, stdlib-only, no extra.
+**Mode:** mvp
+**Depends on**: Phase 1, Phase 3
+**Requirements**: ADAPT-01, ADAPT-02, ADAPT-06
+**Success Criteria** (what must be TRUE):
+  1. A shared `normalize()` step converts any adapter's raw extraction into typed `Claim(+Trace)` with source locators, and the faithful-extraction rule lives in exactly one place
+  2. The Email adapter extracts structured content from `.eml` into `Claim(+Trace)` and reports unextracted parts (forwarded `message/rfc822`, charset-fallback losses) in `unextracted[]`
+  3. A golden-file test (fixture `.eml` → expected typed claims+traces) covers the Email adapter and asserts zero silent drops
+**Plans**: TBD
+
+### Phase 5: Excel Adapter
+**Goal**: Extract cell and sheet structure from workbooks via openpyxl, routing every value openpyxl cannot resolve to `unextracted[]` rather than emitting it as data.
+**Mode:** mvp
+**Depends on**: Phase 4
+**Requirements**: ADAPT-03
+**Success Criteria** (what must be TRUE):
+  1. The Excel adapter extracts cell/sheet structure into `Claim(+Trace)` with `sheet!cell` locators
+  2. Uncomputed / `None` formula cells (openpyxl-saved-without-cache) are routed to `unextracted[]`, never emitted as `0` or empty data
+  3. A golden-file test covers the Excel adapter against a fixture containing formulas and merged cells, asserting zero silent drops
+**Plans**: TBD
+
+### Phase 6: PowerPoint Adapter
+**Goal**: Extract slide and shape text from decks via python-pptx, explicitly reporting the shapes the high-level API cannot read.
+**Mode:** mvp
+**Depends on**: Phase 4
+**Requirements**: ADAPT-04
+**Success Criteria** (what must be TRUE):
+  1. The PowerPoint adapter extracts slide/shape text into `Claim(+Trace)` with slide/shape locators
+  2. Shapes the adapter cannot read (e.g. SmartArt, grouped shapes) are reported in `unextracted[]`, so the reviewer sees the slide had content the extractor skipped
+  3. A golden-file test covers the PowerPoint adapter against a fixture containing SmartArt and grouped shapes, asserting zero silent drops
+**Plans**: TBD
+
+### Phase 7: Power BI Adapter
+**Goal**: Extract from Power BI PBIP/TMDL text (with a pbixray binary fallback), reporting the row-cap and aggregation limits that make an export look complete when it is a clipped aggregate.
+**Mode:** mvp
+**Depends on**: Phase 4
+**Requirements**: ADAPT-05
+**Success Criteria** (what must be TRUE):
+  1. The Power BI adapter extracts from PBIP/TMDL text (stdlib) into `Claim(+Trace)`, with a pbixray fallback for binary `.pbix`
+  2. Row-cap hits and summarized-vs-underlying aggregation limits are reported in `unextracted[]`, failing loud rather than presenting a clipped aggregate as complete
+  3. A golden-file test covers the Power BI adapter against a fixture, asserting zero silent drops
+**Plans**: TBD
+
+### Phase 8: Site Content Model & Stable IDs
+**Goal**: Replace position-derived numbering with a `Site/Collection/Page` content model that carries stable per-surface IDs, so links and boards stop rotting when content reorders.
+**Mode:** mvp
+**Depends on**: Phase 1
+**Requirements**: SITE-01
+**Success Criteria** (what must be TRUE):
+  1. The `Site/Collection/Page` content model carries stable per-surface IDs (`EP01`, `R-001`, slug, issue/date) generated from content, independent of list position
+  2. Inserting or reordering surfaces does not change any existing surface's ID or break its cross-links
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 9: Rev2 Site IA, Navigation & Source Links
+**Goal**: Fix the deployed site's information architecture — a real marketing Home separate from a Library status-board, four real nav destinations with breadcrumbs, and every cited source rendered as a working link — all regenerated from templates.
+**Mode:** mvp
+**Depends on**: Phase 8
+**Requirements**: SITE-02, SITE-03, SITE-04, SITE-05, SITE-06
+**Success Criteria** (what must be TRUE):
+  1. The front door is the real marketing Home (8-section spec) and the archive is a separate Library page
+  2. The Library renders as a status board with columns by gate state (Draft / In Review / Published) using CSS columns, no JS
+  3. Global navigation resolves to four real destinations with breadcrumbs and prev/next within a surface type
+  4. The fan-out diagram and every cited source render as working links (e.g. `vision.md` → repo file)
+  5. All site output regenerates from the renderer/templates with no hand-edited HTML
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 10: Reviewer Surfacing & Merge-Block Gate
+**Goal**: Make the human review gate real rather than a rubber stamp — surface every `missing[]` and `unextracted[]` item on every surface, and block merge in CI while any claim is STALE, un-entailed, or has open gaps.
+**Mode:** mvp
+**Depends on**: Phase 3, Phase 9
+**Requirements**: PROV-03, PROV-04
+**Success Criteria** (what must be TRUE):
+  1. `missing[]` and `unextracted[]` are surfaced to the reviewer on every surface, never hidden
+  2. CI blocks merge of any surface containing a STALE, un-entailed, or open-`missing[]` claim
+  3. The review view shows each claim next to its verbatim trace by default, so the unfaithful thing is visible without a click
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 11: Work-Surface Installation
+**Goal**: Prove the whole pipeline on a real work codebase — install Newsletters, point read-only adapters at the code with data staying local, author a Report by hand, and publish a Library that shows how the work was done.
+**Mode:** mvp
+**Depends on**: Phase 4, Phase 10
+**Requirements**: WORK-01, WORK-02, WORK-03
+**Success Criteria** (what must be TRUE):
+  1. An operator can `pip install` Newsletters and point read-only adapters at a work codebase with all data staying local (no external calls on content)
+  2. An operator can author a Report by hand via the manual backend and have it inherit the traced structure
+  3. The published Library shows how the work was done, with process visible via Provenance/Lineage on each surface
+**Plans**: TBD
+**UI hint**: yes
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11
+
+Phases 8–9 (site track) depend only on Phase 1 type shapes and may proceed in parallel with the
+adapter track (Phases 4–7) once the socket contract is fixed. Phases 2 (PKG-03/04) and the PROV-04
+merge-block gate (Phase 10) establish standing CI invariants verified on every subsequent phase.
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. Distill Socket Contract | 0/TBD | Not started | - |
+| 2. AI-Optional Packaging Boundary | 0/TBD | Not started | - |
+| 3. Content-Addressed Provenance & Faithfulness Gate | 0/TBD | Not started | - |
+| 4. Shared Adapter Normalizer & Email Adapter | 0/TBD | Not started | - |
+| 5. Excel Adapter | 0/TBD | Not started | - |
+| 6. PowerPoint Adapter | 0/TBD | Not started | - |
+| 7. Power BI Adapter | 0/TBD | Not started | - |
+| 8. Site Content Model & Stable IDs | 0/TBD | Not started | - |
+| 9. Rev2 Site IA, Navigation & Source Links | 0/TBD | Not started | - |
+| 10. Reviewer Surfacing & Merge-Block Gate | 0/TBD | Not started | - |
+| 11. Work-Surface Installation | 0/TBD | Not started | - |
