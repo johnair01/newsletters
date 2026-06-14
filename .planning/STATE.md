@@ -2,7 +2,7 @@
 gsd_state_version: '1.0'  # placeholder; syncStateFrontmatter overwrites on first state.* call
 status: planning
 progress:
-  total_phases: 11
+  total_phases: 12
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,10 +20,10 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 
 ## Current Position
 
-Phase: 1 of 11 (Distill Socket Contract)
+Phase: 1 of 12 (Distill Socket Contract)
 Plan: 0 of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-06-14 — Roadmap created (11 phases, 28/28 v1 requirements mapped)
+Last activity: 2026-06-14 — Intent re-read: added learning surface (Phase 12, LEARN-01..03), parked connections (CONN-01), reframed purpose. Now 12 phases, 31/31 v1 requirements mapped.
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -58,6 +58,9 @@ Recent decisions affecting current work:
 - [Roadmap]: Site track (Phases 8–9) depends only on Phase 1 type shapes — may run in parallel with the adapter track (Phases 4–7).
 - [Roadmap]: Format adapters built in ascending complexity — Email → Excel → PPTX → Power BI.
 - [Roadmap]: AI backend (v2: AI-01/02) is out of v1 scope; deterministic backends proven first, AI conforms later.
+- [Intent review]: Learning/onboarding is a first-class V2 surface (Phase 12, LEARN-01..03) — teaching newcomers/training cohorts by re-cutting reviewed records.
+- [Intent review]: A connection/relationship map (CONN-01) is parked — a real direction, revisit after core V2.
+- [Intent review]: PROJECT.md reframed to lead with purpose (information→conversation→action; legible/transparent/digestible work), with auditability as the load-bearing constraint.
 
 ### Pending Todos
 
@@ -82,6 +85,7 @@ Items acknowledged and carried forward from previous milestone close:
 |----------|------|--------|-------------|
 | v2 scope | AI backend (AI-01) + claim-level evidence UX (AI-02) | Deferred | Roadmap (out of v1) |
 | v3 scope | Per-reader personalization (PERS-01) — config hook only; learning engine is V3 PulseIQ | Out of scope | Roadmap |
+| candidate | Connection/relationship map (CONN-01) — show how records/claims/surfaces connect | Parked | Intent review |
 
 ## Session Continuity
 

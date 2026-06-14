@@ -11,7 +11,8 @@ ships with zero AI deps from day one. With the contract fixed, two tracks open i
 **Rev2 site/renderer** (depends only on type shapes) and the **format adapters** (Email → Excel →
 PPTX → Power BI, ascending complexity). Provenance surfacing and the merge-blocking CI gate close the
 human-review loop, and finally the **work-surface installation** proves the whole thing on a real
-codebase. AI backend (v2: AI-01/02) is explicitly out of v1 scope — the deterministic backends are
+codebase, and a first-class **learning/onboarding surface** re-cuts reviewed records for newcomers
+and training cohorts. AI backend (v2: AI-01/02) is explicitly out of v1 scope — the deterministic backends are
 proven first; AI conforms to them later, never the reverse.
 
 ## Phases
@@ -33,6 +34,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 9: Rev2 Site IA, Navigation & Source Links** - Real Home, Library status-board, four-destination nav, working source links
 - [ ] **Phase 10: Reviewer Surfacing & Merge-Block Gate** - `missing[]`/`unextracted[]` shown on every surface; CI blocks unsafe merges
 - [ ] **Phase 11: Work-Surface Installation** - Install on a real codebase, author Reports by hand, Library shows how the work was done
+- [ ] **Phase 12: Learning & Onboarding Surface** - A first-class surface that re-cuts reviewed records for newcomers and training cohorts — digestible, traceable, sequenced
 
 ## Phase Details
 
@@ -164,10 +166,22 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: TBD
 **UI hint**: yes
 
+### Phase 12: Learning & Onboarding Surface
+**Goal**: Add a first-class learning/onboarding surface that re-cuts reviewed records for newcomers and training-program participants — progressive disclosure, traceable concepts, and ordered onboarding paths — making org/codebase knowledge digestible to people new to it.
+**Mode:** mvp
+**Depends on**: Phase 8, Phase 9
+**Requirements**: LEARN-01, LEARN-02, LEARN-03
+**Success Criteria** (what must be TRUE):
+  1. A Learning/Onboarding surface preset re-cuts a reviewed record for a newcomer audience with progressive disclosure, prerequisite context, and an in-context glossary
+  2. Every concept on the surface links back to its source record/claim, so a learner can trace explanation → evidence
+  3. An onboarding path sequences multiple records into an ordered learning track for a new team member / training cohort
+**Plans**: TBD
+**UI hint**: yes
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12
 
 Phases 8–9 (site track) depend only on Phase 1 type shapes and may proceed in parallel with the
 adapter track (Phases 4–7) once the socket contract is fixed. Phases 2 (PKG-03/04) and the PROV-04
@@ -186,3 +200,4 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 9. Rev2 Site IA, Navigation & Source Links | 0/TBD | Not started | - |
 | 10. Reviewer Surfacing & Merge-Block Gate | 0/TBD | Not started | - |
 | 11. Work-Surface Installation | 0/TBD | Not started | - |
+| 12. Learning & Onboarding Surface | 0/TBD | Not started | - |

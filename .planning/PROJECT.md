@@ -2,16 +2,23 @@
 
 ## What This Is
 
-Newsletters is an open-source framework for **semantic information distillation**: it turns one
-reviewed, evidence-traced record into multiple audience-specific communication surfaces (report,
-article, newsletter, recorded show). It is for teams that need to collect, structure, and present
-what they know — faithfully and auditably — to the right reader at the right time.
+Newsletters makes how work gets done **legible** — it turns the messy record of an organization or
+codebase into clear, audience-specific stories people can read, trust, and act on. One reviewed,
+evidence-traced record fans out into audience-tuned surfaces (report, article, newsletter, recorded
+show, and a learning/onboarding surface for newcomers). The aim: **turn information into
+conversation, and conversation into action** — work made transparent, digestible, and traceable to
+its sources.
+
+Mechanically it is a typed distillation pipeline (`Source → Claim(+Trace) → Distillation → Surface`)
+with claim-level provenance and a human review gate. But the pipeline is the means; **sense-making
+for people is the point.**
 
 ## Core Value
 
-**The trust-and-publish layer is the product.** A deterministic, auditable pipeline that traces
-every published claim to evidence and never auto-publishes — AI is an optional accelerator, never
-an authority. If everything else fails, *this* must hold.
+**Make work legible and trustworthy to people** — distil what happened into clear, audience-tuned
+surfaces where every claim traces to its evidence and nothing publishes without a human. The
+deterministic, auditable trust layer is what makes that legibility *believable*; AI is an optional
+accelerator, never an authority. If everything else fails, *this* must hold.
 
 ## Requirements
 
@@ -36,6 +43,7 @@ an authority. If everything else fails, *this* must hold.
 - [ ] Enforce **faithful, not suggestive** extraction (extract + trace, never editorialize)
 - [ ] **Rev2 site fix** in the renderer/templates: split real Home from a Library status-board; real navigation; per-surface IDs; traceable source links
 - [ ] **Work-surface installation**: install on a real work codebase; author Reports by hand; the Library shows how the work was done
+- [ ] **Learning / onboarding surface**: re-cut reviewed records for newcomers and training cohorts — digestible, traceable, sequenced
 
 ### Out of Scope
 
@@ -53,6 +61,13 @@ an authority. If everything else fails, *this* must hold.
 - **Open-core trajectory.** V2 = this open-source framework (speed-first, the industry play). V3 =
   PulseIQ, a private layer that learns over runs from captured usage ("manage by usage, not heavy
   reasoning"). V3 is documented here only as a boundary.
+- **Versioning vs phases.** "V2 / V3" are *product lines* (V2 = this open-source Newsletters; V3 =
+  PulseIQ, private). The GSD 12-phase roadmap is the *current build of V2* — a different axis from
+  the product-line versions; don't conflate them.
+- **Usage narrative.** A token-constrained team lead does real work, captures the artifacts it
+  produces (PowerPoint / Power BI / Excel / Email / decisions), **designs the target surface first
+  then gathers the data**, distils (often by hand) into traced claims, reviews via PR, and
+  publishes a Library that shows how the work was done — for teammates, stakeholders, and newcomers.
 - **Prior art:** Onyx/Danswer & RAGFlow (private ingest), GenProve/Valsci/sciwrite-lint (claim
   provenance, science-focused), listmonk/Keila (delivery). No OSS does the integrated whole — that
   gap is the opportunity.
@@ -75,6 +90,9 @@ an authority. If everything else fails, *this* must hold.
 | Format adapters first (PPT/Power BI/Excel/Email) | Deterministic, low-token; pulls structure already in the file | — Pending |
 | Faithful, not suggestive | Editorializing breaks auditability; emphasis is the human's job | — Pending |
 | Open-core: V2 Newsletters / V3 PulseIQ | Give away the trust framework, keep the learning engine | — Pending |
+| Design the surface first, then gather data | Decide what the artifact should look like, then go find the inputs | — Pending |
+| Learning/onboarding is a first-class surface | Teaching newcomers / training cohorts is a primary use, not an afterthought | — Pending |
+| Connection/relationship view — parked | "Make sense of how things connect" is real but deferred until after core V2 | — Pending |
 
 ## Evolution
 

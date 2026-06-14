@@ -55,6 +55,12 @@
 - [ ] **WORK-02**: An operator can author a Report by hand (manual backend) and have it inherit the traced structure
 - [ ] **WORK-03**: The published Library shows how the work was done (process visible via Provenance/Lineage on each surface)
 
+### Learning & Onboarding
+
+- [ ] **LEARN-01**: A Learning/Onboarding surface preset re-cuts a reviewed record for a newcomer/learner audience — progressive disclosure, prerequisite context, and an in-context glossary of terms
+- [ ] **LEARN-02**: Every concept on a learning surface links back to its source record/claim, so a learner can trace explanation → evidence (teaching by traceability)
+- [ ] **LEARN-03**: An onboarding path sequences multiple records into an ordered learning track for a new team member / training-program participant
+
 ## v2 Requirements
 
 ### AI Backend
@@ -65,6 +71,10 @@
 ### Personalization
 
 - **PERS-01**: Per-reader re-cut from a typed, local corpus hook (the config boundary only — the learning engine is V3/out of scope)
+
+### Connections (candidate — parked)
+
+- **CONN-01**: Model and show relationships between records, claims, and surfaces (a connection / map view) so readers can see how knowledge connects — beyond per-surface cross-links. *Parked: explore after core V2.*
 
 ## Out of Scope
 
@@ -111,11 +121,14 @@ Mapped during roadmap creation (2026-06-14). Every v1 requirement maps to exactl
 | WORK-01 | Phase 11 — Work-Surface Installation | Pending |
 | WORK-02 | Phase 11 — Work-Surface Installation | Pending |
 | WORK-03 | Phase 11 — Work-Surface Installation | Pending |
+| LEARN-01 | Phase 12 — Learning & Onboarding Surface | Pending |
+| LEARN-02 | Phase 12 — Learning & Onboarding Surface | Pending |
+| LEARN-03 | Phase 12 — Learning & Onboarding Surface | Pending |
 
 **Coverage:**
-- v1 requirements: 28 total
-- Mapped to phases: 28/28 (100%) — no orphans, no duplicates
-- v2 deferred: AI-01, AI-02 (AI backend track); PERS-01 (V3 config hook only)
+- v1 requirements: 31 total
+- Mapped to phases: 31/31 (100%) — no orphans, no duplicates
+- v2 deferred: AI-01, AI-02 (AI backend track); PERS-01 (V3 config hook only); CONN-01 (connections — parked)
 
 ---
 *Requirements defined: 2026-06-14*
