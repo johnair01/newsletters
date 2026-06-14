@@ -7,22 +7,22 @@
 
 ## Where we are right now
 
-**2026-06-14 — Planning complete; adopting the working method. Not yet building code.**
+**2026-06-14 — Phase 1 planned, peer-reviewed, and replanned. Ready to execute (no code yet).**
 
 - ✅ **Shipped:** GSD installed (`.claude/`), full plan seeded (`.planning/`: PROJECT, REQUIREMENTS
-  31 reqs, ROADMAP 12 phases, research). Rev1 spine **merged** onto this branch
-  (`claude/wonderful-planck-astfj5`). `CLAUDE.md` rewritten to carry the working method (teaching
-  build). This compass + `RETRO.md` created.
-- ◐ **In progress:** Establishing how we engage (teaching build · compass+retro · discipline layered
-  on GSD). Reviewing whether the planning artifacts captured intent (done — added the learning surface,
-  parked a connections/relationship view).
-- ○ **Not started:** Phase 1 — Distill Socket Contract. The `DistillPort` exact shape is `[OPEN]`
-  (needs a planning-research cycle). The work-surface interview (real content for Phase 11) hasn't
-  happened. The Home 8-section spec needs confirming in writing before Phase 9.
+  31 reqs, ROADMAP 12 phases, research). Rev1 spine **merged** onto this branch. `CLAUDE.md` rewritten
+  to carry the working method (teaching build). This compass + `RETRO.md` created. **Phase 1 (Distill
+  Socket Contract) is planned** — 2 plans, 2 waves — then put through an independent cross-AI review
+  (`01-REVIEWS.md`), which caught a real **circular import**; the plans were **replanned** to fix it and
+  re-verified by the plan-checker. All SOCK-01..05 + D-01..06 covered. The `DistillPort` shape is now
+  resolved in the plans (no longer `[OPEN]`).
+- ◐ **In progress:** Nothing mid-flight — at the execute/iterate fork for Phase 1.
+- ○ **Not started:** Phase 1 **code** (plans ready). The work-surface interview (real content for
+  Phase 11) hasn't happened. The Home 8-section spec needs confirming in writing before Phase 9.
 
-**Next step:** `/gsd-plan-phase 1` — Phase-1 discuss is complete (engine, five contexts, and the
-three distill modalities captured in `01-CONTEXT.md`). The `DistillPort` exact Python shape stays
-`[OPEN]` for the planning-research cycle.
+**Next step:** `/gsd-execute-phase 1` — plans verified and committed. Wave 1 builds the leaf
+`locators.py`, the `DistillPort`/registry/`Coverage` contract, and the zero-AI `ManualBackend`
+end-to-end; Wave 2 adds the conformance suite + the hard-rule tests.
 
 ## The truths (load-bearing — break one, it's a conversation, not a commit)
 
@@ -58,5 +58,10 @@ three distill modalities captured in `01-CONTEXT.md`). The `DistillPort` exact P
 - **The distill socket has three modalities** — author by hand / generic low-token extraction /
   agentic interview — all emitting one reviewed `Distillation` (Phase-1 decision; see
   `.planning/phases/01-distill-socket-contract/01-CONTEXT.md`).
+- **The `Locator` union lives in a top-level leaf `src/newsletters/locators.py`, not under `distill/`**
+  — so `semantic.py` can import it (`from .locators`, mirroring `from .templates`) without triggering
+  the `distill/__init__` barrel → `ports` → `..semantic` import cycle. Caught by cross-AI review, which
+  reproduced the cycle the in-flow plan-checker had missed; guarded now by a fresh-interpreter
+  import-order acceptance check on the affected tasks.
 - **Generic, not template-specific** — extraction handles formats (PowerPoint, email, …) generically;
   no bespoke per-report parsers.

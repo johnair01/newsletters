@@ -4,6 +4,34 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
+## 2026-06-14 — Session: plan Phase 1 + cross-AI review
+
+**Friction observed**
+
+1. **The in-flow plan-checker passed plans that contained a real circular import.** The GSD
+   plan-checker and source-grounding passes both green-lit Phase 1's plans, which wired
+   `semantic.py` to `import from .distill.locators` while `distill/__init__` eager-imports `ports`,
+   which imports back from `semantic` — a `semantic → distill/__init__ → ports → semantic(partial)`
+   cycle that breaks `import newsletters` and the Rev1 test tripwire. The plan even *asserted* the
+   arrangement was "acyclic." Only an **independent cross-AI review** (`/gsd-review`, fresh-context
+   opus) caught it — by *reproducing* the cycle with a minimal package mirror, not by reasoning.
+2. **The replan's own consistency sweep left one stray.** After the leaf-module fix, `01-PATTERNS.md`
+   still had one executor-facing line saying `import ... from .distill.locators` — the exact
+   cycle-causing path. Caught by an independent grep for the old path after the planner reported done
+   ("the agent says green" applied to the *replan*, not just the original).
+
+**Rules hardened**
+
+- *Peer-review foundational/typed-contract phases before executing* — the in-flow checker reasons
+  about plans; it does not run them. For phases that define import structure, an independent reviewer
+  that **reproduces** the failure is worth the extra cycle. (Confirmed: review paid for itself here.)
+- *Bake a fresh-interpreter import-order check into acceptance criteria* whenever a phase adds a
+  module that a core module must import across a package boundary:
+  `python -c "import pkg; import pkg.core; import pkg.subpkg"` (both orders) must exit 0. Now in the
+  Phase 1 plans; reusable guard for any package with an eager-`__init__` barrel.
+- *After a replan, re-grep for the thing you fixed* — a planner's self-reported consistency sweep is a
+  claim; verify the old pattern is gone from **all** artifacts (plans, PATTERNS, SKELETON, RESEARCH).
+
 ## 2026-06-14 — Session: publish Rev1 → plan Rev2 with GSD
 
 **Friction observed**
