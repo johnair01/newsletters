@@ -13,7 +13,7 @@ not taken on trust from RESEARCH.md.
 |-------------------|------|-----------|----------------|---------------|
 | `src/newsletters/distill/ports.py` (`DistillPort` Protocol, `DistillationResult`, `FaithfulnessCheck` seam) | contract / model | transform | `src/newsletters/semantic.py` (typed models) + `templates.py` (module conventions) | role-match (Protocol is net-new to repo) |
 | `src/newsletters/distill/registry.py` (`register`/`resolve`/`available`) | registry | request-response (lookup) | `src/newsletters/templates.py:165-184` (`_REGISTRY` + register/get/all) | **exact** |
-| `src/newsletters/distill/locators.py` (`Locator` discriminated union) | model | transform | `src/newsletters/semantic.py:273-287` (`Block` discriminated union) | **exact** |
+| `src/newsletters/locators.py` (`Locator` discriminated union — TOP-LEVEL LEAF module, NOT under `distill/`) | model | transform | `src/newsletters/semantic.py:273-287` (`Block` discriminated union) | **exact** |
 | `src/newsletters/distill/coverage.py` (`Coverage` + `Unextracted`) | model | transform | `src/newsletters/semantic.py` `Claim`/`Distillation` + `Review` validator (`:142-150`) | role-match |
 | `src/newsletters/distill/manual.py` (`ManualBackend`) | adapter / service | transform | `src/newsletters/capture.py:58-78` (`capture_session`) wrapped by `build_report` `:81-113` | **exact** (thin wrapper) |
 | `src/newsletters/distill/conformance.py` (reusable assertions) | test-utility | transform | `tests/test_semantic.py` (assertion style) | role-match |
@@ -72,9 +72,17 @@ Pattern 2, add a `isinstance(backend, DistillPort)` structural check in `registe
 
 ---
 
-### `src/newsletters/distill/locators.py` (model, discriminated union) — D-06
+### `src/newsletters/locators.py` (model, discriminated union — TOP-LEVEL LEAF) — D-06
 
 **Analog:** `src/newsletters/semantic.py:273-287` (EXACT — `Block` is the discriminated-union exemplar).
+
+**PLACEMENT (load-bearing — circular-import fix from cross-AI review):** put this union in a TOP-LEVEL leaf
+module `src/newsletters/locators.py` (sibling of `semantic.py`), NOT under the `distill` package. The file
+must import ONLY stdlib + pydantic — nothing from `semantic`, `distill`, or `capture`. Reason: if the union
+lived at `distill/locators.py`, `semantic.py` importing it would first run `distill/__init__.py` → eager
+`ports` import → `from ..semantic import ...` while `semantic` is mid-init → ImportError. A top-level leaf
+that both `semantic` and `distill` import keeps the graph acyclic, mirroring the existing `semantic →
+templates` leaf import (semantic.py:35).
 
 **Discriminated-union pattern** (`semantic.py:273-287`, verbatim):
 ```python
@@ -275,8 +283,11 @@ class Trace(BaseModel):
 `locator: Locator = Field(default_factory=FreeLocator)` and add a `field_validator(mode="before")` (or
 `model_validator(mode="before")`) that coerces a plain `str` into `FreeLocator(text=...)` and passes
 `Locator` instances/dicts through. Add `span: str = ""` to `Trace` (the verbatim source text, D-06 — one
-place, all modalities). Import `Locator`/`FreeLocator` from `.distill.locators` (watch import direction:
-`locators.py` must import nothing from `semantic.py`, so this stays acyclic). **Regression tripwire:**
+place, all modalities). Import `Locator`/`FreeLocator` from `.locators` — the **top-level leaf module**
+`src/newsletters/locators.py` (NOT `.distill.locators`; importing from the distill package would run
+`distill/__init__.py` → eager-import `ports` → `..semantic` mid-init and re-introduce the cycle). This
+mirrors the existing `from .templates import ...` leaf import and stays genuinely acyclic because
+`locators.py` imports nothing from `semantic.py` or `distill`. **Regression tripwire:**
 `pytest tests/test_semantic.py -q` MUST be green after the change.
 
 ---

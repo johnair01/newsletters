@@ -192,7 +192,7 @@ This is line-for-line the structure of `templates.py:165-184` (`_REGISTRY`, `reg
 **What:** A Pydantic discriminated union keyed on a `kind` literal, exactly like `Block` in `semantic.py:273-287`. Phase 1 ships only the variants it needs (`FreeLocator` for backward-compat + `SessionLocator` for the manual path), but the *union mechanism* is the extensibility point: adapter phases add `CellLocator`/`SlideLocator`/`MessageLocator`/`CodeLocator`/`TurnLocator` variants without touching the `Trace` contract.
 **Recommended shape:**
 ```python
-# src/newsletters/distill/locators.py
+# src/newsletters/locators.py  (TOP-LEVEL LEAF — sibling of semantic.py, NOT under distill/; see PLAN Task 2: prevents the circular import)
 from __future__ import annotations
 from typing import Annotated, Literal, Union
 from pydantic import BaseModel, Field
