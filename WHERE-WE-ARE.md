@@ -28,10 +28,17 @@ independently each time, every plan committed + pushed).
   surfaced. Rev1 sample corpus migrated in place (20 traces addressed, 0 stale, build byte-identical).
   Verified 3/3 (PROV-01/02). All stdlib; AI-optional contract stayed green throughout.
 
-**Next step:** Phase 4 — Shared Adapter Normalizer & Email Adapter (smart-discuss → plan → execute).
+**Next step:** Phase 4 — Shared Adapter Normalizer & Email Adapter (research → plan → execute).
 The faithful-extraction rule lands in one shared `normalize()`; the Email `.eml` adapter is the first
 stdlib adapter, minting traces via `Trace.from_source` (so adapter claims are content-addressed and
 come under the strict gate automatically).
+
+> **⚙ OPERATING DIRECTIVE (2026-06-17, reviewer):** *Run uninterrupted through Phase 13 (then 14).*
+> Do **not** ask the reviewer questions unless absolutely necessary (destructive/irreversible, a hard-
+> rule conflict, or genuinely unresolvable from spec + research). At **each** phase: **research best-
+> known methods first** (dispatch a researcher; cite sources), record decisions in the phase CONTEXT,
+> then plan → execute (independent gate re-runs) → verify → close + update this compass. Keep
+> committing + pushing every plan. This directive persists across context resets.
 
 **2026-06-17 — A2 design pass routed (no code). The roadmap grew two phases.** A `/gsd-explore`
 session settled the long-open A1-vs-A2 question: does Signals stay a pure capture→trust→publish
