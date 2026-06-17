@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-06-17T15:26:10.428Z"
+last_updated: "2026-06-17T15:27:34.337Z"
 last_activity: 2026-06-17 -- Phase 05 execution started
 progress:
   total_phases: 14
   completed_phases: 3
   total_plans: 15
-  completed_plans: 11
+  completed_plans: 12
   percent: 21
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 ## Current Position
 
 Phase: 05 (excel-adapter) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-06-17 -- Phase 05 execution started
 
@@ -66,6 +66,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 04 P02 | 6min | 3 tasks | 4 files |
 | Phase 04 P03 | 4min | 2 tasks | 10 files |
 | Phase 05 P01 | 25min | 2 tasks | 5 files |
+| Phase 05 P02 | 20min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,8 @@ Recent decisions affecting current work:
 - [Phase 04]: 04-03: 8 byte-exact .eml golden fixtures (committed, via _author_fixtures.py generator) drive EmailAdapter across the full routing matrix; the zero-silent-drops accounting identity (len(claims)+len(unextracted)==units walked) holds for all 8 — the executable proof of CONTEXT decision 4. No adapter bug found; expected counts pinned from the live adapter, not assumed.
 - [Phase ?]: R1: TYPED Source.extraction carrier (not JSON-in-context); carrier types in leaf locators.py; excluded from content_hash()
 - [Phase ?]: R2 safety-net: unaccountable Source forces complete=False via coverage-not-reconstructable marker
+- [Phase ?]: openpyxl behind [excel] extra, lazy-imported via _load_openpyxl(); bare install runs spine without it
+- [Phase ?]: openpyxl typed as Any (no types-openpyxl stub dep) — openpyxl is the only new dep permitted this phase
 
 ### Pending Todos
 
@@ -122,6 +125,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-17T15:25:37.245Z
+Last session: 2026-06-17T15:27:17.093Z
 Stopped at: Completed 05-01-PLAN.md
 Resume file: None
