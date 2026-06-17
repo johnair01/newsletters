@@ -36,6 +36,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 10: Reviewer Surfacing & Merge-Block Gate** - `missing[]`/`unextracted[]` shown on every surface; CI blocks unsafe merges
 - [ ] **Phase 11: Work-Surface Installation** - Install on a real codebase, author Reports by hand, Library shows how the work was done
 - [ ] **Phase 12: Learning & Onboarding Surface** - A first-class surface that re-cuts reviewed records for newcomers and training cohorts — digestible, traceable, sequenced
+- [ ] **Phase 13: Problem Lifecycle Entity (A2)** - A first-class `Problem` above `Source` with its own state ladder — legibility layer, not a tracker; solving stays external
+- [ ] **Phase 14: Problem Board Portfolio Surface (A2)** - A queryable portfolio view — group/count/age problems by node, surface recurrence, every problem traced to its sources
 
 ## Phase Details
 
@@ -222,10 +224,43 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: TBD
 **UI hint**: yes
 
+### Phase 13: Problem Lifecycle Entity (A2)
+
+**Goal**: Add a first-class `Problem` entity *above* `Source` that consolidates the scattered problem→owned→solution→promoted lifecycle (today spread across Jira/Azure DevOps, passdowns, and people's heads) into one legible, queryable home — **as a legibility layer, not a second tracker**. The problem-SOLVING step stays external/operator-owned; Signals models the *record* of the lifecycle, not its execution.
+**Mode:** mvp
+**Depends on**: Phase 1 (socket/type shapes), Phase 3 (content-addressed traces), Phase 11 (real Source capture)
+**Requirements**: PROB-01, PROB-03
+**Success Criteria** (what must be TRUE):
+
+  1. A `Problem` entity aggregates ≥1 traced `Source` and carries its own lifecycle state ladder (`Identified → Owned → In Progress → Resolved → Verified`), typed end to end
+  2. The problem lifecycle ladder is provably distinct in code from the surface review gate (`Draft → In Review → Published`) and the surface fan-out chain — no shared/overloaded "promotion" term (enforced per the terminology-guard seed)
+  3. Lifecycle-state transitions are human-gated and never auto-mutated; there is no write-back path to any external system (Jira/ADO) — the `semantic.py` spine boundary (solving is external) is preserved and proven by a test
+
+**Plans**: TBD
+**UI hint**: no
+
+### Phase 14: Problem Board Portfolio Surface (A2)
+
+**Goal**: Render the consolidated problem portfolio as a queryable surface alongside the existing gate-state board — the cross-record view A1 structurally cannot produce — so a real consumer can watch bottlenecks, ages, and recurring problem-types across the portfolio.
+**Mode:** mvp
+**Depends on**: Phase 9 (site IA / board rendering), Phase 13 (Problem entity)
+**Requirements**: PROB-02, PROB-04
+**Success Criteria** (what must be TRUE):
+
+  1. The problem board renders the portfolio grouped/countable/age-able by node/area and surfaces recurrence across records (the aggregate query A1 cannot answer)
+  2. Every problem on the board links back to its constituent `Source` records/claims, so the lifecycle stays traceable to evidence
+  3. The board regenerates from the renderer/templates (no hand-edited HTML) and sits alongside — not replacing — the gate-state board
+
+**Plans**: TBD
+**UI hint**: yes
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14
+
+Phases 13–14 (A2 Problem Lifecycle Layer) are a Rev2 extension routed 2026-06-17 — they build on
+the spine (Phases 1/3/11) and the site board (Phase 9), and do not alter Phases 1–12.
 
 Phases 8–9 (site track) depend only on Phase 1 type shapes and may proceed in parallel with the
 adapter track (Phases 4–7) once the socket contract is fixed. Phases 2 (PKG-03/04) and the PROV-04
@@ -245,3 +280,5 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 10. Reviewer Surfacing & Merge-Block Gate | 0/TBD | Not started | - |
 | 11. Work-Surface Installation | 0/TBD | Not started | - |
 | 12. Learning & Onboarding Surface | 0/TBD | Not started | - |
+| 13. Problem Lifecycle Entity (A2) | 0/TBD | Not started | - |
+| 14. Problem Board Portfolio Surface (A2) | 0/TBD | Not started | - |

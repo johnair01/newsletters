@@ -7,6 +7,16 @@
 
 ## Where we are right now
 
+**2026-06-17 — A2 design pass routed (no code). The roadmap grew two phases.** A `/gsd-explore`
+session settled the long-open A1-vs-A2 question: does Signals stay a pure capture→trust→publish
+membrane (A1), or add a first-class Problem/Solution lifecycle layer (A2)? **Decision: A2, scoped as
+a *legibility layer*, not a tracker.** The hinge was one test — *someone needs to query across
+problems* (bottlenecks across modules; the leadership pattern view), and you can't aggregate over
+state you don't model. Two new phases appended (don't touch 1–12): **Phase 13 — Problem Lifecycle
+Entity**, **Phase 14 — Problem Board Portfolio Surface**. Reqs PROB-01..04 added. Full rationale +
+boundary reconciliation: `.planning/notes/a2-problem-lifecycle-decision.md`. Phase 1 is still the
+next thing to *execute*.
+
 **2026-06-14 — Phase 1 planned, peer-reviewed, and replanned. Ready to execute (no code yet).**
 
 - ✅ **Shipped:** GSD installed (`.claude/`), full plan seeded (`.planning/`: PROJECT, REQUIREMENTS
@@ -38,6 +48,15 @@ end-to-end; Wave 2 adds the conformance suite + the hard-rule tests.
 
 ## Decisions, and why (teaching log — decide once, don't re-litigate)
 
+- **A2 over A1 — model the problem lifecycle, but as a legibility layer, not a tracker** (2026-06-17).
+  The scattered `problem→owned→solution→promoted` lifecycle gets a first-class `Problem` entity above
+  `Source` *because* someone needs to query the portfolio across problems (A1 can't aggregate state it
+  doesn't model). The guardrail that keeps it from becoming a second Jira: **no write-back; solving
+  stays external** (`semantic.py` boundary holds) — Signals owns record-legibility, not execution.
+  → Phases 13–14, PROB-01..04. **Terminology watch:** this adds a *third* state axis; the existing
+  "**promotion chain**" decision below names axis-2 (surface fan-out) — that word now collides with the
+  axis-3 lifecycle ladder. Resolve naming before Phase 13 code (seed:
+  `promotion-terminology-guard.md`).
 - **Merge Rev1 in, don't rebuild** — the spine already existed on `claude/magical-einstein-hfd1np`;
   merging (conflict-free) beats duplicating proven work.
 - **Distill is a *socket*, not "the AI step"** — one interface, backends: by-hand / OSS tool / AI. This

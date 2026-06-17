@@ -61,6 +61,18 @@
 - [ ] **LEARN-02**: Every concept on a learning surface links back to its source record/claim, so a learner can trace explanation → evidence (teaching by traceability)
 - [ ] **LEARN-03**: An onboarding path sequences multiple records into an ordered learning track for a new team member / training-program participant
 
+### Problem Lifecycle Layer (A2 — Rev2 extension)
+
+> Routed 2026-06-17 (`/gsd-explore` A1-vs-A2 design pass). Decision: **A2, scoped as a legibility
+> layer, not an execution tracker.** Rationale + boundary reconciliation in
+> `.planning/notes/a2-problem-lifecycle-decision.md`. Extends the spine after Phase 12; does not
+> alter Phases 1–12.
+
+- [ ] **PROB-01**: A first-class `Problem` entity sits *above* `Source`, aggregating ≥1 traced `Source` (scattered ticket / passdown / RCA) and carrying its own lifecycle state ladder (`Identified → Owned → In Progress → Resolved → Verified`) — kept rigorously distinct from the surface review gate (`Draft → In Review → Published`) and the surface fan-out chain
+- [ ] **PROB-02**: The problem portfolio is queryable and aggregatable — group/count/age problems by node/area and surface recurrence across records (the cross-record view A1 structurally cannot produce)
+- [ ] **PROB-03** *(hard constraint)*: The Problem layer is a **legibility layer, not an execution tracker** — no write-back to external systems (Jira/Azure DevOps); the problem-SOLVING step stays external/operator-owned (preserves the `semantic.py` spine boundary). Lifecycle-state transitions are human-gated, never auto-mutated
+- [ ] **PROB-04**: A problem-board surface renders the portfolio alongside the existing gate-state board; every problem links back to its constituent `Source` records/claims, so the lifecycle stays traceable to evidence
+
 ## v2 Requirements
 
 ### AI Backend
@@ -124,12 +136,17 @@ Mapped during roadmap creation (2026-06-14). Every v1 requirement maps to exactl
 | LEARN-01 | Phase 12 — Learning & Onboarding Surface | Pending |
 | LEARN-02 | Phase 12 — Learning & Onboarding Surface | Pending |
 | LEARN-03 | Phase 12 — Learning & Onboarding Surface | Pending |
+| PROB-01 | Phase 13 — Problem Lifecycle Entity | Pending |
+| PROB-02 | Phase 14 — Problem Board Portfolio Surface | Pending |
+| PROB-03 | Phase 13 — Problem Lifecycle Entity | Pending |
+| PROB-04 | Phase 14 — Problem Board Portfolio Surface | Pending |
 
 **Coverage:**
 - v1 requirements: 31 total
-- Mapped to phases: 31/31 (100%) — no orphans, no duplicates
+- A2 extension (Rev2.1): 4 (PROB-01..04) — mapped to Phases 13–14
+- Mapped to phases: 35/35 (100%) — no orphans, no duplicates
 - v2 deferred: AI-01, AI-02 (AI backend track); PERS-01 (V3 config hook only); CONN-01 (connections — parked)
 
 ---
 *Requirements defined: 2026-06-14*
-*Last updated: 2026-06-14 after roadmap traceability mapping*
+*Last updated: 2026-06-17 — added A2 Problem Lifecycle Layer (PROB-01..04 → Phases 13–14)*
