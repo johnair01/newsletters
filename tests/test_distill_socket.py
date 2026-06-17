@@ -26,7 +26,7 @@ from newsletters.distill import (
     register,
     resolve,
 )
-from newsletters.semantic import Distillation, Source, Trace
+from newsletters.semantic import Claim, Distillation, Source, Trace
 
 AI_MODULES = ("langchain", "langgraph", "langsmith", "pydantic_ai")
 
@@ -181,27 +181,121 @@ def test_distill_package_imports_no_ai() -> None:
     assert proc.returncode == 0, f"AI leaked: {proc.stdout}{proc.stderr}"
 
 
-# --- SOCK-05 (Task 1 RED): the conformance API + single-place faithfulness seam --- #
+# --- SOCK-05 + hard rules: conformance has teeth, proven by a broken backend ---- #
+#
+# The conformance suite (NOT mypy) is the malformed-backend guard (review MEDIUM-2):
+# @runtime_checkable isinstance only checks attribute presence, and mypy only ever sees the
+# conforming in-src ManualBackend. So the deliberately-broken backends below — which mypy
+# never type-checks — are what PROVE assert_conforms / _enforce reject a non-conforming backend
+# at RUNTIME.
 
 
-def test_conformance_api_and_seam_exist(
+class _UntracedClaimBackend:
+    """A structurally-valid DistillPort that smuggles an UNTRACED claim through the socket.
+
+    It satisfies the shape (name + distill) and returns a real DistillationResult, so mypy and
+    the isinstance shape guard both pass it — only the runtime faithfulness check catches it.
+    """
+
+    name = "broken-untraced"
+
+    def distill(self, sources: list[Source]) -> DistillationResult:
+        bad = Distillation(claims=[Claim(text="unsubstantiated assertion", evidence=[])])
+        return DistillationResult(distillation=bad, backend=self.name)
+
+
+def _traced_result() -> DistillationResult:
+    """A clean result whose single claim IS traced (for the permissive-injection check)."""
+    traced = Claim(text="we did X", evidence=[Trace(source_id="s1", locator="line 3")])
+    return DistillationResult(distillation=Distillation(claims=[traced]))
+
+
+def _untraced_result() -> DistillationResult:
+    """A result whose single claim is UNTRACED (drives the seam-rejection test)."""
+    return DistillationResult(
+        distillation=Distillation(claims=[Claim(text="bare claim", evidence=[])])
+    )
+
+
+def test_conformance_passes_manual_backend(
     work_session: WorkSession, sources: list[Source]
 ) -> None:
-    """The Task-1 deliverables are wired: assert_conforms (barrel + module) and _enforce.
-
-    assert_conforms passes the conforming ManualBackend; _enforce applies a default
-    StructuralFaithfulness and is the single injectable boundary (the Phase-3 swap point).
-    """
+    """A conforming backend passes assert_conforms and gets its result back (positive, SOCK-05)."""
     from newsletters.distill import assert_conforms as barrel_assert_conforms
     from newsletters.distill.conformance import assert_conforms
-    from newsletters.distill.ports import _enforce, StructuralFaithfulness
 
     assert barrel_assert_conforms is assert_conforms  # re-exported, same object
 
-    # conforming backend passes and returns the result unchanged
     result = assert_conforms(ManualBackend(session=work_session), sources)
     assert isinstance(result, DistillationResult)
+    assert all(c.is_traced for c in result.distillation.claims)
 
-    # _enforce default-applies StructuralFaithfulness and returns the result unchanged
-    assert _enforce(result) is result
-    assert _enforce(result, StructuralFaithfulness()) is result
+
+def test_conformance_fails_bad_backend(sources: list[Source]) -> None:
+    """assert_conforms FAILS a backend that emits an untraced claim — at RUNTIME (SOCK-05).
+
+    This is the malformed-backend guard mypy cannot provide: the broken backend is never
+    type-checked, yet the runtime conformance suite still rejects it.
+    """
+    from newsletters.distill.conformance import assert_conforms
+
+    with pytest.raises((AssertionError, ValueError)):
+        assert_conforms(_UntracedClaimBackend(), sources)
+
+
+def test_faithfulness_seam_rejects_untraced() -> None:
+    """_enforce rejects an untraced claim; a permissive injected checker lets it pass.
+
+    Proves the seam is live, deterministic, and INJECTABLE — the Phase-3 swap point.
+    """
+    from newsletters.distill.ports import _enforce
+
+    with pytest.raises(ValueError):
+        _enforce(_untraced_result())
+
+    # injecting a permissive FaithfulnessCheck changes the rule with no backend change
+    class _AlwaysFaithful:
+        def entails(self, claim: Claim) -> bool:  # noqa: ARG002
+            return True
+
+    result = _untraced_result()
+    assert _enforce(result, _AlwaysFaithful()) is result  # passes under the injected check
+
+    # and the structural default still PASSES a genuinely-traced result
+    traced = _traced_result()
+    assert _enforce(traced) is traced
+
+
+def test_coverage_lying_completeness_rejected() -> None:
+    """A backend that drops content cannot present complete=True (D-05 honesty, not advisory)."""
+    with pytest.raises(ValueError):
+        Coverage(
+            complete=True,
+            unextracted=[Unextracted(locator=FreeLocator(text="dropped blob"), reason="binary")],
+        )
+
+
+def test_socket_never_auto_publishes(
+    work_session: WorkSession, sources: list[Source]
+) -> None:
+    """The socket returns truth only: a DistillationResult, never a published Surface/Review.
+
+    HARD RULE — the merged review gate (semantic.py) stays the SOLE publish path. The socket
+    exposes no method that sets ReviewState.PUBLISHED.
+    """
+    from newsletters.semantic import Review, ReviewState, Surface
+
+    result = ManualBackend(session=work_session).distill(sources)
+
+    # the socket's output is truth only — not a Surface, not a Review
+    assert isinstance(result, DistillationResult)
+    assert not isinstance(result, (Surface, Review))
+
+    # the backend exposes no publish/approve path and no PUBLISHED state hook
+    backend = ManualBackend(session=work_session)
+    public_api = [a for a in dir(backend) if not a.startswith("_")]
+    assert not any(k in a.lower() for a in public_api for k in ("publish", "approve", "review"))
+
+    # the only way to PUBLISHED remains the review gate, which still refuses without policy
+    with pytest.raises(ValueError):
+        Review(state=ReviewState.PUBLISHED)  # no approvals => gate rejects (sole publish path)
