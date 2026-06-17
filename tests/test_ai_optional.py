@@ -220,3 +220,139 @@ def test_bare_pipeline_runs_ai_free() -> None:
     assert proc.returncode == 0, (
         f"deterministic pipeline failed or leaked AI:\n{proc.stdout}{proc.stderr}"
     )
+
+
+# --- ADAPT-03 / T-05-04 / T-05-05: the optional [excel] (openpyxl) lazy boundary --------- #
+#
+# openpyxl is NOT AI — the forbid-ai contract is unaffected — but the SAME minimal-core / lazy
+# discipline that keeps AI out of the bare install must keep openpyxl out of it too: a bare
+# `pip install .` (no [excel]) must `import newsletters`, `import newsletters.adapters`, and run
+# the spine with ZERO openpyxl. These gates prove the lazy boundary holds.
+
+LOADER_PATH = REPO_ROOT / "src" / "newsletters" / "adapters" / "_openpyxl_loader.py"
+
+
+def test_excel_extra_declared() -> None:
+    """pyproject declares `excel = ["openpyxl"]` and openpyxl is the ONLY new adapter dep there."""
+    data = _load_pyproject()
+    extras = data["project"]["optional-dependencies"]
+    assert "excel" in extras, f"missing [excel] extra: {sorted(extras)}"
+    excel_names = {_req_name(r) for r in extras["excel"]}
+    assert "openpyxl" in excel_names, extras["excel"]
+    # openpyxl is the only dependency this phase may add to the extra.
+    assert excel_names == {"openpyxl"}, f"[excel] must contain only openpyxl, got {excel_names}"
+    # openpyxl must NOT be an AI package (sanity: it must not trip the AI requirement gate).
+    assert not (excel_names & set(AI_REQUIREMENT_NAMES)), excel_names
+
+
+def test_openpyxl_loader_has_no_toplevel_openpyxl_import() -> None:
+    """The lazy loader module has ZERO top-level (runtime) `import openpyxl` / `from openpyxl`.
+
+    A top-level import here would be pulled in transitively by `import newsletters.adapters`
+    (the package `register()`s its adapters on import), breaking the bare install. The only
+    openpyxl import allowed is INSIDE `_load_openpyxl()`. (A `TYPE_CHECKING`-guarded import is
+    invisible at runtime and therefore fine — it lives under an `if TYPE_CHECKING:` block, not at
+    column 0, so the column-0 check below does not see it.)
+    """
+    source = LOADER_PATH.read_text()
+    toplevel_edges = [
+        line
+        for line in source.splitlines()
+        # column-0 (module-top) import statements only — indented ones live inside functions or
+        # the TYPE_CHECKING guard and are not executed on a bare runtime import.
+        if line.startswith("import openpyxl") or line.startswith("from openpyxl")
+    ]
+    assert not toplevel_edges, (
+        f"_openpyxl_loader.py has top-level openpyxl import(s) — breaks the bare install: "
+        f"{toplevel_edges}"
+    )
+
+
+def test_adapters_package_imports_without_openpyxl() -> None:
+    """`import newsletters.adapters` SUCCEEDS even when openpyxl cannot be imported.
+
+    Simulates a bare install by installing a `sys.meta_path` finder that blocks `openpyxl`
+    BEFORE importing the package (works regardless of whether the dev .venv has openpyxl). The
+    package import must not require the extra; the loader module must import too (its openpyxl
+    import is lazy, inside a function).
+    """
+    code = (
+        "import sys\n"
+        "from importlib.abc import MetaPathFinder\n"
+        "class _Block(MetaPathFinder):\n"
+        "    def find_spec(self, name, path=None, target=None):\n"
+        "        if name == 'openpyxl' or name.startswith('openpyxl.'):\n"
+        "            raise ImportError('blocked openpyxl (simulated bare install)')\n"
+        "        return None\n"
+        "sys.modules.pop('openpyxl', None)\n"
+        "sys.meta_path.insert(0, _Block())\n"
+        "import newsletters\n"
+        "import newsletters.adapters\n"
+        "from newsletters.adapters import _openpyxl_loader\n"
+        "assert 'openpyxl' not in sys.modules, sys.modules.get('openpyxl')\n"
+        "print('adapters import clean without openpyxl')\n"
+    )
+    env = {**os.environ, "PYDANTIC_DISABLE_PLUGINS": "true"}
+    proc = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, env=env, cwd=REPO_ROOT
+    )
+    assert proc.returncode == 0, (
+        f"newsletters.adapters failed to import without openpyxl:\n{proc.stdout}{proc.stderr}"
+    )
+
+
+def test_loader_raises_teaching_error_without_openpyxl() -> None:
+    """`_load_openpyxl()` raises a teaching ImportError naming `[excel]` when openpyxl is absent.
+
+    Again blocks openpyxl via a meta-path finder so the assertion holds whether or not the dev
+    .venv has the extra installed.
+    """
+    code = (
+        "import sys\n"
+        "from importlib.abc import MetaPathFinder\n"
+        "class _Block(MetaPathFinder):\n"
+        "    def find_spec(self, name, path=None, target=None):\n"
+        "        if name == 'openpyxl' or name.startswith('openpyxl.'):\n"
+        "            raise ImportError('blocked openpyxl (simulated bare install)')\n"
+        "        return None\n"
+        "sys.modules.pop('openpyxl', None)\n"
+        "sys.meta_path.insert(0, _Block())\n"
+        "from newsletters.adapters._openpyxl_loader import _load_openpyxl\n"
+        "try:\n"
+        "    _load_openpyxl()\n"
+        "except ImportError as e:\n"
+        "    msg = str(e)\n"
+        "    assert '[excel]' in msg, msg\n"
+        "    assert 'openpyxl' in msg, msg\n"
+        "    print('teaching ImportError ok')\n"
+        "else:\n"
+        "    raise AssertionError('expected ImportError when openpyxl is absent')\n"
+    )
+    env = {**os.environ, "PYDANTIC_DISABLE_PLUGINS": "true"}
+    proc = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, env=env, cwd=REPO_ROOT
+    )
+    assert proc.returncode == 0, (
+        f"loader did not raise the teaching ImportError without openpyxl:\n"
+        f"{proc.stdout}{proc.stderr}"
+    )
+
+
+def test_loader_returns_module_when_openpyxl_present() -> None:
+    """With openpyxl installed (dev .venv), `_load_openpyxl()` returns the module — no false error.
+
+    openpyxl is not in AI_MODULES, so loading it must not be conflated with an AI leak; this
+    guards that the happy path works in the dev/CI env where `[excel]` IS installed. Skips
+    cleanly on a bare env so the bare-install gate is unaffected.
+    """
+    try:
+        import openpyxl  # noqa: F401
+    except ImportError:
+        import pytest
+
+        pytest.skip("openpyxl not installed (bare env); happy path enforced in dev/CI [excel]")
+    from newsletters.adapters._openpyxl_loader import _load_openpyxl
+
+    mod = _load_openpyxl()
+    assert getattr(mod, "__name__", None) == "openpyxl", mod
+    assert "openpyxl" not in set(AI_MODULES), "openpyxl must never be classed as AI"

@@ -27,6 +27,11 @@ dependencies = [
 # langsmith (telemetry / phone-home) is DROPPED entirely per CLAUDE.md Out-of-Scope — it is
 # NOT relocated here. langchain/langgraph are removed entirely (zero usage; not the backend).
 ai = ["pydantic-ai"]
+# Excel (.xlsx) adapter dep (ADAPT-03) — openpyxl is NON-AI, pure-Python, MIT, spec-named, and
+# PRE-APPROVED (CONTEXT decision 1 + RESEARCH Package Legitimacy Audit). It lives behind an extra
+# and is lazy-imported inside the Excel adapter only (mirror the [ai] discipline), so bare
+# `pip install .` still runs the deterministic spine with zero openpyxl and zero AI.
+excel = ["openpyxl"]
 panel = ["panel", "holoviews", "bokeh", "numpy", "pandas"]
 # import-linter (PKG-04): the static forbidden-contract tool enforcing core has no AI import edge.
 dev = ["pytest", "black", "ipdb", "ipython", "isort", "mypy", "import-linter"]
