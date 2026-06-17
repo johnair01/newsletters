@@ -17,6 +17,7 @@ keep the import graph acyclic.
 from __future__ import annotations
 
 from ..locators import FreeLocator, Locator, SessionLocator
+from .conformance import assert_conforms
 from .coverage import Coverage, Unextracted
 from .manual import ManualBackend
 from .ports import (
@@ -33,6 +34,8 @@ __all__ = [
     "DistillationResult",
     "FaithfulnessCheck",
     "StructuralFaithfulness",
+    # conformance — the reusable RUNTIME malformed-backend guard (SOCK-05)
+    "assert_conforms",
     # registry (NOT re-exported at package root — would shadow templates.register)
     "register",
     "resolve",

@@ -78,3 +78,37 @@ class StructuralFaithfulness:
 
     def entails(self, claim: Claim) -> bool:
         return claim.is_traced
+
+
+# --------------------------------------------------------------------------- #
+# The single-place faithfulness enforcement hook (RESEARCH Pattern 5)
+# --------------------------------------------------------------------------- #
+
+
+def _enforce(
+    result: DistillationResult,
+    check: FaithfulnessCheck = StructuralFaithfulness(),
+) -> DistillationResult:
+    """Apply the faithfulness rule to a result in exactly ONE place; return it unchanged if clean.
+
+    This is the SOLE site where faithfulness is enforced — it is deliberately NOT called
+    inside each backend, so the trust rule lives in one auditable spot ("one trust rule, one
+    place"). It runs ``check.entails(claim)`` over every claim in the wrapped ``Distillation``
+    and raises a teaching-style ``ValueError`` on the FIRST unfaithful claim.
+
+    The ``check`` parameter is the Phase-3 (PROV-02) injection point: passing a different
+    ``FaithfulnessCheck`` (e.g. deterministic span-containment) changes the trust rule with
+    ZERO backend change. The Phase-1 default is structural (every claim must be traced).
+
+    HARD RULE — AI-optional core: this function imports no AI library; the default
+    ``StructuralFaithfulness`` only consults ``Claim.is_traced``.
+    """
+    for claim in result.distillation.claims:
+        if not check.entails(claim):
+            raise ValueError(
+                "Unfaithful claim rejected at the faithfulness seam: "
+                f"{claim.text[:60]!r} is not entailed by its evidence "
+                f"(checker={type(check).__name__}). Trace it, or move it to "
+                "Distillation.missing[]. No unsubstantiated claim passes the socket."
+            )
+    return result
