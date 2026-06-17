@@ -22,7 +22,7 @@ dependencies = [
 
 [project.optional-dependencies]
 panel = ["panel", "holoviews", "bokeh", "numpy", "pandas"]
-dev = ["pytest", "black", "ipdb", "ipython", "isort"]
+dev = ["pytest", "black", "ipdb", "ipython", "isort", "mypy"]
 test = ["pytest"]
 
 [tool.black]
