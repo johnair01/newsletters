@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 01-01-PLAN.md (distill socket walking skeleton)
-last_updated: "2026-06-17T08:34:42.258Z"
+last_updated: "2026-06-17T08:42:15.160Z"
 last_activity: 2026-06-17 -- Phase 02 execution started
 progress:
   total_phases: 14
   completed_phases: 1
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
   percent: 7
 ---
 
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 ## Current Position
 
 Phase: 02 (ai-optional-packaging-boundary) — EXECUTING
-Plan: 1 of 2
-Status: Executing Phase 02
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-06-17 -- Phase 02 execution started
 
 Progress: Phase 01 [██████████] 2/2 plans
@@ -57,6 +57,7 @@ Progress: Phase 01 [██████████] 2/2 plans
 |------|----------|-------|-------|
 | 01-01 | ~25 min | 3 tasks | 11 files |
 | 01-02 | ~12 min | 2 tasks | 4 files |
+| Phase 02 P01 | 4min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,7 @@ Recent decisions affecting current work:
 - [Intent review]: A connection/relationship map (CONN-01) is parked — a real direction, revisit after core V2.
 - [Intent review]: PROJECT.md reframed to lead with purpose (information→conversation→action; legible/transparent/digestible work), with auditability as the load-bearing constraint.
 - [Phase 1]: [01-02] Faithfulness enforced in exactly one injectable place (ports._enforce); conformance.py delegates to it. The runtime conformance suite (not mypy) is the malformed-backend guard.
+- [Phase ?]: Phase 02-01: dropped langsmith/langchain/langgraph entirely (zero usage); pydantic-ai relocated to [ai] extra; AI boundary policed by import-linter forbidden contract + runtime pydantic-plugin entry-point guard
 
 ### Pending Todos
 
@@ -102,6 +104,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-17T03:13:20.416Z
+Last session: 2026-06-17T08:41:46.525Z
 Stopped at: Completed 01-01-PLAN.md (distill socket walking skeleton)
 Resume file: .planning/phases/01-distill-socket-contract/01-02-PLAN.md

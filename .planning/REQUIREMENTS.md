@@ -19,10 +19,10 @@
 
 ### AI-Optional Packaging
 
-- [ ] **PKG-01**: `pip install .` with no extras installs a fully working pipeline with zero AI dependencies
-- [ ] **PKG-02**: All AI/LLM dependencies live behind an `[ai]` extra and are lazy-imported only inside the AI backend
+- [x] **PKG-01**: `pip install .` with no extras installs a fully working pipeline with zero AI dependencies
+- [x] **PKG-02**: All AI/LLM dependencies live behind an `[ai]` extra and are lazy-imported only inside the AI backend
 - [ ] **PKG-03**: A CI gate runs the full pipeline on a bare (no-extras) install and fails if any AI import is reachable from core
-- [ ] **PKG-04**: An import-linter contract forbids `core` from importing any AI package; CI enforces it every phase
+- [x] **PKG-04**: An import-linter contract forbids `core` from importing any AI package; CI enforces it every phase
 
 ### Format Adapters
 
@@ -110,10 +110,10 @@ Mapped during roadmap creation (2026-06-14). Every v1 requirement maps to exactl
 | SOCK-03 | Phase 1 — Distill Socket Contract | Done (01-01) |
 | SOCK-04 | Phase 1 — Distill Socket Contract | Done (01-01) |
 | SOCK-05 | Phase 1 — Distill Socket Contract | Complete |
-| PKG-01 | Phase 2 — AI-Optional Packaging Boundary | Pending |
-| PKG-02 | Phase 2 — AI-Optional Packaging Boundary | Pending |
+| PKG-01 | Phase 2 — AI-Optional Packaging Boundary | Complete |
+| PKG-02 | Phase 2 — AI-Optional Packaging Boundary | Complete |
 | PKG-03 | Phase 2 — AI-Optional Packaging Boundary | Pending |
-| PKG-04 | Phase 2 — AI-Optional Packaging Boundary | Pending |
+| PKG-04 | Phase 2 — AI-Optional Packaging Boundary | Complete |
 | PROV-01 | Phase 3 — Content-Addressed Provenance & Faithfulness Gate | Pending |
 | PROV-02 | Phase 3 — Content-Addressed Provenance & Faithfulness Gate | Pending |
 | ADAPT-01 | Phase 4 — Shared Adapter Normalizer & Email Adapter | Pending |

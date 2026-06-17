@@ -80,7 +80,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — Dependency reorg (core = non-AI only; `[ai]` = pydantic-ai; drop langsmith/langchain/langgraph) + import-linter forbidden contract + plugin-aware runtime AI-isolation test (PKG-01, PKG-02, PKG-04)
+- [x] 02-01-PLAN.md — Dependency reorg (core = non-AI only; `[ai]` = pydantic-ai; drop langsmith/langchain/langgraph) + import-linter forbidden contract + plugin-aware runtime AI-isolation test (PKG-01, PKG-02, PKG-04)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -277,7 +277,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Distill Socket Contract | 2/2 | Complete   | 2026-06-17 |
-| 2. AI-Optional Packaging Boundary | 0/TBD | Not started | - |
+| 2. AI-Optional Packaging Boundary | 1/2 | In Progress|  |
 | 3. Content-Addressed Provenance & Faithfulness Gate | 0/TBD | Not started | - |
 | 4. Shared Adapter Normalizer & Email Adapter | 0/TBD | Not started | - |
 | 5. Excel Adapter | 0/TBD | Not started | - |
