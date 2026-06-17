@@ -250,17 +250,36 @@ class ExcelAdapter:
         try:
             transcript, units, cell_drops = _serialize(wb_formula, wb_data)
             feature_drops = _feature_drops(wb_formula)
+            # A deterministic, document-intrinsic timestamp (mirrors EmailAdapter sourcing it from
+            # the Date header, NOT now()). The workbook's OOXML `created` property is the analog: a
+            # spreadsheet has no Date header, so we use docProps/core.xml's creation time when
+            # present. Without this, Source.timestamp defaults to wall-clock and two parses of the
+            # SAME bytes produce non-equal Sources — breaking determinism AND round-trip parity (the
+            # persisted Source no longer re-distills identically). `created` is preserved verbatim
+            # across an openpyxl round-trip (unlike `modified`, which openpyxl re-stamps on save).
+            raw_created = getattr(wb_formula.properties, "created", None)  # type: ignore[attr-defined]
         finally:
             wb_formula.close()
             wb_data.close()
 
+        created: datetime | None = raw_created if isinstance(raw_created, datetime) else None
+
         drops = cell_drops + feature_drops
-        source = Source(
-            id=path,
-            context=path,
-            transcript=transcript,
-            extraction=encode_coverage(drops),
-        )
+        if created is not None:
+            source = Source(
+                id=path,
+                context=path,
+                transcript=transcript,
+                extraction=encode_coverage(drops),
+                timestamp=created,
+            )
+        else:
+            source = Source(
+                id=path,
+                context=path,
+                transcript=transcript,
+                extraction=encode_coverage(drops),
+            )
         return source, units, drops
 
     # ------------------------------------------------------------------ #
