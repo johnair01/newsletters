@@ -57,6 +57,30 @@ adapter/DistillPort pattern, Coverage/`unextracted[]`), Phase 5 (the hardened co
    title+body, text box, table, speaker notes, chart, image, an empty slide. Assert zero-silent-drops
    identity, verbatim + content-addressed claims, conformance, determinism, AND round-trip coverage parity.
 
+## Research-locked choices (06-RESEARCH.md accepted 2026-06-17, HIGH confidence, verified vs pptx 1.0.2 source)
+
+- **L1 — Timestamp fix:** shared `adapters/_timestamps.py` with `EPOCH_ZERO =
+  datetime(1970,1,1,tzinfo=utc)` + `deterministic_timestamp(intrinsic) -> intrinsic or EPOCH_ZERO`
+  (NEVER `now()`). Retrofit email (`Date`-or-None) + excel (`properties.created`-or-None), apply to
+  pptx (`core_properties.created`-or-None); all three pass `timestamp=` explicitly. Claims unaffected
+  (content_hash hashes transcript only). Determinism test parametrized across all 3 adapters.
+- **L2 — SmartArt detection:** `shape_type` is `None` for SmartArt; detect via graphic-frame
+  `graphicData @uri == ".../drawingml/2006/diagram"` with an lxml `@uri` fallback so any unknown
+  graphicFrame is reported, never dropped. (Risk A1: the accessor is internal — use the lxml fallback.)
+- **L3 — Groups:** recurse into `GroupShape.shapes`; extract members' text; report only unreadable
+  MEMBERS, not the whole group. Nested accounting: `leaf_shapes == producers + skipped_empty +
+  unextracted_from_shapes`; a GROUP node itself contributes nothing to the count.
+- **L4 — Fixtures:** Pillow is a hard (auto-installed) dep of python-pptx — embed a constant 1×1 PNG
+  byte literal (don't call Pillow). `add_group_shape` MOVES shapes (author members first, then group;
+  nested = group an inner group). SmartArt has no authoring API → XML-inject a diagram graphicFrame
+  (dedicated task). Set `core_properties.created` for determinism.
+- **L5 — Determinism assertion (risk A3):** python-pptx re-save may not be byte-reproducible; assert
+  determinism on the parsed **Source** (identical bytes → byte-identical `model_dump_json`), NOT on
+  re-saved `.pptx` bytes — that is the property ADAPT-06 actually needs.
+- **Deps:** python-pptx 1.0.2 (MIT) + transitive lxml/Pillow (C-ext, OK behind `[pptx]`),
+  XlsxWriter/typing_extensions (pure-Py). No other new direct dep. Pkg-legitimacy SUS = `unknown-downloads`
+  artifact only; pre-approved, no checkpoint.
+
 ## Hard rules in play
 - **Faithful, not suggestive** — only verbatim shape text becomes claims; unreadable shapes →
   `unextracted[]`, never paraphrased or fabricated.
