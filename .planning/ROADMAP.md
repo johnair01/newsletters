@@ -76,7 +76,15 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A CI gate runs the full pipeline on a bare (no-extras) install and fails if any AI import is reachable from core
   4. An import-linter contract forbids `core` from importing any AI package, and CI enforces it
 
-**Plans**: TBD
+**Plans**: 2 plans (2 waves)
+
+**Wave 1**
+
+- [ ] 02-01-PLAN.md — Dependency reorg (core = non-AI only; `[ai]` = pydantic-ai; drop langsmith/langchain/langgraph) + import-linter forbidden contract + plugin-aware runtime AI-isolation test (PKG-01, PKG-02, PKG-04)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 02-02-PLAN.md — CI workflow: the bare no-extras install full-pipeline gate (PKG-03, the canonical source-of-truth) + the import-linter contract job (PKG-04) — the standing AI-optional invariant on every push
 
 ### Phase 3: Content-Addressed Provenance & Faithfulness Gate
 
