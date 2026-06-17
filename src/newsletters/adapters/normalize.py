@@ -109,7 +109,9 @@ def normalize(source: Source, units: list[str]) -> tuple[list[Claim], list[Unext
         # slicing (so a bad range raises rather than silently mis-attributing), pins the content
         # hash, and stores span = transcript[idx:end] verbatim. Adapters never hash here.
         trace = Trace.from_source(source, idx, end)
-        claims.append(Claim(text=unit, evidence=[trace]))
+        # confidence=0.0 explicit: an extracted span is not scored here (extraction is faithful,
+        # not a judgement); passing it keeps the construction explicit and mypy-clean.
+        claims.append(Claim(text=unit, evidence=[trace], confidence=0.0))
         cursor = end  # advance so duplicates get distinct, forward-only offsets
 
     return claims, unextracted
