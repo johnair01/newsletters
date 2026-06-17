@@ -7,6 +7,24 @@
 
 ## Where we are right now
 
+**2026-06-17 (night) — Phase 6 SHIPPED: PowerPoint adapter (3rd adapter).**
+✅ **Phase 6 — PowerPoint Adapter** (ADAPT-04/06, verified 4/4). `PptxAdapter` (registered `"pptx"`,
+`python-pptx` behind a lazy `[pptx]` extra) walks slides/shapes in order, **recurses grouped shapes**
+(extracting readable members, the group node itself neither claim nor drop), extracts
+title/body/textbox/table-cell/notes text as per-paragraph claims via the shared `normalize()`, and
+routes everything the high-level API can't read — **SmartArt (detected via `graphicData @uri`), charts,
+pictures, media, OLE** — to `unextracted[]`. 9 byte-reproducible fixtures (incl. SmartArt + nested
+groups) prove zero silent drops with exact nested accounting. Also ✅ the **timestamp front-fix (L1)**:
+a shared `deterministic_timestamp`/`EPOCH_ZERO` helper killed the `now()` fallback across ALL adapters
+(email/excel/pptx) — excel needed a raw-XML `intrinsic_created` read because openpyxl *fabricates*
+`created`; python-pptx doesn't. This fully closed the Phase-5 determinism edge. 383 tests pass;
+AI-optional + acyclic-import contracts held; registry = `['email','excel','pptx']`.
+> 📌 **Forward note (non-blocking, all adapters):** the slide/shape/`Sheet!A1` locator lives in the
+> transcript prefix (recoverable via the content-addressed offset), not a typed `Trace.locator` field —
+> a consistent accepted pattern since Phase 4. Candidate enhancement: promote it to a typed field when
+> the reviewer/site surfaces (Phase 9/10) need rich locator display — that's a cross-adapter
+> `normalize()` change, deliberately out of adapter-phase scope. See `06-VERIFICATION.md`.
+
 **2026-06-17 (late+) — Phase 5 SHIPPED: Excel adapter + the adapter pattern hardened.**
 ✅ **Phase 5 — Excel Adapter** (ADAPT-03/06, verified 3/3). `ExcelAdapter` (registered `"excel"`,
 `openpyxl` behind a lazy `[excel]` extra) double-loads `.xlsx` (formula view + data view), serializes
