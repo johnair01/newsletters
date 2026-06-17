@@ -59,6 +59,29 @@ locators, routing every value openpyxl cannot resolve (uncomputed/`None` formula
    Assert the zero-silent-drops identity + verbatim + content-addressed + conformance + determinism +
    the new round-trip coverage parity.
 
+## Post-research refinements (2026-06-17, orchestrator decisions)
+
+- **R1 — Task-zero carrier: use a TYPED carrier, not JSON-in-`context`.** Research recommended a
+  namespaced JSON payload inside the free-text `Source.context`. Overruled on the *typed-everything /
+  auditable-outputs* convention: do NOT stuff machine JSON into a human-meaning string field. The
+  planner picks the cleanest TYPED mechanism — preferred: a dedicated **optional** field on `Source`
+  (e.g. `extraction: Optional[ExtractionRecord] = None`, defaulting `None` so it's backward-compatible
+  and round-trips natively) that carries the adapter's `unextracted[]` determination — over an
+  embedded-JSON string. Keep it AI-free and Pydantic-native.
+- **R2 — Faithful safety-net (belt-and-suspenders).** If `distill()` is handed a `Source` whose
+  coverage cannot be reconstructed (not parsed by this instance AND no carried extraction record),
+  it MUST report `complete=False` with an explicit "coverage-not-reconstructable" `unextracted[]`
+  marker — NEVER a false `complete=True`. Honest uncertainty over silent completeness. This holds even
+  if R1's carrier is absent.
+- **R3 — Confirmed from research, locked:** double-load (`data_only=False` formula view +
+  `data_only=True` data view, standard mode `read_only=False`); formula cell + `None` cache →
+  `unextracted[]` (never `0`/empty); value→string = bool-before-int, `str(int)`, `repr(float)`,
+  `.isoformat()` for date/time, error cells (`data_type=='e'`) → `unextracted[]`; locator =
+  `FreeLocator(text="Sheet!A1")` (no schema change to Trace/normalize).
+- **R4 — Wave-0 probe (research risk A1):** before relying on them, confirm the openpyxl attribute
+  names for charts/images (`ws._charts`/`ws._images`) against the installed openpyxl in a tiny probe;
+  fall back to a documented detection if they differ.
+
 ## Hard rules in play
 - **Faithful, not suggestive** — uncomputed formula cells become `unextracted[]`, never fabricated 0/empty.
 - **No silent drops** — now enforced ACROSS persistence (task zero), not just same-instance.
