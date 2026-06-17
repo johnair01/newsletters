@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
+status: verifying
 stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-06-17T15:38:32.187Z"
+last_updated: "2026-06-17T15:53:15.912Z"
 last_activity: 2026-06-17 -- Phase 05 execution started
 progress:
   total_phases: 14
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 15
-  completed_plans: 13
-  percent: 21
+  completed_plans: 14
+  percent: 29
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 
 Phase: 05 (excel-adapter) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-17 -- Phase 05 execution started
 
 Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-03 complete)
@@ -68,6 +68,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 05 P01 | 25min | 2 tasks | 5 files |
 | Phase 05 P02 | 20min | 2 tasks | 4 files |
 | Phase 05 P03 | 6min | 2 tasks | 4 files |
+| Phase 05 P04 | 8min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,8 @@ Recent decisions affecting current work:
 - [Phase ?]: openpyxl behind [excel] extra, lazy-imported via _load_openpyxl(); bare install runs spine without it
 - [Phase ?]: openpyxl typed as Any (no types-openpyxl stub dep) — openpyxl is the only new dep permitted this phase
 - [Phase ?]: Excel adapter uses the TYPED Source.extraction carrier (R1), not JSON-in-context; transcript SEP is a tab and values are emitted verbatim (never escaped); formula-no-cache and error cells route to unextracted[] (never 0/empty)
+- [Phase ?]: Excel golden corpus: pin both docProps AND zip-entry timestamps for byte-reproducible .xlsx fixtures (openpyxl stamps zip local headers from the save-time wall-clock independently)
+- [Phase ?]: ExcelAdapter Source.timestamp derives from wb.properties.created (document-intrinsic), not now() — fixed a real determinism/round-trip-parity bug (Rule 1)
 
 ### Pending Todos
 
@@ -127,6 +130,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-17T15:38:24.865Z
+Last session: 2026-06-17T15:53:09.083Z
 Stopped at: Completed 05-01-PLAN.md
 Resume file: None

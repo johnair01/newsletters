@@ -28,7 +28,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: AI-Optional Packaging Boundary** - Bare `pip install .` runs the full spine with zero AI deps, CI-enforced every phase (completed 2026-06-17)
 - [x] **Phase 3: Content-Addressed Provenance & Faithfulness Gate** - Traces pin content hashes; every claim entailed by its evidence span (completed 2026-06-17)
 - [ ] **Phase 4: Shared Adapter Normalizer & Email Adapter** - One faithful-extraction rule; first stdlib adapter end-to-end
-- [ ] **Phase 5: Excel Adapter** - openpyxl cell/sheet extraction with formula-cache gaps routed to `unextracted[]`
+- [x] **Phase 5: Excel Adapter** - openpyxl cell/sheet extraction with formula-cache gaps routed to `unextracted[]` (completed 2026-06-17)
 - [ ] **Phase 6: PowerPoint Adapter** - python-pptx slide/shape extraction reporting unreadable shapes
 - [ ] **Phase 7: Power BI Adapter** - PBIP/TMDL text extraction reporting row-cap and aggregation limits
 - [ ] **Phase 8: Site Content Model & Stable IDs** - `Site/Collection/Page` with position-independent per-surface IDs
@@ -160,7 +160,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 3** *(blocked on Wave 2 — drives the built adapter)*
 
-- [ ] 05-04-PLAN.md — Byte-reproducible `.xlsx` golden corpus (ADAPT-06): formula±cache, merged, multi-sheet, mixed types, empty, error cell, chart/image; zero-silent-drops + verbatim + content-addressed + conformance + determinism + round-trip coverage parity
+- [x] 05-04-PLAN.md — Byte-reproducible `.xlsx` golden corpus (ADAPT-06): formula±cache, merged, multi-sheet, mixed types, empty, error cell, chart/image; zero-silent-drops + verbatim + content-addressed + conformance + determinism + round-trip coverage parity
 
 ### Phase 6: PowerPoint Adapter
 
@@ -314,7 +314,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 2. AI-Optional Packaging Boundary | 2/2 | Complete   | 2026-06-17 |
 | 3. Content-Addressed Provenance & Faithfulness Gate | 3/3 | Complete   | 2026-06-17 |
 | 4. Shared Adapter Normalizer & Email Adapter | 2/3 | In Progress|  |
-| 5. Excel Adapter | 3/4 | In Progress|  |
+| 5. Excel Adapter | 4/4 | Complete   | 2026-06-17 |
 | 6. PowerPoint Adapter | 0/TBD | Not started | - |
 | 7. Power BI Adapter | 0/TBD | Not started | - |
 | 8. Site Content Model & Stable IDs | 0/TBD | Not started | - |
