@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
+status: executing
 stopped_at: Completed 01-01-PLAN.md (distill socket walking skeleton)
-last_updated: "2026-06-17T14:01:22.072Z"
-last_activity: 2026-06-17 -- Phase 03 marked complete
+last_updated: "2026-06-17T14:33:02.269Z"
+last_activity: 2026-06-17 -- Phase 04 execution started
 progress:
   total_phases: 14
   completed_phases: 2
-  total_plans: 8
-  completed_plans: 7
+  total_plans: 11
+  completed_plans: 8
   percent: 14
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-14)
 
 **Core value:** A deterministic, auditable pipeline that traces every published claim to evidence and never auto-publishes — AI is an optional accelerator, never an authority.
-**Current focus:** Phase 03 — content-addressed-provenance-faithfulness
+**Current focus:** Phase 04 — shared-adapter-normalizer-email
 
 ## Current Position
 
-Phase: 03 — COMPLETE
-Plan: 3 of 3
-Status: Phase 03 complete
-Last activity: 2026-06-17 -- Phase 03 marked complete
+Phase: 04 (shared-adapter-normalizer-email) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-06-17 -- Phase 04 execution started
 
 Progress: Phase 03 [██████████] 3/3 plans (03-01, 03-02, 03-03 complete)
 
@@ -62,6 +62,7 @@ Progress: Phase 03 [██████████] 3/3 plans (03-01, 03-02, 03-
 | Phase 03 P01 | 12min | 3 tasks | 2 files |
 | Phase 03 P02 | ~8min | 2 tasks | 2 files |
 | Phase 03 P03 | ~15min | 3 tasks | 5 files |
+| Phase 04 P01 | 12min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,8 @@ Recent decisions affecting current work:
 - [Phase ?]: PROV-01: Trace content-addressed via stdlib SHA-256 of full Source + char offsets + verbatim span; STALE is a computed property (no stored flag); content-address fields optional for Rev1 backward-compat
 - [Phase ?]: 03-03: faithfulness = deterministic span-containment (Option A) defaulted at the _enforce/assert_conforms seam; un-addressed traces are structural fallback, content-addressed traces get strict normalized containment; capture.py untouched
 - [Phase ?]: 03-02: the shipped Rev1 dogfood corpus is migrated IN PLACE to content-addressed traces (20 traces) — faithful (claim text + rendered HTML byte-identical), self-verifying, not stale at capture; unlocatable spans reported (MigrationReport.unlocated), never fabricated; report-plan's structural-locator traces left un-addressed
+- [Phase 04]: normalize() empty unit ('') mints a zero-width Claim (str.find('')==cursor); cursor not advanced
+- [Phase 04]: normalize() cursor is forward-only: overlapping/out-of-order units route to unextracted[] (non-overlapping provenance)
 
 ### Pending Todos
 
@@ -112,6 +115,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-17T13:53:14.345Z
+Last session: 2026-06-17T14:32:21.069Z
 Stopped at: Completed 01-01-PLAN.md (distill socket walking skeleton)
 Resume file: .planning/phases/01-distill-socket-contract/01-02-PLAN.md
