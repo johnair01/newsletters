@@ -191,17 +191,30 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 ### Phase 7: Power BI Adapter
 
-**Goal**: Extract from Power BI PBIP/TMDL text (with a pbixray binary fallback), reporting the row-cap and aggregation limits that make an export look complete when it is a clipped aggregate.
+**Goal**: Extract from Power BI PBIP/TMDL text (stdlib, ZERO new dependency), reporting the row-cap and aggregation limits that make an export look complete when it is a clipped aggregate; route binary `.pbix` to a fail-loud "export to PBIP" disclosure (pbixray DEFERRED per research-locked L1).
 **Mode:** mvp
 **Depends on**: Phase 4
 **Requirements**: ADAPT-05
 **Success Criteria** (what must be TRUE):
 
-  1. The Power BI adapter extracts from PBIP/TMDL text (stdlib) into `Claim(+Trace)`, with a pbixray fallback for binary `.pbix`
+  1. The Power BI adapter extracts from PBIP/TMDL text (stdlib) into `Claim(+Trace)`; binary `.pbix` routes to a whole-source `unextracted[]` deferral ("export to PBIP for faithful extraction") — pbixray DEFERRED (research-locked L1), ZERO new dependency
   2. Row-cap hits and summarized-vs-underlying aggregation limits are reported in `unextracted[]`, failing loud rather than presenting a clipped aggregate as complete
   3. A golden-file test covers the Power BI adapter against a fixture, asserting zero silent drops
 
-**Plans**: TBD
+**Plans**: 4 plans (3 waves)
+
+**Wave 1** *(parallel — disjoint file ownership; pure stdlib parsers, unit-testable)*
+
+- [ ] 07-01-PLAN.md — Stdlib TMDL line/indent parser (`_tmdl.py`, L2): ordered verbatim `(object-path, value)` units for tables/columns/measures/relationships/hierarchies/annotations; DAX extracted as TEXT, never evaluated; directQuery surfaced as a signal (ADAPT-05, D-3/L2)
+- [ ] 07-02-PLAN.md — Stdlib PBIR report reader (`_pbir.py`, L3): verbatim page/visual/textbox/field units + the typed row-cap/aggregation detection taxonomy (TopN, restricting filters, summarized/aggregated bindings, DirectQuery/rowlimit), filter literals disclosed as config text (ADAPT-05, D-4/L3)
+
+**Wave 2** *(blocked on Wave 1 — composes both parsers)*
+
+- [ ] 07-03-PLAN.md — `PowerBiAdapter` (registered `powerbi`): folder `parse_path` + byte `parse`, canonical prefixed transcript (L5), `.pbix` deferral (L1/`_R_PBIX_BINARY`), the full `_R_*` taxonomy + categorical `_R_NO_DATA_ROWS` → `unextracted[]` (fail loud), drops on `Source.extraction`, EPOCH_ZERO timestamp, conforms; joins the parity + determinism matrices (ADAPT-05 criteria 1+2)
+
+**Wave 3** *(blocked on Wave 2 — drives the built adapter)*
+
+- [ ] 07-04-PLAN.md — Hand-authored byte-reproducible PBIP/TMDL golden corpus (ADAPT-06 criterion 3): TMDL model + relationship + plain + Top-N/summarized visuals + `.pbix` deferral; zero-silent-drops + verbatim/content-addressed claims + pinned `_R_TOPN`/`_R_AGGREGATED`/`_R_NO_DATA_ROWS`/`_R_PBIX_BINARY` + conformance + Source-determinism (L5) + round-trip coverage parity (ADAPT-05, ADAPT-06)
 
 ### Phase 8: Site Content Model & Stable IDs
 
