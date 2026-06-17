@@ -170,6 +170,78 @@ def _excel_factory():
     return ExcelAdapter()
 
 
+# --------------------------------------------------------------------------- #
+# The PptxAdapter joins this matrix (Plan 06-04, the seam below). python-pptx is the optional [pptx]
+# extra, so the pptx case is skipped cleanly when absent. All python-pptx imports are LOCAL to the
+# recipe functions (never at module top) so this file imports without the extra.
+# --------------------------------------------------------------------------- #
+
+_HAS_PPTX = importlib.util.find_spec("pptx") is not None
+
+
+def _strip_created_from_pptx(raw: bytes) -> bytes:
+    """Rewrite a `.pptx` zip with the docProps `dcterms:created` element removed.
+
+    python-pptx REFUSES to set `core_properties.created = None` (it validates the value is a
+    datetime) AND its DEFAULT template embeds a fixed `2013-01-27T09:14:16Z` created date — so there
+    is no high-level way to author a deck with a genuinely-absent intrinsic timestamp. We therefore
+    strip the element from the saved zip directly (stdlib only). The adapter reads
+    `core_properties.created`, which then returns None faithfully -> EPOCH_ZERO (the deterministic
+    sentinel), mirroring `_strip_created_from_xlsx`.
+    """
+    import re
+    import zipfile
+
+    src = zipfile.ZipFile(io.BytesIO(raw))
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
+        for item in src.infolist():
+            data = src.read(item.filename)
+            if item.filename == "docProps/core.xml":
+                data = re.sub(
+                    rb"<dcterms:created[^>]*>[^<]*</dcterms:created>", b"", data
+                )
+            zf.writestr(item, data)
+    return out.getvalue()
+
+
+def _pptx_no_created() -> bytes:
+    """A `.pptx` with NO docProps `created` element -> no intrinsic timestamp (deterministic)."""
+    from pptx import Presentation
+    from pptx.util import Emu
+
+    prs = Presentation()
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    slide.shapes.add_textbox(Emu(0), Emu(0), Emu(1000), Emu(1000)).text_frame.text = "hi"
+    buf = io.BytesIO()
+    prs.save(buf)
+    return _strip_created_from_pptx(buf.getvalue())
+
+
+def _pptx_with_created() -> tuple[bytes, datetime]:
+    """A `.pptx` WITH an intrinsic `created` -> the adapter must keep that date.
+
+    The python-pptx DEFAULT template embeds a fixed `2013-01-27T09:14:16Z` created date — itself
+    deterministic (not wall-clock), so it is a valid intrinsic-timestamp case. The adapter reads it
+    via `core_properties.created` and coerces it to UTC.
+    """
+    from pptx import Presentation
+    from pptx.util import Emu
+
+    prs = Presentation()
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    slide.shapes.add_textbox(Emu(0), Emu(0), Emu(1000), Emu(1000)).text_frame.text = "hi"
+    buf = io.BytesIO()
+    prs.save(buf)
+    return buf.getvalue(), datetime(2013, 1, 27, 9, 14, 16, tzinfo=timezone.utc)
+
+
+def _pptx_factory():
+    from newsletters.adapters.pptx_adapter import PptxAdapter
+
+    return PptxAdapter()
+
+
 # (id, adapter_factory, no_intrinsic_bytes_loader, with_intrinsic_loader)
 _DETERMINISM_CASES = [
     pytest.param(_email_factory, _eml_no_date, _eml_with_date, id="email"),
@@ -182,9 +254,17 @@ _DETERMINISM_CASES = [
             not _HAS_OPENPYXL, reason="optional [excel] extra (openpyxl) not installed"
         ),
     ),
-    # SEAM: the PptxAdapter param joins HERE in Plan 06-04 — a (_pptx_factory,
-    # _pptx_no_created, _pptx_with_created) entry using core_properties.created. Do NOT import
-    # python-pptx in this file; it lives behind the [pptx] extra (Plan 06-02).
+    # SEAM (joined in Plan 06-04): the PptxAdapter param, using core_properties.created. python-pptx
+    # imports are local to the recipe functions, so this file still imports without the [pptx] extra.
+    pytest.param(
+        _pptx_factory,
+        _pptx_no_created,
+        _pptx_with_created,
+        id="pptx",
+        marks=pytest.mark.skipif(
+            not _HAS_PPTX, reason="optional [pptx] extra (python-pptx) not installed"
+        ),
+    ),
 ]
 
 

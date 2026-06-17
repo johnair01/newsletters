@@ -109,6 +109,25 @@ def _excel_adapter_factory():
     return ExcelAdapter()
 
 
+# The PowerPoint adapter (Plan 06-03) joins the SAME matrix. python-pptx is the optional [pptx]
+# extra, so the whole pptx case is skipped cleanly when it is absent — the bare-install gate is
+# unaffected. Unlike the in-memory excel recipe above, the pptx case reads the COMMITTED
+# byte-reproducible golden corpus (Plan 06-04, tests/fixtures/pptx/*.pptx) so parity is proven over
+# the real fixtures including the SmartArt + nested-group decks.
+_HAS_PPTX = importlib.util.find_spec("pptx") is not None
+_PPTX_DIR = pathlib.Path(__file__).parent / "fixtures" / "pptx"
+
+
+def _pptx_fixtures() -> list[tuple[str, bytes, str]]:
+    return [(p.name, p.read_bytes(), str(p)) for p in sorted(_PPTX_DIR.glob("*.pptx"))]
+
+
+def _pptx_adapter_factory():
+    from newsletters.adapters.pptx_adapter import PptxAdapter
+
+    return PptxAdapter()
+
+
 # (id, adapter_factory, fixtures_loader)
 ADAPTER_CASES = [
     pytest.param(EmailAdapter, _email_fixtures, id="email"),
@@ -118,6 +137,14 @@ ADAPTER_CASES = [
         id="excel",
         marks=pytest.mark.skipif(
             not _HAS_OPENPYXL, reason="optional [excel] extra (openpyxl) not installed"
+        ),
+    ),
+    pytest.param(
+        _pptx_adapter_factory,
+        _pptx_fixtures,
+        id="pptx",
+        marks=pytest.mark.skipif(
+            not _HAS_PPTX, reason="optional [pptx] extra (python-pptx) not installed"
         ),
     ),
 ]
