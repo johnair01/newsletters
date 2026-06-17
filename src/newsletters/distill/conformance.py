@@ -24,12 +24,13 @@ seam in ``ports.py`` (injectable for the Phase-3 span-containment swap).
 
 from __future__ import annotations
 
+from typing import Optional
+
 from ..semantic import Source
 from .ports import (
     DistillationResult,
     DistillPort,
     FaithfulnessCheck,
-    StructuralFaithfulness,
     _enforce,
 )
 
@@ -38,7 +39,7 @@ def assert_conforms(
     backend: DistillPort,
     sources: list[Source],
     *,
-    check: FaithfulnessCheck = StructuralFaithfulness(),
+    check: Optional[FaithfulnessCheck] = None,
 ) -> DistillationResult:
     """Run ``backend`` through the socket contract; raise on any violation, else return its result.
 
@@ -53,8 +54,9 @@ def assert_conforms(
        already forbids "complete with dropped content" (SOCK-04 / D-05), so merely receiving a
        constructed ``Coverage`` proves that invariant held.
     4. Every emitted claim passes the injected faithfulness ``check`` via the single-place
-       ``_enforce`` seam (default: every claim traced — ``StructuralFaithfulness``). The
-       ``check`` parameter is the Phase-3 swap point; no backend changes when it changes.
+       ``_enforce`` seam. The DEFAULT (``check=None``) is the Phase-3 deterministic
+       ``SpanContainmentFaithfulness`` (D-3) — so conformance inherits span-containment for EVERY
+       backend with no signature change. Passing an explicit ``check`` still overrides it.
     5. The lossless JSON round-trip ``model_validate_json(model_dump_json()) == result`` (D-04)
        — the result is a faithful, serializable sidecar.
 

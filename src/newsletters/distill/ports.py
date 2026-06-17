@@ -22,7 +22,7 @@ initializing — because ``semantic`` no longer imports anything from the ``dist
 
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from typing import Optional, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
 
@@ -94,7 +94,7 @@ class StructuralFaithfulness:
 
 def _enforce(
     result: DistillationResult,
-    check: FaithfulnessCheck = StructuralFaithfulness(),
+    check: Optional[FaithfulnessCheck] = None,
 ) -> DistillationResult:
     """Apply the faithfulness rule to a result in exactly ONE place; return it unchanged if clean.
 
@@ -103,13 +103,23 @@ def _enforce(
     place"). It runs ``check.entails(claim)`` over every claim in the wrapped ``Distillation``
     and raises a teaching-style ``ValueError`` on the FIRST unfaithful claim.
 
-    The ``check`` parameter is the Phase-3 (PROV-02) injection point: passing a different
-    ``FaithfulnessCheck`` (e.g. deterministic span-containment) changes the trust rule with
-    ZERO backend change. The Phase-1 default is structural (every claim must be traced).
+    The ``check`` parameter is the injection point: passing a different ``FaithfulnessCheck``
+    changes the trust rule with ZERO backend change. The DEFAULT is the Phase-3 (PROV-02)
+    deterministic ``SpanContainmentFaithfulness`` — so every backend now inherits span-containment
+    (D-3) where the Phase-1 default was structural (``StructuralFaithfulness``, traced-only).
 
-    HARD RULE — AI-optional core: this function imports no AI library; the default
-    ``StructuralFaithfulness`` only consults ``Claim.is_traced``.
+    ``check=None`` resolves to the span-containment default lazily inside the function: the
+    default checker lives in ``.faithfulness``, which imports FROM this module, so binding it as a
+    module-level default value here would create an import cycle. Resolving on first call keeps the
+    import graph acyclic and AI-free (``faithfulness`` imports only ``..semantic`` + stdlib).
+
+    HARD RULE — AI-optional core: this function imports no AI library; both the default
+    span-containment checker and ``StructuralFaithfulness`` are stdlib-only.
     """
+    if check is None:
+        from .faithfulness import SpanContainmentFaithfulness
+
+        check = SpanContainmentFaithfulness()
     for claim in result.distillation.claims:
         if not check.entails(claim):
             raise ValueError(
