@@ -18,12 +18,14 @@ from __future__ import annotations
 
 from ..locators import FreeLocator, Locator, SessionLocator
 from .coverage import Coverage, Unextracted
+from .manual import ManualBackend
 from .ports import (
     DistillationResult,
     DistillPort,
     FaithfulnessCheck,
     StructuralFaithfulness,
 )
+from .registry import available, register, resolve
 
 __all__ = [
     # contract
@@ -31,6 +33,12 @@ __all__ = [
     "DistillationResult",
     "FaithfulnessCheck",
     "StructuralFaithfulness",
+    # registry (NOT re-exported at package root — would shadow templates.register)
+    "register",
+    "resolve",
+    "available",
+    # backends
+    "ManualBackend",
     # coverage / honesty
     "Coverage",
     "Unextracted",
