@@ -179,3 +179,29 @@ def test_distill_package_imports_no_ai() -> None:
     )
     proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
     assert proc.returncode == 0, f"AI leaked: {proc.stdout}{proc.stderr}"
+
+
+# --- SOCK-05 (Task 1 RED): the conformance API + single-place faithfulness seam --- #
+
+
+def test_conformance_api_and_seam_exist(
+    work_session: WorkSession, sources: list[Source]
+) -> None:
+    """The Task-1 deliverables are wired: assert_conforms (barrel + module) and _enforce.
+
+    assert_conforms passes the conforming ManualBackend; _enforce applies a default
+    StructuralFaithfulness and is the single injectable boundary (the Phase-3 swap point).
+    """
+    from newsletters.distill import assert_conforms as barrel_assert_conforms
+    from newsletters.distill.conformance import assert_conforms
+    from newsletters.distill.ports import _enforce, StructuralFaithfulness
+
+    assert barrel_assert_conforms is assert_conforms  # re-exported, same object
+
+    # conforming backend passes and returns the result unchanged
+    result = assert_conforms(ManualBackend(session=work_session), sources)
+    assert isinstance(result, DistillationResult)
+
+    # _enforce default-applies StructuralFaithfulness and returns the result unchanged
+    assert _enforce(result) is result
+    assert _enforce(result, StructuralFaithfulness()) is result
