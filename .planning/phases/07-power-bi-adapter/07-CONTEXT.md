@@ -50,6 +50,38 @@ adapter/DistillPort pattern, Coverage/`unextracted[]`), Phase 5/6 (hardened cove
    unextracted), and (if pbixray adopted) a tiny `.pbix` or its deferral path. Assert zero silent drops,
    verbatim + content-addressed claims, conformance, determinism, round-trip parity.
 
+## Research-locked choices (07-RESEARCH.md accepted 2026-06-17; HIGH primary / MEDIUM on PBIR key names)
+
+- **L1 — pbixray DEFERRED (orchestrator decision, from research).** pbixray is MIT/active, but its dep
+  tree (pandas+numpy+apsw+kaitaistruct + 3 single-maintainer Cython shims `xpress8/xpress9/xmhuffman`,
+  all SUS/unknown-downloads) is too heavy/hard-to-audit for a *fallback*. **Phase 7 adds ZERO new
+  dependency.** Binary `.pbix` input → a whole-source `unextracted[]` disclosure: "export to PBIP/PBIR
+  for faithful extraction" (fail loud, faithful). No `[powerbi]` extra. (If ever reversed, gate the 3
+  shims behind a human-verify checkpoint.) → No Package-Legitimacy concern this phase.
+- **L2 — TMDL = stdlib line/indent parse, NO parser dep.** YAML-like single-tab-indent grammar: object
+  headers `type name`, `property: value`, `=`-introduced default-property expressions (single-line /
+  indent-deeper multi-line / ```` ``` ````-fenced), `///` descriptions. A stdlib tokenizer extracts
+  every artifact verbatim. **Never evaluate DAX** — a measure's `expression` is a FORMULA, extracted as
+  text, never a value (the Excel formula-cache crux restated).
+- **L3 — Row-cap/aggregation `unextracted[]` taxonomy (fail loud).** Detect + report: (1) `filterType:
+  TopN` (+operator/itemCount); (2) restricting filters (report/page/visual level); (3) summarized field
+  bindings / `summarizeBy` / measure aggregates; (4) `mode: directQuery` + visual row/data limits;
+  (5) **the categorical truth that PBIP text has NO data rows → a whole-source `_R_NO_DATA_ROWS` entry
+  forcing `Coverage.complete=False`** on any model export. Filters live in report.json / page.json /
+  visual.json. Data-leak caveat: visual.json filter LITERALS (e.g. `'Contoso'`) are extracted as config
+  text surfaced to the reviewer, never silently treated as data.
+- **L4 — Entrypoint:** PBIP is a multi-file FOLDER, so add `parse_path(path) -> ...` alongside the
+  byte-oriented `parse(raw, path)` (planner finalizes the shape; a `.pbix`/zip byte path routes to the
+  L1 deferral disclosure). Register backend `"powerbi"`. Timestamp → `EPOCH_ZERO` (PBIP has no single
+  reliable intrinsic date) via `deterministic_timestamp`.
+- **L5 — Transcript layout:** multi-file, so each unit's prefix carries file+object path (e.g.
+  `Model/Table[Sales]/Measure[Total]`, `report/page1/visual3/title`), prefix NOT part of the claim
+  value, composing with cursor-advancing normalize(). Locator = `FreeLocator(text=prefix)`.
+- **L6 — Fixtures = hand-authored PLAIN-TEXT PBIP/TMDL tree** via stdlib `write_text` (byte-reproducible,
+  NO authoring dep — unlike excel/pptx). Risk A1: PBIR `visual.json` filter/aggregation key paths not
+  byte-confirmed — author the golden against `microsoft/json-schemas .../visualContainer` and PIN the
+  reason strings by driving the LIVE adapter (same method excel/pptx used).
+
 ## Hard rules in play
 - **Faithful, not suggestive** — extract DAX/model TEXT verbatim; NEVER compute or fabricate a data
   value; clipped aggregates disclosed, not presented as complete.
