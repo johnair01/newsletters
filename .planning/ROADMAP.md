@@ -129,7 +129,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 2** *(blocked on Wave 1 — imports `normalize()`)*
 
-- [ ] 04-02-PLAN.md — Email `.eml` adapter (ADAPT-02): registered `DistillPort` backend — `policy.default` parse, canonical decoded transcript, deterministic charset ladder + U+FFFD detection, HTML-only emit-both, full U1–U8 `unextracted[]` routing; selectable as `"email"` and conforming
+- [x] 04-02-PLAN.md — Email `.eml` adapter (ADAPT-02): registered `DistillPort` backend — `policy.default` parse, canonical decoded transcript, deterministic charset ladder + U+FFFD detection, HTML-only emit-both, full U1–U8 `unextracted[]` routing; selectable as `"email"` and conforming
 
 **Wave 3** *(blocked on Wave 2 — drives the built adapter)*
 
@@ -300,7 +300,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 1. Distill Socket Contract | 2/2 | Complete   | 2026-06-17 |
 | 2. AI-Optional Packaging Boundary | 2/2 | Complete   | 2026-06-17 |
 | 3. Content-Addressed Provenance & Faithfulness Gate | 3/3 | Complete   | 2026-06-17 |
-| 4. Shared Adapter Normalizer & Email Adapter | 1/3 | In Progress|  |
+| 4. Shared Adapter Normalizer & Email Adapter | 2/3 | In Progress|  |
 | 5. Excel Adapter | 0/TBD | Not started | - |
 | 6. PowerPoint Adapter | 0/TBD | Not started | - |
 | 7. Power BI Adapter | 0/TBD | Not started | - |

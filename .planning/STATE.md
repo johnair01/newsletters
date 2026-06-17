@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 01-01-PLAN.md (distill socket walking skeleton)
-last_updated: "2026-06-17T14:33:02.269Z"
+last_updated: "2026-06-17T14:42:38.372Z"
 last_activity: 2026-06-17 -- Phase 04 execution started
 progress:
   total_phases: 14
   completed_phases: 2
   total_plans: 11
-  completed_plans: 8
+  completed_plans: 9
   percent: 14
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 ## Current Position
 
 Phase: 04 (shared-adapter-normalizer-email) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-06-17 -- Phase 04 execution started
 
@@ -63,6 +63,7 @@ Progress: Phase 03 [██████████] 3/3 plans (03-01, 03-02, 03-
 | Phase 03 P02 | ~8min | 2 tasks | 2 files |
 | Phase 03 P03 | ~15min | 3 tasks | 5 files |
 | Phase 04 P01 | 12min | 2 tasks | 3 files |
+| Phase 04 P02 | 6min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -87,6 +88,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-02: the shipped Rev1 dogfood corpus is migrated IN PLACE to content-addressed traces (20 traces) — faithful (claim text + rendered HTML byte-identical), self-verifying, not stale at capture; unlocatable spans reported (MigrationReport.unlocated), never fabricated; report-plan's structural-locator traces left un-addressed
 - [Phase 04]: normalize() empty unit ('') mints a zero-width Claim (str.find('')==cursor); cursor not advanced
 - [Phase 04]: normalize() cursor is forward-only: overlapping/out-of-order units route to unextracted[] (non-overlapping provenance)
+- [Phase 04]: Email adapter: distill(sources) stays DistillPort-exact; parse(raw,path) builds the Source and records U1-U7 drops, recovered in distill via a per-source-id dict (manual.py-style state carry)
 
 ### Pending Todos
 
@@ -115,6 +117,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-17T14:32:21.069Z
+Last session: 2026-06-17T14:42:26.004Z
 Stopped at: Completed 01-01-PLAN.md (distill socket walking skeleton)
 Resume file: .planning/phases/01-distill-socket-contract/01-02-PLAN.md
