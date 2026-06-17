@@ -35,6 +35,20 @@ it with the first, simplest adapter — Email, stdlib-only, no extra.
    the AI-optional contract (`lint-imports`) and bare-install gate green. `.msg` (GPL `extract-msg`) is
    explicitly OUT (REQUIREMENTS Out-of-Scope).
 
+6. **HTML-only body → emit both (resolved 2026-06-17 from research open-Q).** When only `text/html`
+   exists, deterministically strip to text (`html.parser`), make that stripped text part of the
+   transcript, emit best-effort paragraph Claims (verbatim slices of the stripped text) AND a `U5`
+   `unextracted[]` entry disclosing the strip was lossy. Faithful: claims are exact substrings; the
+   information-loss is disclosed, never silent.
+
+7. **Charset faithfulness (resolved from research top-risk).** Do NOT trust `get_content()` (it
+   silently injects U+FFFD on mislabeled charsets). The adapter re-decodes the body with a fixed
+   deterministic ladder — declared charset → utf-8 → latin-1, all `errors='strict'` (latin-1 is total,
+   never raises). Any non-declared fallback, any residual U+FFFD, `LookupError`, or `UnicodeDecodeError`
+   routes the part to `unextracted[]`. Catch `LookupError` (unknown charset) AND `UnicodeDecodeError`.
+   Note: inline `message/rfc822` has `is_attachment()==False` but is still yielded by
+   `iter_attachments()` — detect via `get_content_maintype()=="message"`, don't filter on `is_attachment()`.
+
 ## Hard rules in play
 - **Faithful, not suggestive** — `normalize()` only extracts verbatim spans; it never paraphrases or
   editorializes. Non-verbatim → `unextracted[]`.
