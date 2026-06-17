@@ -17,13 +17,13 @@ the bare-install gate (``tests/test_ai_optional.py``) asserts grep-count 0 for t
 from __future__ import annotations
 
 import io
-from typing import TYPE_CHECKING, Any, Union
+from typing import Any, Union
 
-if TYPE_CHECKING:  # pragma: no cover - typing only; never executed at runtime
-    # Under TYPE_CHECKING this import is invisible to the runtime interpreter (and to the
-    # bare-install gate's grep for a top-level runtime ``import openpyxl``), so it costs the
-    # bare install nothing while still giving mypy the real types.
-    from openpyxl import Workbook
+# NOTE on typing: openpyxl ships NO inline type information and ``types-openpyxl`` is a SEPARATE
+# stub package. openpyxl is the ONLY new dependency this phase may add (CONTEXT), so we do NOT pull
+# a stub package just for annotations — the workbook objects are typed as ``Any`` (mypy then treats
+# them opaquely, which is correct: the faithful per-cell logic lives in the 05-03 adapter, not here).
+Workbook = Any  # alias used in return annotations below; kept ``Any`` to avoid a stub dependency
 
 # The exact teaching message a user sees if they reach the Excel adapter without the extra.
 # Exposed as a module constant so tests can assert against it without string-duplication drift.
@@ -50,7 +50,10 @@ def _load_openpyxl() -> Any:
         ImportError: if ``openpyxl`` is not installed, with an actionable message.
     """
     try:
-        import openpyxl  # noqa: PLC0415 — deliberately lazy (optional [excel] extra, T-05-04)
+        # openpyxl ships no stubs; we deliberately do NOT add types-openpyxl (openpyxl is the
+        # ONLY new dep this phase may add) -> ignore the missing-stub error. PLC0415: lazy on
+        # purpose (optional [excel] extra, T-05-04).
+        import openpyxl  # type: ignore[import-untyped]  # noqa: PLC0415
     except ImportError as exc:
         raise ImportError(MISSING_OPENPYXL_MESSAGE) from exc
     return openpyxl
