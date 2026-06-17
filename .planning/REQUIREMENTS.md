@@ -31,7 +31,7 @@
 - [ ] **ADAPT-03**: An Excel adapter extracts cell/sheet structure via openpyxl, routing uncomputed/`None` formula cells to `unextracted[]`
 - [ ] **ADAPT-04**: A PowerPoint adapter extracts slide/shape text via python-pptx, reporting shapes it cannot read (e.g. SmartArt)
 - [ ] **ADAPT-05**: A Power BI adapter extracts from PBIP/TMDL text (or pbixray fallback), reporting row-cap/aggregation limits
-- [ ] **ADAPT-06**: Each adapter is covered by golden-file tests (fixture file → expected typed claims+traces)
+- [x] **ADAPT-06**: Each adapter is covered by golden-file tests (fixture file → expected typed claims+traces)
 
 ### Provenance & Faithfulness
 
@@ -118,7 +118,7 @@ Mapped during roadmap creation (2026-06-14). Every v1 requirement maps to exactl
 | PROV-02 | Phase 3 — Content-Addressed Provenance & Faithfulness Gate | Complete |
 | ADAPT-01 | Phase 4 — Shared Adapter Normalizer & Email Adapter | Complete |
 | ADAPT-02 | Phase 4 — Shared Adapter Normalizer & Email Adapter | Complete |
-| ADAPT-06 | Phase 4 — Shared Adapter Normalizer & Email Adapter | Pending |
+| ADAPT-06 | Phase 4 — Shared Adapter Normalizer & Email Adapter | Complete |
 | ADAPT-03 | Phase 5 — Excel Adapter | Pending |
 | ADAPT-04 | Phase 6 — PowerPoint Adapter | Pending |
 | ADAPT-05 | Phase 7 — Power BI Adapter | Pending |

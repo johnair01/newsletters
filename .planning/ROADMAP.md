@@ -133,7 +133,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 3** *(blocked on Wave 2 — drives the built adapter)*
 
-- [ ] 04-03-PLAN.md — Golden-file corpus (ADAPT-06): 8 committed `.eml` fixtures + zero-silent-drops accounting identity + verbatim/content-addressed assertions + `assert_conforms` (span-containment + JSON round-trip) + determinism
+- [x] 04-03-PLAN.md — Golden-file corpus (ADAPT-06): 8 committed `.eml` fixtures + zero-silent-drops accounting identity + verbatim/content-addressed assertions + `assert_conforms` (span-containment + JSON round-trip) + determinism — identity holds for all 8; no adapter bug found
 
 ### Phase 5: Excel Adapter
 

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-01-PLAN.md (distill socket walking skeleton)
-last_updated: "2026-06-17T14:42:38.372Z"
-last_activity: 2026-06-17 -- Phase 04 execution started
+stopped_at: Completed 04-03-PLAN.md (email golden-file corpus — Phase 4 complete)
+last_updated: "2026-06-17T14:49:00.000Z"
+last_activity: 2026-06-17 -- Phase 04 complete (3/3 plans)
 progress:
   total_phases: 14
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 11
-  completed_plans: 9
-  percent: 14
+  completed_plans: 10
+  percent: 21
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 
 ## Current Position
 
-Phase: 04 (shared-adapter-normalizer-email) — EXECUTING
-Plan: 3 of 3
-Status: Ready to execute
-Last activity: 2026-06-17 -- Phase 04 execution started
+Phase: 04 (shared-adapter-normalizer-email) — COMPLETE
+Plan: 3 of 3 (all complete)
+Status: Phase complete — ready for /gsd-verify-work
+Last activity: 2026-06-17 -- Phase 04 complete (3/3 plans)
 
-Progress: Phase 03 [██████████] 3/3 plans (03-01, 03-02, 03-03 complete)
+Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-03 complete)
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Progress: Phase 03 [██████████] 3/3 plans (03-01, 03-02, 03-
 | Phase 03 P03 | ~15min | 3 tasks | 5 files |
 | Phase 04 P01 | 12min | 2 tasks | 3 files |
 | Phase 04 P02 | 6min | 3 tasks | 4 files |
+| Phase 04 P03 | 4min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,7 @@ Recent decisions affecting current work:
 - [Phase 04]: normalize() empty unit ('') mints a zero-width Claim (str.find('')==cursor); cursor not advanced
 - [Phase 04]: normalize() cursor is forward-only: overlapping/out-of-order units route to unextracted[] (non-overlapping provenance)
 - [Phase 04]: Email adapter: distill(sources) stays DistillPort-exact; parse(raw,path) builds the Source and records U1-U7 drops, recovered in distill via a per-source-id dict (manual.py-style state carry)
+- [Phase 04]: 04-03: 8 byte-exact .eml golden fixtures (committed, via _author_fixtures.py generator) drive EmailAdapter across the full routing matrix; the zero-silent-drops accounting identity (len(claims)+len(unextracted)==units walked) holds for all 8 — the executable proof of CONTEXT decision 4. No adapter bug found; expected counts pinned from the live adapter, not assumed.
 
 ### Pending Todos
 
@@ -117,6 +119,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-17T14:42:26.004Z
-Stopped at: Completed 01-01-PLAN.md (distill socket walking skeleton)
-Resume file: .planning/phases/01-distill-socket-contract/01-02-PLAN.md
+Last session: 2026-06-17T14:49:00.000Z
+Stopped at: Completed 04-03-PLAN.md (email golden-file corpus — Phase 4 complete, 3/3 plans)
+Resume file: None — Phase 4 complete; next is /gsd-verify-work
