@@ -212,7 +212,7 @@ def _block_html(b) -> str:
         rows = []
         for c in b.claims:
             ev = "".join(
-                f'<span class="ev-chip">{_e(t.source_id)}{(":" + _e(t.locator)) if t.locator else ""}</span>'
+                f'<span class="ev-chip">{_e(t.source_id)}{(":" + _e(t.locator.display)) if t.locator.display else ""}</span>'
                 for t in c.evidence
             ) or '<span class="ev-chip" style="color:var(--color-amber)">unsubstantiated &rarr; missing[]</span>'
             conf = f'<span class="conf">conf {c.confidence:.2f}</span>'

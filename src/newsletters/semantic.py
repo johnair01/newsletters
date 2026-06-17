@@ -30,8 +30,9 @@ from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Annotated, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from .locators import FreeLocator, Locator
 from .templates import ReviewPolicy, SignalColor, SurfaceTemplate
 
 
@@ -55,10 +56,29 @@ class Source(BaseModel):
 
 
 class Trace(BaseModel):
-    """A pointer from a claim to its evidence: a ``Source`` and a locator within it."""
+    """A pointer from a claim to its evidence: a ``Source`` and a locator within it.
+
+    ``locator`` is a typed ``Locator`` discriminated union (D-06). A bare ``str`` still
+    coerces to ``FreeLocator(text=...)`` so the Rev1 capture path (``capture.py``) and
+    existing tests stay green — the widening is backward-compatible. ``span`` carries the
+    verbatim source snippet so "faithful, not suggestive" is *visible* at draft time (D-06).
+    """
 
     source_id: str
-    locator: str = ""
+    locator: Locator = Field(default_factory=FreeLocator)
+    span: str = ""
+
+    @field_validator("locator", mode="before")
+    @classmethod
+    def _coerce_locator(cls, v: object) -> object:
+        """Coerce a bare ``str`` into ``FreeLocator(text=...)``; pass everything else through.
+
+        Idempotent: a ``FreeLocator``/``SessionLocator`` instance, or a discriminator dict
+        like ``{"kind": "free", "text": ...}``, passes through UNCHANGED (no double-wrap).
+        """
+        if isinstance(v, str):
+            return FreeLocator(text=v)
+        return v
 
 
 class Claim(BaseModel):
