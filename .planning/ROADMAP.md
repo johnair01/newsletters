@@ -121,7 +121,19 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. The Email adapter extracts structured content from `.eml` into `Claim(+Trace)` and reports unextracted parts (forwarded `message/rfc822`, charset-fallback losses) in `unextracted[]`
   3. A golden-file test (fixture `.eml` → expected typed claims+traces) covers the Email adapter and asserts zero silent drops
 
-**Plans**: TBD
+**Plans**: 3 plans (3 waves)
+
+**Wave 1**
+
+- [ ] 04-01-PLAN.md — Shared `normalize()` (ADAPT-01): the single faithful-extraction site — cursor-advancing offset location + `Trace.from_source` minting; non-locatable units routed to `unextracted[]`; new `src/newsletters/adapters/` package, stdlib-only
+
+**Wave 2** *(blocked on Wave 1 — imports `normalize()`)*
+
+- [ ] 04-02-PLAN.md — Email `.eml` adapter (ADAPT-02): registered `DistillPort` backend — `policy.default` parse, canonical decoded transcript, deterministic charset ladder + U+FFFD detection, HTML-only emit-both, full U1–U8 `unextracted[]` routing; selectable as `"email"` and conforming
+
+**Wave 3** *(blocked on Wave 2 — drives the built adapter)*
+
+- [ ] 04-03-PLAN.md — Golden-file corpus (ADAPT-06): 8 committed `.eml` fixtures + zero-silent-drops accounting identity + verbatim/content-addressed assertions + `assert_conforms` (span-containment + JSON round-trip) + determinism
 
 ### Phase 5: Excel Adapter
 
@@ -288,7 +300,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 1. Distill Socket Contract | 2/2 | Complete   | 2026-06-17 |
 | 2. AI-Optional Packaging Boundary | 2/2 | Complete   | 2026-06-17 |
 | 3. Content-Addressed Provenance & Faithfulness Gate | 3/3 | Complete   | 2026-06-17 |
-| 4. Shared Adapter Normalizer & Email Adapter | 0/TBD | Not started | - |
+| 4. Shared Adapter Normalizer & Email Adapter | 0/3 | Planned | - |
 | 5. Excel Adapter | 0/TBD | Not started | - |
 | 6. PowerPoint Adapter | 0/TBD | Not started | - |
 | 7. Power BI Adapter | 0/TBD | Not started | - |
