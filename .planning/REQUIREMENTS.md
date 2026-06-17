@@ -11,10 +11,10 @@
 
 ### Distill Socket
 
-- [ ] **SOCK-01**: A `DistillPort` protocol defines one backend contract — `distill(sources) -> Distillation` — that the pipeline consumes without knowing which backend produced the result
-- [ ] **SOCK-02**: A backend registry lets an operator register/select a distill backend (manual / adapter / AI) by name
-- [ ] **SOCK-03**: A `ManualBackend` lets an operator author claims+traces by hand with zero AI and emit a valid `Distillation`
-- [ ] **SOCK-04**: The socket defines a coverage manifest / `unextracted[]` contract so any backend reports what it could not extract (never silently drops content)
+- [x] **SOCK-01**: A `DistillPort` protocol defines one backend contract — `distill(sources) -> Distillation` — that the pipeline consumes without knowing which backend produced the result
+- [x] **SOCK-02**: A backend registry lets an operator register/select a distill backend (manual / adapter / AI) by name
+- [x] **SOCK-03**: A `ManualBackend` lets an operator author claims+traces by hand with zero AI and emit a valid `Distillation`
+- [x] **SOCK-04**: The socket defines a coverage manifest / `unextracted[]` contract so any backend reports what it could not extract (never silently drops content)
 - [ ] **SOCK-05**: A backend conformance suite verifies any backend honors the contract (traces present, coverage reported, faithfulness gate passes)
 
 ### AI-Optional Packaging
@@ -105,10 +105,10 @@ Mapped during roadmap creation (2026-06-14). Every v1 requirement maps to exactl
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SOCK-01 | Phase 1 — Distill Socket Contract | Pending |
-| SOCK-02 | Phase 1 — Distill Socket Contract | Pending |
-| SOCK-03 | Phase 1 — Distill Socket Contract | Pending |
-| SOCK-04 | Phase 1 — Distill Socket Contract | Pending |
+| SOCK-01 | Phase 1 — Distill Socket Contract | Done (01-01) |
+| SOCK-02 | Phase 1 — Distill Socket Contract | Done (01-01) |
+| SOCK-03 | Phase 1 — Distill Socket Contract | Done (01-01) |
+| SOCK-04 | Phase 1 — Distill Socket Contract | Done (01-01) |
 | SOCK-05 | Phase 1 — Distill Socket Contract | Pending |
 | PKG-01 | Phase 2 — AI-Optional Packaging Boundary | Pending |
 | PKG-02 | Phase 2 — AI-Optional Packaging Boundary | Pending |

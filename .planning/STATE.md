@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 1 context gathered
-last_updated: "2026-06-17T02:49:56.906Z"
-last_activity: 2026-06-17 -- Phase 01 execution started
+last_updated: "2026-06-17T03:30:00.000Z"
+last_activity: "2026-06-17 -- Completed 01-01-PLAN.md: distill socket walking skeleton (DistillPort + registry + ManualBackend + Coverage + Locator union); 27 tests green, mypy clean, import graph acyclic, zero AI in core."
 progress:
   total_phases: 14
   completed_phases: 0
   total_plans: 2
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 4
 ---
 
 # Project State
@@ -26,25 +26,25 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 ## Current Position
 
 Phase: 01 (distill-socket-contract) — EXECUTING
-Plan: 1 of 2
-Status: Executing Phase 01
-Last activity: 2026-06-17 -- Phase 01 execution started
+Plan: 2 of 2
+Status: Executing Phase 01 (01-01 complete; 01-02 next)
+Last activity: 2026-06-17 -- Completed 01-01-PLAN.md (distill socket walking skeleton)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [░░░░░░░░░░] 4%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
-- Average duration: — min
-- Total execution time: 0.0 hours
+- Total plans completed: 1
+- Average duration: ~25 min
+- Total execution time: 0.4 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01    | 1     | ~25m  | ~25m     |
 
 **Recent Trend:**
 
@@ -79,7 +79,7 @@ None yet.
 
 [Issues that affect future work]
 
-- [Phase 1]: `DistillPort` exact contract shape is `[OPEN]` in research — `coverage_manifest` fields, full `Locator` union, entailment-gate integration point need a planning-research cycle before implementation.
+- [Phase 1]: RESOLVED in 01-01 — `DistillPort` is `@runtime_checkable Protocol`(name, distill(sources)->DistillationResult); coverage is `Coverage`(complete/unextracted[]/cost_hint/effort_hint); `Locator` is a `FreeLocator|SessionLocator` discriminated union in the top-level leaf `locators.py`; the entailment gate is the injectable `FaithfulnessCheck`/`StructuralFaithfulness` seam.
 - [Phase 3 / Phase 10]: Entailment gate implementation choice (deterministic span-containment for no-AI mode) needs to be resolved in planning.
 - [Phase 9]: Confirm the Home 8-section spec is captured in writing before templating begins.
 - [Phase 5/6/7]: Each format adapter has documented non-obvious extraction gaps (formula cache, SmartArt/grouped shapes, Power BI row caps) — run a focused research cycle per format during planning.
@@ -96,6 +96,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-14T14:31:11.498Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-distill-socket-contract/01-CONTEXT.md
+Last session: 2026-06-17T03:30:00.000Z
+Stopped at: Completed 01-01-PLAN.md (distill socket walking skeleton)
+Resume file: .planning/phases/01-distill-socket-contract/01-02-PLAN.md

@@ -57,7 +57,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans (2 waves)Plans:
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Walking skeleton: DistillPort + registry + ManualBackend + Coverage/Locator contract, end-to-end through the socket with zero AI (SOCK-01..04, D-04, D-06)
+- [x] 01-01-PLAN.md — Walking skeleton: DistillPort + registry + ManualBackend + Coverage/Locator contract, end-to-end through the socket with zero AI (SOCK-01..04, D-04, D-06) — DONE (27 tests green, mypy clean, acyclic imports)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
