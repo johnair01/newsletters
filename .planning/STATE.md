@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-06-17T16:03:04.122Z"
-last_activity: 2026-06-17 -- Phase 05 marked complete
+status: executing
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-06-17T16:30:54.824Z"
+last_activity: 2026-06-17 -- Phase 06 execution started
 progress:
   total_phases: 14
   completed_phases: 4
-  total_plans: 15
-  completed_plans: 14
+  total_plans: 19
+  completed_plans: 16
   percent: 29
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-14)
 
 **Core value:** A deterministic, auditable pipeline that traces every published claim to evidence and never auto-publishes — AI is an optional accelerator, never an authority.
-**Current focus:** Phase 05 — excel-adapter
+**Current focus:** Phase 06 — powerpoint-adapter
 
 ## Current Position
 
-Phase: 05 — COMPLETE
-Plan: 4 of 4
-Status: Phase 05 complete
-Last activity: 2026-06-17 -- Phase 05 marked complete
+Phase: 06 (powerpoint-adapter) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-06-17 -- Phase 06 execution started
 
 Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-03 complete)
 
@@ -69,6 +69,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 05 P02 | 20min | 2 tasks | 4 files |
 | Phase 05 P03 | 6min | 2 tasks | 4 files |
 | Phase 05 P04 | 8min | 2 tasks | 11 files |
+| Phase 06 P02 | 4min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Excel adapter uses the TYPED Source.extraction carrier (R1), not JSON-in-context; transcript SEP is a tab and values are emitted verbatim (never escaped); formula-no-cache and error cells route to unextracted[] (never 0/empty)
 - [Phase ?]: Excel golden corpus: pin both docProps AND zip-entry timestamps for byte-reproducible .xlsx fixtures (openpyxl stamps zip local headers from the save-time wall-clock independently)
 - [Phase ?]: ExcelAdapter Source.timestamp derives from wb.properties.created (document-intrinsic), not now() — fixed a real determinism/round-trip-parity bug (Rule 1)
+- [Phase ?]: 06-02: confirmed shape._element.graphicData_uri is reliable on python-pptx 1.0.2 (risk A1); lxml a:graphicData/@uri fallback agrees — 06-03 uses accessor first, keeps fallback
 
 ### Pending Todos
 
@@ -130,6 +132,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-17T15:53:09.083Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-06-17T16:30:54.816Z
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None

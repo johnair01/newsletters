@@ -178,8 +178,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 1** *(parallel — disjoint file ownership)*
 
-- [ ] 06-01-PLAN.md — FRONT FIX (CONTEXT decision 0 / L1): shared `adapters/_timestamps.py` (`EPOCH_ZERO` + `deterministic_timestamp`); retrofit email + excel off the `now()` fallback; cross-adapter determinism test (ADAPT-04 pattern prerequisite)
-- [ ] 06-02-PLAN.md — PACKAGING (CONTEXT decision 1): `pptx = ["python-pptx"]` extra + lazy `_pptx_loader.py` (no top-level pptx import); install python-pptx in `.venv`; extend the bare-install AI-isolation gate; A1 graphic-frame `@uri` accessor + lxml-fallback probe (ADAPT-04)
+- [x] 06-01-PLAN.md — FRONT FIX (CONTEXT decision 0 / L1): shared `adapters/_timestamps.py` (`EPOCH_ZERO` + `deterministic_timestamp`); retrofit email + excel off the `now()` fallback; cross-adapter determinism test (ADAPT-04 pattern prerequisite)
+- [x] 06-02-PLAN.md — PACKAGING (CONTEXT decision 1): `pptx = ["python-pptx"]` extra + lazy `_pptx_loader.py` (no top-level pptx import); install python-pptx in `.venv`; extend the bare-install AI-isolation gate; A1 graphic-frame `@uri` accessor + lxml-fallback probe (ADAPT-04)
 
 **Wave 2** *(blocked on Wave 1 — needs `_timestamps.py` + `_pptx_loader.py`)*
 
@@ -328,7 +328,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 3. Content-Addressed Provenance & Faithfulness Gate | 3/3 | Complete   | 2026-06-17 |
 | 4. Shared Adapter Normalizer & Email Adapter | 2/3 | In Progress|  |
 | 5. Excel Adapter | 4/4 | Complete   | 2026-06-17 |
-| 6. PowerPoint Adapter | 0/4 | Not started | - |
+| 6. PowerPoint Adapter | 2/4 | In Progress|  |
 | 7. Power BI Adapter | 0/TBD | Not started | - |
 | 8. Site Content Model & Stable IDs | 0/TBD | Not started | - |
 | 9. Rev2 Site IA, Navigation & Source Links | 0/TBD | Not started | - |
