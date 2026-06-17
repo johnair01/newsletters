@@ -28,7 +28,7 @@
 
 - [x] **ADAPT-01**: A shared `normalize()` step converts any adapter's raw extraction into typed `Claim(+Trace)` with source locators — the faithful-extraction rule lives in exactly one place
 - [x] **ADAPT-02**: An Email adapter extracts structured content from `.eml` into `Claim(+Trace)`, reporting unextracted parts
-- [ ] **ADAPT-03**: An Excel adapter extracts cell/sheet structure via openpyxl, routing uncomputed/`None` formula cells to `unextracted[]`
+- [x] **ADAPT-03**: An Excel adapter extracts cell/sheet structure via openpyxl, routing uncomputed/`None` formula cells to `unextracted[]`
 - [ ] **ADAPT-04**: A PowerPoint adapter extracts slide/shape text via python-pptx, reporting shapes it cannot read (e.g. SmartArt)
 - [ ] **ADAPT-05**: A Power BI adapter extracts from PBIP/TMDL text (or pbixray fallback), reporting row-cap/aggregation limits
 - [x] **ADAPT-06**: Each adapter is covered by golden-file tests (fixture file → expected typed claims+traces)
@@ -119,7 +119,7 @@ Mapped during roadmap creation (2026-06-14). Every v1 requirement maps to exactl
 | ADAPT-01 | Phase 4 — Shared Adapter Normalizer & Email Adapter | Complete |
 | ADAPT-02 | Phase 4 — Shared Adapter Normalizer & Email Adapter | Complete |
 | ADAPT-06 | Phase 4 — Shared Adapter Normalizer & Email Adapter | Complete |
-| ADAPT-03 | Phase 5 — Excel Adapter | Pending |
+| ADAPT-03 | Phase 5 — Excel Adapter | Complete |
 | ADAPT-04 | Phase 6 — PowerPoint Adapter | Pending |
 | ADAPT-05 | Phase 7 — Power BI Adapter | Pending |
 | SITE-01 | Phase 8 — Site Content Model & Stable IDs | Pending |
