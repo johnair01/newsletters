@@ -29,7 +29,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Content-Addressed Provenance & Faithfulness Gate** - Traces pin content hashes; every claim entailed by its evidence span (completed 2026-06-17)
 - [ ] **Phase 4: Shared Adapter Normalizer & Email Adapter** - One faithful-extraction rule; first stdlib adapter end-to-end
 - [x] **Phase 5: Excel Adapter** - openpyxl cell/sheet extraction with formula-cache gaps routed to `unextracted[]` (completed 2026-06-17)
-- [ ] **Phase 6: PowerPoint Adapter** - python-pptx slide/shape extraction reporting unreadable shapes
+- [x] **Phase 6: PowerPoint Adapter** - python-pptx slide/shape extraction reporting unreadable shapes (completed 2026-06-17)
 - [ ] **Phase 7: Power BI Adapter** - PBIP/TMDL text extraction reporting row-cap and aggregation limits
 - [ ] **Phase 8: Site Content Model & Stable IDs** - `Site/Collection/Page` with position-independent per-surface IDs
 - [ ] **Phase 9: Rev2 Site IA, Navigation & Source Links** - Real Home, Library status-board, four-destination nav, working source links
@@ -187,7 +187,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 3** *(blocked on Wave 2 — drives the built adapter)*
 
-- [ ] 06-04-PLAN.md — Byte-reproducible `.pptx` golden corpus (ADAPT-06 + criterion 3): SmartArt + nested grouped shapes, title+body, text box, table, notes, chart, image, empty slide; zero-silent-drops (incl. nested-group accounting) + verbatim + content-addressed + conformance + Source-determinism (L5) + round-trip coverage parity; join the parity matrix + the cross-adapter determinism test
+- [x] 06-04-PLAN.md — Byte-reproducible `.pptx` golden corpus (ADAPT-06 + criterion 3): SmartArt + nested grouped shapes, title+body, text box, table, notes, chart, image, empty slide; zero-silent-drops (incl. nested-group accounting) + verbatim + content-addressed + conformance + Source-determinism (L5) + round-trip coverage parity; join the parity matrix + the cross-adapter determinism test
 
 ### Phase 7: Power BI Adapter
 
@@ -328,7 +328,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 3. Content-Addressed Provenance & Faithfulness Gate | 3/3 | Complete   | 2026-06-17 |
 | 4. Shared Adapter Normalizer & Email Adapter | 2/3 | In Progress|  |
 | 5. Excel Adapter | 4/4 | Complete   | 2026-06-17 |
-| 6. PowerPoint Adapter | 3/4 | In Progress|  |
+| 6. PowerPoint Adapter | 4/4 | Complete   | 2026-06-17 |
 | 7. Power BI Adapter | 0/TBD | Not started | - |
 | 8. Site Content Model & Stable IDs | 0/TBD | Not started | - |
 | 9. Rev2 Site IA, Navigation & Source Links | 0/TBD | Not started | - |

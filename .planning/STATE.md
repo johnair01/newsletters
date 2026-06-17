@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-06-17T16:43:13.048Z"
-last_activity: 2026-06-17 -- Phase 06 execution started
+status: verifying
+stopped_at: Completed 06-04-PLAN.md
+last_updated: "2026-06-17T16:54:13.334Z"
+last_activity: 2026-06-17 -- Phase 06 complete (06-04 golden corpus) — ready for verification
 progress:
   total_phases: 14
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 19
-  completed_plans: 17
-  percent: 29
+  completed_plans: 18
+  percent: 36
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 
 Phase: 06 (powerpoint-adapter) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-17 -- Phase 06 execution started
 
 Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-03 complete)
@@ -72,6 +72,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 06 P02 | 4min | 2 tasks | 4 files |
 | Phase 06 P01 | 20min | 2 tasks | 4 files |
 | Phase 06 P03 | 35min | 2 tasks | 3 files |
+| Phase 06 P04 | ~7min | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -110,6 +111,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 06-01: Excel reads docProps created from raw OOXML (intrinsic_created), not openpyxl properties which fabricate a wall-clock created when absent
 - [Phase ?]: 06-03: python-pptx core_properties.created is faithful (None when absent), unlike openpyxl — no raw-XML workaround needed; used it directly via deterministic_timestamp
 - [Phase ?]: 06-03: PptxAdapter clones ExcelAdapter — recursive shape walk, Slide N / <shape.name> locators, notes last, empty frames skipped-empty, full SmartArt/chart/picture/media/OLE taxonomy with zero silent drops
+- [Phase ?]: 06-04: determinism asserted on the parsed Source (L5), not re-saved .pptx bytes — immune to python-pptx re-save drift
+- [Phase ?]: 06-04: _normalize_zip recurses into a chart's embedded openpyxl .xlsx to pin its core.xml -> the whole .pptx corpus is byte-reproducible cross-process
 
 ### Pending Todos
 
@@ -138,6 +141,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-17T16:43:00.027Z
+Last session: 2026-06-17T16:53:46.240Z
 Stopped at: Completed 06-02-PLAN.md
 Resume file: None
