@@ -102,7 +102,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 1**
 
-- [ ] 03-01-PLAN.md — Content-addressed Trace (SHA-256 of full Source + char offsets + verbatim span), self-verifying `Trace.from_source`, and STALE as a computed property at trace/claim/distillation granularity (PROV-01, D-1/D-2/D-4)
+- [x] 03-01-PLAN.md — Content-addressed Trace (SHA-256 of full Source + char offsets + verbatim span), self-verifying `Trace.from_source`, and STALE as a computed property at trace/claim/distillation granularity (PROV-01, D-1/D-2/D-4)
 
 **Wave 2** *(blocked on Wave 1; 03-02 and 03-03 run in parallel — disjoint files)*
 
@@ -287,7 +287,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 |-------|----------------|--------|-----------|
 | 1. Distill Socket Contract | 2/2 | Complete   | 2026-06-17 |
 | 2. AI-Optional Packaging Boundary | 2/2 | Complete   | 2026-06-17 |
-| 3. Content-Addressed Provenance & Faithfulness Gate | 0/3 | Planned | - |
+| 3. Content-Addressed Provenance & Faithfulness Gate | 1/3 | In Progress|  |
 | 4. Shared Adapter Normalizer & Email Adapter | 0/TBD | Not started | - |
 | 5. Excel Adapter | 0/TBD | Not started | - |
 | 6. PowerPoint Adapter | 0/TBD | Not started | - |

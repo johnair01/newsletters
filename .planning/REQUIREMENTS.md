@@ -35,7 +35,7 @@
 
 ### Provenance & Faithfulness
 
-- [ ] **PROV-01**: Every claim's `Trace` is content-addressed (hash + offset), not positional, so source edits cannot silently mis-attribute
+- [x] **PROV-01**: Every claim's `Trace` is content-addressed (hash + offset), not positional, so source edits cannot silently mis-attribute
 - [ ] **PROV-02**: A faithfulness gate verifies each emitted claim is entailed by its traced evidence span; the no-AI mode uses deterministic span-containment
 - [ ] **PROV-03**: `missing[]` and `unextracted[]` are surfaced to the reviewer on every surface, never hidden
 - [ ] **PROV-04**: CI blocks merge of any surface containing a STALE, un-entailed, or open-`missing[]` claim
@@ -114,7 +114,7 @@ Mapped during roadmap creation (2026-06-14). Every v1 requirement maps to exactl
 | PKG-02 | Phase 2 — AI-Optional Packaging Boundary | Complete |
 | PKG-03 | Phase 2 — AI-Optional Packaging Boundary | Complete |
 | PKG-04 | Phase 2 — AI-Optional Packaging Boundary | Complete |
-| PROV-01 | Phase 3 — Content-Addressed Provenance & Faithfulness Gate | Pending |
+| PROV-01 | Phase 3 — Content-Addressed Provenance & Faithfulness Gate | Complete |
 | PROV-02 | Phase 3 — Content-Addressed Provenance & Faithfulness Gate | Pending |
 | ADAPT-01 | Phase 4 — Shared Adapter Normalizer & Email Adapter | Pending |
 | ADAPT-02 | Phase 4 — Shared Adapter Normalizer & Email Adapter | Pending |

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
+status: executing
 stopped_at: Completed 01-01-PLAN.md (distill socket walking skeleton)
-last_updated: "2026-06-17T08:48:02.160Z"
-last_activity: 2026-06-17 -- Phase 02 execution started
+last_updated: "2026-06-17T13:37:58.826Z"
+last_activity: 2026-06-17 -- Phase 03 execution started
 progress:
   total_phases: 14
   completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 8
+  completed_plans: 5
   percent: 14
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-14)
 
 **Core value:** A deterministic, auditable pipeline that traces every published claim to evidence and never auto-publishes — AI is an optional accelerator, never an authority.
-**Current focus:** Phase 02 — ai-optional-packaging-boundary
+**Current focus:** Phase 03 — content-addressed-provenance-faithfulness
 
 ## Current Position
 
-Phase: 02 (ai-optional-packaging-boundary) — EXECUTING
-Plan: 2 of 2
-Status: Phase complete — ready for verification
-Last activity: 2026-06-17 -- Phase 02 execution started
+Phase: 03 (content-addressed-provenance-faithfulness) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-06-17 -- Phase 03 execution started
 
 Progress: Phase 01 [██████████] 2/2 plans
 
@@ -59,6 +59,7 @@ Progress: Phase 01 [██████████] 2/2 plans
 | 01-02 | ~12 min | 2 tasks | 4 files |
 | Phase 02 P01 | 4min | 3 tasks | 4 files |
 | Phase 02 P02 | 2min | 1 tasks | 1 files |
+| Phase 03 P01 | 12min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,7 @@ Recent decisions affecting current work:
 - [Phase 1]: [01-02] Faithfulness enforced in exactly one injectable place (ports._enforce); conformance.py delegates to it. The runtime conformance suite (not mypy) is the malformed-backend guard.
 - [Phase ?]: Phase 02-01: dropped langsmith/langchain/langgraph entirely (zero usage); pydantic-ai relocated to [ai] extra; AI boundary policed by import-linter forbidden contract + runtime pydantic-plugin entry-point guard
 - [Phase ?]: CI bare no-extras install (.[test], no [ai]) is the runtime source-of-truth for AI-optional core: with AI packages absent, neither a static import nor a pydantic-group AI plugin can fire — the plugin guard passes strictly on the bare interpreter (proven locally: 37 passed, 0 xfailed)
+- [Phase ?]: PROV-01: Trace content-addressed via stdlib SHA-256 of full Source + char offsets + verbatim span; STALE is a computed property (no stored flag); content-address fields optional for Rev1 backward-compat
 
 ### Pending Todos
 
@@ -106,6 +108,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-17T08:47:47.571Z
+Last session: 2026-06-17T13:37:28.167Z
 Stopped at: Completed 01-01-PLAN.md (distill socket walking skeleton)
 Resume file: .planning/phases/01-distill-socket-contract/01-02-PLAN.md
