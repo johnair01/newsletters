@@ -11,6 +11,7 @@ Sample content is illustrative of the *shapes and voice*; wire real values to re
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from .capture import Decision, WorkSession, build_report
@@ -42,6 +43,111 @@ from .templates import NEWSLETTER, REPORT, SHOW
 
 AUTHOR = "Claude"
 PEER = "JJ Airuoyo"
+
+
+# --------------------------------------------------------------------------- #
+# Provenance migration (PROV-01 / D-4) — content-address the Rev1 corpus IN PLACE
+# --------------------------------------------------------------------------- #
+#
+# The Rev1 sample corpus is "Newsletters reporting on building Newsletters" — our first
+# corpus. PROV-01 is only real if the SHIPPED corpus practices the trust property it
+# preaches, so we migrate it in place: for each trace whose ``span`` is a *verbatim*
+# substring of its live ``Source.transcript``, we locate the span with ``str.find`` and
+# re-mint the trace via ``Trace.from_source`` (03-01) so it carries a content hash + the
+# character offsets. We re-use the one canonical pinning constructor — we do not
+# re-implement hashing or offset logic here.
+#
+# The migration is FAITHFUL, not suggestive: it changes neither the claim text nor the
+# span string; it only ADDS the content-address metadata. A span it cannot locate (empty,
+# or not a substring) is REPORTED — ``_address_trace`` raises a teaching ValueError naming
+# the span + source; the corpus-level ``address_corpus_traces`` collects it into a
+# ``MigrationReport.unlocated`` list instead of fabricating an offset or silently dropping it.
+
+
+@dataclass
+class MigrationReport:
+    """The outcome of content-addressing a corpus's traces, faithfully (D-4).
+
+    ``addressed`` counts the traces that carried a locatable verbatim span and were pinned.
+    ``unlocated`` lists, in human-readable form, every span that could NOT be located
+    (empty span, or not a substring of its source) — reported, never silently dropped and
+    never given fabricated offsets. ``skipped_no_span`` counts traces with no span at all
+    (the Rev1 structural-locator path): nothing to locate, so they stay un-addressed and
+    are simply never stale.
+    """
+
+    addressed: int = 0
+    skipped_no_span: int = 0
+    unlocated: list[str] = field(default_factory=list)
+
+
+def _address_trace(source: Source, trace: Trace) -> Trace:
+    """Content-address ONE trace by locating its verbatim ``span`` in ``source.transcript``.
+
+    Faithful, not suggestive: finds the existing ``trace.span`` via ``str.find`` and, if
+    present, re-mints the trace through ``Trace.from_source`` so it pins
+    ``content_hash`` + character offsets while keeping the span string and locator
+    byte-identical. It NEVER edits the claim or invents evidence — it only adds metadata
+    to content that already exists.
+
+    Reports rather than fabricates: an empty span, or a span that is not a substring of
+    the transcript, raises a teaching ``ValueError`` naming the span and the source id —
+    never a bogus ``0:0`` offset.
+    """
+    span = trace.span
+    if not span:
+        raise ValueError(
+            f"_address_trace: trace on source {source.id!r} has an empty span — there is "
+            "no evidence text to locate; refusing to fabricate an offset (faithful, not "
+            "suggestive)."
+        )
+    start = source.transcript.find(span)
+    if start < 0:
+        raise ValueError(
+            f"_address_trace: span {span!r} was not found verbatim in source "
+            f"{source.id!r}'s transcript; refusing to fabricate an offset. Report it as "
+            "unlocatable rather than mis-attributing it."
+        )
+    end = start + len(span)
+    return Trace.from_source(source, start, end, locator=trace.locator)
+
+
+def address_corpus_traces(
+    sources: dict[str, Source],
+    traces: list[Trace],
+) -> MigrationReport:
+    """Content-address every locatable trace IN PLACE, reporting what cannot be located.
+
+    For each trace with a non-empty span whose source is known, pin it via
+    ``_address_trace`` and copy the resulting content-address fields back onto the live
+    trace object (in-place migration). Traces with no span are skipped (never stale).
+    Traces whose span is not a verbatim substring — or whose source is unknown — are
+    collected into ``MigrationReport.unlocated`` and left UN-addressed: that is the
+    faithful outcome, not an error to swallow.
+    """
+    report = MigrationReport()
+    for trace in traces:
+        if not trace.span:
+            report.skipped_no_span += 1
+            continue
+        source = sources.get(trace.source_id)
+        if source is None:
+            report.unlocated.append(
+                f"{trace.span!r} (source {trace.source_id!r} not available to verify)"
+            )
+            continue
+        try:
+            addressed = _address_trace(source, trace)
+        except ValueError as exc:
+            report.unlocated.append(str(exc))
+            continue
+        # In-place pin: copy the additive content-address metadata onto the live trace.
+        trace.content_hash = addressed.content_hash
+        trace.start = addressed.start
+        trace.end = addressed.end
+        report.addressed += 1
+    return report
+
 
 # --------------------------------------------------------------------------- #
 # Readers — the corpora (private; used for emphasis, never serialized out)
