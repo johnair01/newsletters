@@ -7,6 +7,22 @@
 
 ## Where we are right now
 
+**2026-06-17 (late) — Phase 4 SHIPPED: first adapter + the shared faithful normalizer.**
+✅ **Phase 4 — Shared Adapter Normalizer & Email Adapter** (ADAPT-01/02/06, verified 3/3). The
+faithful-extraction rule now lives in exactly ONE place: `adapters/normalize.py` (the only code that
+calls `Trace.from_source`) locates each raw unit verbatim in `Source.transcript` and content-addresses
+it; non-locatable → `unextracted[]`. The stdlib-only `EmailAdapter` (registered `"email"`) parses
+`.eml` via `email.policy.default`, builds a canonical decoded transcript, extracts header + paragraph
+claims, applies a deterministic charset ladder (declared→utf-8→latin-1 strict) with U+FFFD detection,
+HTML-only emit-both, and routes U1–U8 to `unextracted[]`. 8 golden `.eml` fixtures prove the
+**zero-silent-drops** identity (`#claims + #unextracted == #units walked`). No new dependency; 177
+tests pass; AI-optional contract held.
+> ⚠ **Carried risk → harden in Phase 5 (task zero):** adapter `unextracted[]` drops live in an
+> in-memory dict keyed by `source.id`, so re-`distill()`ing a *persisted* `Source` on a fresh adapter
+> silently loses U1–U7 drops and falsely reports `complete=True`. Body claims still mint faithfully, so
+> Phase 4 passed — but the pattern must be hardened (coverage reconstructable from the `Source` +
+> round-trip parity test) BEFORE the Excel/PPTX/PowerBI adapters copy it. See `RETRO.md` 2026-06-17.
+
 **2026-06-17 (eve) — Phases 1–3 SHIPPED end-to-end. The trust spine is now formally enforced.**
 Running the Rev2 roadmap autonomously (discuss → plan → execute → verify per phase, gates re-run
 independently each time, every plan committed + pushed).

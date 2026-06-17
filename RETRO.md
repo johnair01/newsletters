@@ -4,6 +4,32 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
+## 2026-06-17 — Session: autonomous Phases 2–4
+
+**Friction observed**
+
+1. **Adapter coverage drops are not reconstructable from the `Source` — a silent-drop-on-round-trip.**
+   Phase 4's `EmailAdapter` holds its U1–U7 `unextracted[]` entries in an in-memory dict keyed by
+   `source.id`. The Phase-4 verifier proved live that persisting a `Source` (JSON round-trip) and then
+   calling `distill()` on a *fresh* adapter instance **silently loses the forwarded-rfc822 (U1) drop
+   and reports `complete=True`** — a direct violation of the "no silent drops" invariant, just outside
+   the same-instance `parse()→distill()` flow the golden test exercises. Body claims still mint
+   faithfully, so it didn't block Phase 4 — but **Phases 5/6/7 will copy this adapter pattern**, so the
+   flaw would replicate ×3 if not hardened at this fork.
+
+**Rules hardened**
+
+- *Adapter coverage must be reconstructable from the `Source`, not adapter memory.* Before replicating
+  the adapter pattern (Phase 5 Excel), the coverage/`unextracted[]` for a `Source` must travel with the
+  `Source` (or be recomputable from it), so re-distilling a persisted `Source` cannot silently report
+  `complete=True`. **Folded into Phase 5 as task zero** + a round-trip coverage-parity test added to the
+  conformance/golden pattern (fresh-adapter `distill()` of a persisted `Source` must equal the original
+  coverage). Tracked in `WHERE-WE-ARE.md` (Phase-4 close note).
+- *Verify the persisted/round-trip path, not just the same-instance happy path.* Golden/conformance
+  suites for any extractor must exercise `model_dump_json → reload → re-derive` and assert coverage
+  parity — the same-instance test hid this. (Generalises "the agent says green ≠ green" to "the
+  in-memory object ≠ the persisted object.")
+
 ## 2026-06-14 — Session: plan Phase 1 + cross-AI review
 
 **Friction observed**
