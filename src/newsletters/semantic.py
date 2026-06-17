@@ -33,7 +33,7 @@ from typing import Annotated, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from .locators import FreeLocator, Locator
+from .locators import ExtractionRecord, FreeLocator, Locator
 from .templates import ReviewPolicy, SignalColor, SurfaceTemplate
 
 
@@ -54,6 +54,19 @@ class Source(BaseModel):
     context: str = Field("", description="Where this came from (tool, system, channel)")
     transcript: str = Field("", description="The raw material distilled from")
     embeddings: Optional[list[float]] = None
+    # The TYPED coverage carrier (R1, TASK ZERO). An adapter records, at parse() time, the raw
+    # content it could NOT faithfully extract (its ``unextracted[]`` determination) HERE, so the
+    # determination travels WITH the Source through ``model_dump_json``. A fresh adapter
+    # re-``distill()``ing a persisted Source reconstructs the SAME coverage — "no silent drops"
+    # holds across persistence, not just same-instance. Defaults to ``None`` so every Rev1/Phase-4
+    # Source (which has no ``extraction`` key) still validates and round-trips natively.
+    # NOTE: excluded from ``content_hash()`` (see below) — it is metadata ABOUT extraction, not the
+    # addressed content; preserving the hash keeps every existing Trace addressed and non-stale.
+    extraction: Optional[ExtractionRecord] = Field(
+        default=None,
+        description="Adapter coverage carrier (R1): the unextracted[] determination, carried "
+        "with the Source so coverage survives a JSON round-trip. NOT in content_hash().",
+    )
 
     def content_hash(self) -> str:
         """The SHA-256 hex digest of the FULL source content (``transcript``), stdlib only (D-1).
@@ -62,6 +75,10 @@ class Source(BaseModel):
         comparing this *live* digest against the digest the Trace recorded — see
         ``Trace.is_stale_against``. Deterministic: an empty transcript hashes to the SHA-256
         of the empty byte string, no special-casing. No AI, no new dependency.
+
+        Addresses ``transcript`` ONLY: the ``extraction`` coverage carrier is deliberately
+        excluded — it is metadata about *what an adapter dropped*, not the content being
+        addressed. Folding it in would re-key every existing Trace and falsely mark them stale.
         """
         return hashlib.sha256(self.transcript.encode("utf-8")).hexdigest()
 
