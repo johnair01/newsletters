@@ -26,6 +26,7 @@ publish — agent-agnostic.
 
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Annotated, Literal, Optional, Union
@@ -54,6 +55,16 @@ class Source(BaseModel):
     transcript: str = Field("", description="The raw material distilled from")
     embeddings: Optional[list[float]] = None
 
+    def content_hash(self) -> str:
+        """The SHA-256 hex digest of the FULL source content (``transcript``), stdlib only (D-1).
+
+        This is the content-address a ``Trace`` pins at capture time. STALE is computed by
+        comparing this *live* digest against the digest the Trace recorded — see
+        ``Trace.is_stale_against``. Deterministic: an empty transcript hashes to the SHA-256
+        of the empty byte string, no special-casing. No AI, no new dependency.
+        """
+        return hashlib.sha256(self.transcript.encode("utf-8")).hexdigest()
+
 
 class Trace(BaseModel):
     """A pointer from a claim to its evidence: a ``Source`` and a locator within it.
@@ -67,6 +78,21 @@ class Trace(BaseModel):
     source_id: str
     locator: Locator = Field(default_factory=FreeLocator)
     span: str = ""
+    # --- content-address fields (D-1, OPTIONAL for backward-compat D-4) ----------
+    # These pin a Trace to the *content* of its Source, not a fragile position. They
+    # default to None so every Rev1 Trace (and the bare-string-locator coercion path)
+    # stays valid. A Trace with content_hash=None is "un-addressed" (``is_addressed``
+    # is False) and can never be STALE — it was never pinned.
+    content_hash: Optional[str] = Field(
+        default=None,
+        description="SHA-256 hex digest of the FULL Source content at capture time (D-1).",
+    )
+    start: Optional[int] = Field(
+        default=None, description="Character offset (inclusive) of the span in Source.transcript."
+    )
+    end: Optional[int] = Field(
+        default=None, description="Character offset (exclusive) of the span in Source.transcript."
+    )
 
     @field_validator("locator", mode="before")
     @classmethod
@@ -80,6 +106,66 @@ class Trace(BaseModel):
             return FreeLocator(text=v)
         return v
 
+    @classmethod
+    def from_source(
+        cls,
+        source: "Source",
+        start: int,
+        end: int,
+        *,
+        locator: Optional[Locator] = None,
+    ) -> "Trace":
+        """Mint a content-addressed, self-verifying Trace from a live Source (D-1).
+
+        Pins ``content_hash = source.content_hash()``, the character ``start``/``end``
+        window, and ``span = source.transcript[start:end]`` so the stored span is
+        re-checkable against the offset window of the live source. This is the SINGLE
+        constructor later phases (the adapters, Plan 02's migration) use to mint
+        content-addressed traces — the pinning logic lives here and nowhere else.
+
+        Offsets are validated BEFORE slicing — faithful, not suggestive: a bad range
+        is refused with a teaching ValueError rather than silently clipped to an empty
+        or truncated span.
+        """
+        n = len(source.transcript)
+        if start < 0:
+            raise ValueError(
+                f"Trace.from_source: start={start} is negative; offsets are character "
+                f"positions into a {n}-char transcript and must be >= 0."
+            )
+        if end < start:
+            raise ValueError(
+                f"Trace.from_source: end={end} is before start={start}; the span window "
+                "is inverted. Pass start <= end."
+            )
+        if end > n:
+            raise ValueError(
+                f"Trace.from_source: end={end} runs past the transcript length ({n}); "
+                "refusing to clip rather than silently mis-attribute."
+            )
+        return cls(
+            source_id=source.id,
+            locator=locator if locator is not None else FreeLocator(),
+            span=source.transcript[start:end],
+            content_hash=source.content_hash(),
+            start=start,
+            end=end,
+        )
+
+    @property
+    def is_addressed(self) -> bool:
+        """True iff this Trace pinned a content hash (i.e. was minted content-addressed)."""
+        return self.content_hash is not None
+
+    def is_stale_against(self, source: "Source") -> bool:
+        """STALE is COMPUTED (D-2): the live source hash != the hash this Trace recorded.
+
+        An un-addressed Trace (``content_hash is None``) is NEVER stale — it was never
+        pinned, so there is nothing to drift against. This refuses a false positive and
+        never raises on the Rev1 path.
+        """
+        return self.is_addressed and source.content_hash() != self.content_hash
+
 
 class Claim(BaseModel):
     """The atom of auditability: a statement, its evidence, and a confidence."""
@@ -92,6 +178,20 @@ class Claim(BaseModel):
     @property
     def is_traced(self) -> bool:
         return len(self.evidence) > 0
+
+    def is_stale(self, sources: dict[str, "Source"]) -> bool:
+        """STALE is COMPUTED (D-2): True iff ANY trace is stale against its live source.
+
+        ``sources`` is a ``{source_id: Source}`` lookup. A trace whose ``source_id`` is
+        absent from the lookup is skipped (not raised) — we cannot judge drift without
+        the live source, so we never claim a false STALE. Un-addressed traces are never
+        stale (see ``Trace.is_stale_against``).
+        """
+        return any(
+            t.is_stale_against(sources[t.source_id])
+            for t in self.evidence
+            if t.source_id in sources
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -189,6 +289,17 @@ class Distillation(BaseModel):
     @property
     def untraced_claims(self) -> list[Claim]:
         return [c for c in self.claims if not c.is_traced]
+
+    def stale_claims(self, sources: Optional[dict[str, "Source"]] = None) -> list["Claim"]:
+        """The claims that have drifted from their evidence — STALE is COMPUTED (D-2).
+
+        When ``sources`` is None the lookup is built from this Distillation's own
+        ``traces`` (the ``Source[]`` it carries), so a self-contained Distillation can
+        report its own drift. Returns ``[]`` when nothing drifted. No stored stale flag
+        anywhere — this is recomputed from live source hashes every call.
+        """
+        lookup = sources if sources is not None else {s.id: s for s in self.traces}
+        return [c for c in self.claims if c.is_stale(lookup)]
 
     def claims_for(self, audience: Optional[Corpus]) -> list[Claim]:
         """Claims ordered by a reader's emphasis — same facts, new emphasis."""
