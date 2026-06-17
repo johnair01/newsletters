@@ -147,7 +147,20 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Uncomputed / `None` formula cells (openpyxl-saved-without-cache) are routed to `unextracted[]`, never emitted as `0` or empty data
   3. A golden-file test covers the Excel adapter against a fixture containing formulas and merged cells, asserting zero silent drops
 
-**Plans**: TBD
+**Plans**: 4 plans (3 waves)
+
+**Wave 1**
+
+- [ ] 05-01-PLAN.md — Task Zero: typed `Source.extraction` carrier (R1) + shared coverage codec; retrofit Email adapter (kill the in-memory dict); R2 safety-net; round-trip coverage-parity conformance test (ADAPT-03 carried hardening)
+- [ ] 05-02-PLAN.md — openpyxl `[excel]` extra + lazy `_load_openpyxl()`; extend the bare-install AI-isolation gate; R4 Wave-0 probe pinning the chart/image attribute names (ADAPT-03)
+
+**Wave 2** *(blocked on Wave 1 — needs the carrier + the lazy loader/probe)*
+
+- [ ] 05-03-PLAN.md — `ExcelAdapter` (registered `"excel"`): double-load, canonical `sheet!cell` transcript, faithful per-cell fork (formula-no-cache/error/charts → `unextracted[]`), merged-anchor handling, drops on `Source.extraction`, conforms (ADAPT-03)
+
+**Wave 3** *(blocked on Wave 2 — drives the built adapter)*
+
+- [ ] 05-04-PLAN.md — Byte-reproducible `.xlsx` golden corpus (ADAPT-06): formula±cache, merged, multi-sheet, mixed types, empty, error cell, chart/image; zero-silent-drops + verbatim + content-addressed + conformance + determinism + round-trip coverage parity
 
 ### Phase 6: PowerPoint Adapter
 
@@ -301,7 +314,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 2. AI-Optional Packaging Boundary | 2/2 | Complete   | 2026-06-17 |
 | 3. Content-Addressed Provenance & Faithfulness Gate | 3/3 | Complete   | 2026-06-17 |
 | 4. Shared Adapter Normalizer & Email Adapter | 2/3 | In Progress|  |
-| 5. Excel Adapter | 0/TBD | Not started | - |
+| 5. Excel Adapter | 0/4 | Not started | - |
 | 6. PowerPoint Adapter | 0/TBD | Not started | - |
 | 7. Power BI Adapter | 0/TBD | Not started | - |
 | 8. Site Content Model & Stable IDs | 0/TBD | Not started | - |
