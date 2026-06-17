@@ -10,8 +10,8 @@ progress:
   total_phases: 14
   completed_phases: 2
   total_plans: 8
-  completed_plans: 7
-  percent: 14
+  completed_plans: 8
+  percent: 57
 ---
 
 # Project State
@@ -30,7 +30,7 @@ Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-06-17 -- Phase 03 execution started
 
-Progress: Phase 01 [██████████] 2/2 plans
+Progress: Phase 03 [██████████] 3/3 plans (03-01, 03-02, 03-03 complete)
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: Phase 01 [██████████] 2/2 plans
 | Phase 02 P01 | 4min | 3 tasks | 4 files |
 | Phase 02 P02 | 2min | 1 tasks | 1 files |
 | Phase 03 P01 | 12min | 3 tasks | 2 files |
+| Phase 03 P02 | ~8min | 2 tasks | 2 files |
 | Phase 03 P03 | ~15min | 3 tasks | 5 files |
 
 ## Accumulated Context
@@ -82,6 +83,7 @@ Recent decisions affecting current work:
 - [Phase ?]: CI bare no-extras install (.[test], no [ai]) is the runtime source-of-truth for AI-optional core: with AI packages absent, neither a static import nor a pydantic-group AI plugin can fire — the plugin guard passes strictly on the bare interpreter (proven locally: 37 passed, 0 xfailed)
 - [Phase ?]: PROV-01: Trace content-addressed via stdlib SHA-256 of full Source + char offsets + verbatim span; STALE is a computed property (no stored flag); content-address fields optional for Rev1 backward-compat
 - [Phase ?]: 03-03: faithfulness = deterministic span-containment (Option A) defaulted at the _enforce/assert_conforms seam; un-addressed traces are structural fallback, content-addressed traces get strict normalized containment; capture.py untouched
+- [Phase ?]: 03-02: the shipped Rev1 dogfood corpus is migrated IN PLACE to content-addressed traces (20 traces) — faithful (claim text + rendered HTML byte-identical), self-verifying, not stale at capture; unlocatable spans reported (MigrationReport.unlocated), never fabricated; report-plan's structural-locator traces left un-addressed
 
 ### Pending Todos
 
