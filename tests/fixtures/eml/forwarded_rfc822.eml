@@ -1,0 +1,23 @@
+From: Ada Lovelace <ada@example.com>
+To: Team <team@example.com>
+Subject: Fwd: the original
+Date: Wed, 17 Jun 2026 09:00:00 +0000
+Content-Type: multipart/mixed; boundary="FWDBOUND"
+
+--FWDBOUND
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+
+Please see the forwarded note below.
+--FWDBOUND
+Content-Type: message/rfc822
+Content-Disposition: attachment
+
+From: Old Sender <old@example.com>
+To: Old Recipient <orig@example.com>
+Subject: The original message
+Date: Tue, 16 Jun 2026 08:00:00 +0000
+Content-Type: text/plain; charset=us-ascii
+
+This is the forwarded body.
+--FWDBOUND--
