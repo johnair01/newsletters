@@ -24,7 +24,7 @@ proven first; AI conforms to them later, never the reverse.
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Distill Socket Contract** - One `DistillPort` with coverage manifest, conformance suite, and manual backend
+- [x] **Phase 1: Distill Socket Contract** - One `DistillPort` with coverage manifest, conformance suite, and manual backend (completed 2026-06-17)
 - [ ] **Phase 2: AI-Optional Packaging Boundary** - Bare `pip install .` runs the full spine with zero AI deps, CI-enforced every phase
 - [ ] **Phase 3: Content-Addressed Provenance & Faithfulness Gate** - Traces pin content hashes; every claim entailed by its evidence span
 - [ ] **Phase 4: Shared Adapter Normalizer & Email Adapter** - One faithful-extraction rule; first stdlib adapter end-to-end
@@ -61,7 +61,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 01-02-PLAN.md — Conformance suite (SOCK-05) + the no-auto-publish / AI-optional hard rules proven by test; injectable faithfulness seam
+- [x] 01-02-PLAN.md — Conformance suite (SOCK-05) + the no-auto-publish / AI-optional hard rules proven by test; injectable faithfulness seam
 
 ### Phase 2: AI-Optional Packaging Boundary
 
@@ -268,7 +268,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Distill Socket Contract | 0/2 | Planned | - |
+| 1. Distill Socket Contract | 2/2 | Complete   | 2026-06-17 |
 | 2. AI-Optional Packaging Boundary | 0/TBD | Not started | - |
 | 3. Content-Addressed Provenance & Faithfulness Gate | 0/TBD | Not started | - |
 | 4. Shared Adapter Normalizer & Email Adapter | 0/TBD | Not started | - |

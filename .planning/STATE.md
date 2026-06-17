@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 1 context gathered
-last_updated: "2026-06-17T03:30:00.000Z"
-last_activity: "2026-06-17 -- Completed 01-01-PLAN.md: distill socket walking skeleton (DistillPort + registry + ManualBackend + Coverage + Locator union); 27 tests green, mypy clean, import graph acyclic, zero AI in core."
+status: verifying
+stopped_at: Completed 01-01-PLAN.md (distill socket walking skeleton)
+last_updated: "2026-06-17T03:13:38.665Z"
+last_activity: 2026-06-17 -- Completed 01-01-PLAN.md (distill socket walking skeleton)
 progress:
   total_phases: 14
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
-  percent: 4
+  completed_plans: 2
+  percent: 7
 ---
 
 # Project State
@@ -27,31 +27,36 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 
 Phase: 01 (distill-socket-contract) — EXECUTING
 Plan: 2 of 2
-Status: Executing Phase 01 (01-01 complete; 01-02 next)
-Last activity: 2026-06-17 -- Completed 01-01-PLAN.md (distill socket walking skeleton)
+Status: Both plans complete — phase ready for verification
+Last activity: 2026-06-17 -- Completed 01-02-PLAN.md (conformance suite + faithfulness seam)
 
-Progress: [░░░░░░░░░░] 4%
+Progress: Phase 01 [██████████] 2/2 plans
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 1
-- Average duration: ~25 min
-- Total execution time: 0.4 hours
+- Total plans completed: 2 (Phase 01)
+- Average duration: ~18 min
+- Total execution time: ~0.6 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01    | 1     | ~25m  | ~25m     |
+| 01    | 2     | ~37m  | ~18m     |
 
 **Recent Trend:**
 
-- Last 5 plans: —
-- Trend: —
+- Last 5 plans: 01-01 (~25m), 01-02 (~12m)
+- Trend: faster (skeleton → enforcement)
 
 *Updated after each plan completion*
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| 01-01 | ~25 min | 3 tasks | 11 files |
+| 01-02 | ~12 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -68,6 +73,7 @@ Recent decisions affecting current work:
 - [Intent review]: Learning/onboarding is a first-class V2 surface (Phase 12, LEARN-01..03) — teaching newcomers/training cohorts by re-cutting reviewed records.
 - [Intent review]: A connection/relationship map (CONN-01) is parked — a real direction, revisit after core V2.
 - [Intent review]: PROJECT.md reframed to lead with purpose (information→conversation→action; legible/transparent/digestible work), with auditability as the load-bearing constraint.
+- [Phase 1]: [01-02] Faithfulness enforced in exactly one injectable place (ports._enforce); conformance.py delegates to it. The runtime conformance suite (not mypy) is the malformed-backend guard.
 
 ### Pending Todos
 
@@ -96,6 +102,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-17T03:30:00.000Z
+Last session: 2026-06-17T03:13:20.416Z
 Stopped at: Completed 01-01-PLAN.md (distill socket walking skeleton)
 Resume file: .planning/phases/01-distill-socket-contract/01-02-PLAN.md
