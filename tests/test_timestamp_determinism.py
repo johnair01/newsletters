@@ -109,8 +109,32 @@ def _email_factory():
     return EmailAdapter()
 
 
+def _strip_created_from_xlsx(raw: bytes) -> bytes:
+    """Rewrite an .xlsx zip with the docProps `created`/`modified` elements removed.
+
+    openpyxl CANNOT save a workbook with `properties.created = None` (it calls `.set()` on it during
+    serialization) AND it fabricates a wall-clock `created` (`created or now()`) on save whenever
+    absent — so there is no high-level way to author a deterministic "no intrinsic timestamp" .xlsx.
+    We therefore strip the elements from the saved zip directly (stdlib only). The adapter's
+    `intrinsic_created` reads the raw XML, so it sees a genuinely-absent `created` -> None -> EPOCH_ZERO.
+    """
+    import re
+    import zipfile
+
+    src = zipfile.ZipFile(io.BytesIO(raw))
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
+        for item in src.infolist():
+            data = src.read(item.filename)
+            if item.filename == "docProps/core.xml":
+                data = re.sub(rb"<dcterms:created[^>]*>[^<]*</dcterms:created>", b"", data)
+                data = re.sub(rb"<dcterms:modified[^>]*>[^<]*</dcterms:modified>", b"", data)
+            zf.writestr(item, data)
+    return out.getvalue()
+
+
 def _xlsx_no_created() -> bytes:
-    """An .xlsx whose docProps `created` is forced to None -> no intrinsic timestamp."""
+    """An .xlsx with NO docProps `created` element -> no intrinsic timestamp (deterministic)."""
     import openpyxl
 
     wb = openpyxl.Workbook()
@@ -118,10 +142,9 @@ def _xlsx_no_created() -> bytes:
     ws.title = "S"
     ws["A1"] = "text"
     ws["A2"] = 42
-    wb.properties.created = None  # the no-intrinsic-timestamp case
     buf = io.BytesIO()
     wb.save(buf)
-    return buf.getvalue()
+    return _strip_created_from_xlsx(buf.getvalue())
 
 
 def _xlsx_with_created() -> tuple[bytes, datetime]:
@@ -136,7 +159,8 @@ def _xlsx_with_created() -> tuple[bytes, datetime]:
     wb.properties.created = created
     buf = io.BytesIO()
     wb.save(buf)
-    # openpyxl stores `created` tz-naive; the adapter coerces it to UTC via deterministic_timestamp.
+    # openpyxl serializes `created` as a tz-naive UTC W3CDTF instant; intrinsic_created reads it from
+    # the raw XML and coerces it to UTC, so the expected Source.timestamp is the UTC-aware value.
     return buf.getvalue(), created.replace(tzinfo=timezone.utc)
 
 

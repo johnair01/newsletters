@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import email
 import email.policy
+from datetime import datetime
 from email.message import EmailMessage, Message
 
 from ..distill.coverage import Coverage, Unextracted
@@ -41,6 +42,7 @@ from ._coverage_codec import (
     not_reconstructable_marker,
 )
 from ._html_text import strip_html
+from ._timestamps import deterministic_timestamp
 from .normalize import normalize
 
 # The fixed, deterministic charset-fallback ladder (after the declared charset): never guess
@@ -144,7 +146,8 @@ class EmailAdapter:
         """Parse ``raw`` ``.eml`` bytes into a ``Source`` + transcript-order units + partial drops.
 
         ``path`` is the raw file path/identifier; it becomes ``Source.id`` and ``Source.context``
-        (CONTEXT decision 2). ``Source.timestamp`` comes from the ``Date`` header when present.
+        (CONTEXT decision 2). ``Source.timestamp`` comes from the ``Date`` header when present, else
+        the deterministic ``EPOCH_ZERO`` sentinel (via ``deterministic_timestamp``) — NEVER now().
         Returns the verbatim body+header units to hand to ``normalize()`` and the adapter's OWN
         ``unextracted[]`` entries (U1-U7); ``distill()`` merges them with ``normalize()``'s U8.
 
@@ -168,8 +171,11 @@ class EmailAdapter:
             header_lines.append(f"{name}: {decoded}")
             header_units.append(decoded)
 
-        # ---- timestamp from Date header (not now()) -----------------------------------------
-        timestamp = None
+        # ---- timestamp from Date header, else the deterministic sentinel (NEVER now()) -------
+        # The Date header's parsed datetime when present, else None; deterministic_timestamp (L1)
+        # maps None -> EPOCH_ZERO so a no-Date email parses to a byte-identical Source twice — never
+        # the wall-clock Source.timestamp default factory. See adapters/_timestamps.py for WHY.
+        timestamp: datetime | None = None
         date_hdr = msg["Date"]
         if date_hdr is not None:
             dt = getattr(date_hdr, "datetime", None)
@@ -199,7 +205,7 @@ class EmailAdapter:
             context=path,
             transcript=transcript,
             extraction=encode_coverage(unextracted),
-            **({"timestamp": timestamp} if timestamp is not None else {}),
+            timestamp=deterministic_timestamp(timestamp),
         )
         units = header_units + paragraphs
         # The adapter-side drops (U1-U7) now ride on the Source via the typed carrier (R1), so they

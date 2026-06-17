@@ -36,8 +36,11 @@ extra-free. The deterministic spine runs with zero openpyxl (AI-optional / minim
 
 from __future__ import annotations
 
+import io
 import re
-from datetime import date, datetime, time
+import zipfile
+from datetime import date, datetime, time, timezone
+from xml.etree import ElementTree
 
 from ..distill.coverage import Coverage, Unextracted
 from ..distill.ports import DistillationResult
@@ -49,6 +52,7 @@ from ._coverage_codec import (
     not_reconstructable_marker,
 )
 from ._openpyxl_loader import load_workbook_pair
+from ._timestamps import deterministic_timestamp
 from .normalize import normalize
 
 # The transcript separator (CONTEXT R3 / RESEARCH recommendation: a tab). It only needs to be
@@ -74,6 +78,53 @@ _R_ERROR_CELL = "error cell {coord}: {err}"
 _R_CHART = "{sheet}: chart not extracted (chart content is out of scope)"
 _R_IMAGE = "{sheet}: image not extracted (drawing content is out of scope)"
 _R_UNREADABLE = "workbook could not be read by openpyxl ({error}) — not extractable"
+
+# The OOXML core-properties `created` element (Dublin Core terms namespace).
+_DCTERMS_NS = "http://purl.org/dc/terms/"
+_CREATED_TAG = f"{{{_DCTERMS_NS}}}created"
+
+
+def intrinsic_created(raw: bytes) -> datetime | None:
+    """Read the workbook's docProps `created` from the RAW OOXML — faithfully None when absent.
+
+    WHY this exists and does NOT use ``openpyxl`` properties: openpyxl's ``DocumentProperties``
+    descriptor does ``self.created = created or now()`` — it FABRICATES a wall-clock ``created``
+    whenever the source ``docProps/core.xml`` has no ``dcterms:created`` element (verified against
+    openpyxl 3.1.5 ``packaging/core.py``). Trusting ``wb.properties.created`` would therefore make
+    the timestamp NON-deterministic for any document genuinely missing a creation date — exactly the
+    determinism bug the L1 front-fix exists to kill. So we read the intrinsic value straight from the
+    raw ``.xlsx`` zip (stdlib ``zipfile`` + ``xml.etree``; no new dependency): the element's text when
+    present (parsed as a W3CDTF ISO-8601 instant, tz-naive coerced to UTC), else ``None`` —
+    faithfully reflecting that the document carried no creation date, which ``deterministic_timestamp``
+    then maps to ``EPOCH_ZERO``.
+
+    Total + robust to hostile input (V5): any failure to open the zip, find/parse the part, or parse
+    the date returns ``None`` (the unreadable-source path handles a truly broken workbook separately).
+    """
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw)) as zf:
+            core_xml = zf.read("docProps/core.xml")
+    except (KeyError, zipfile.BadZipFile, OSError):
+        return None
+    try:
+        root = ElementTree.fromstring(core_xml)
+    except ElementTree.ParseError:
+        return None
+    el = root.find(_CREATED_TAG)
+    if el is None or el.text is None or not el.text.strip():
+        return None
+    text = el.text.strip()
+    # OOXML W3CDTF instants commonly end in 'Z'; Python's fromisoformat handles +00:00, not 'Z',
+    # before 3.11 — normalize defensively so the parse is deterministic across runtimes.
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed
 
 
 def value_to_str(v: object) -> str:
@@ -244,42 +295,43 @@ class ExcelAdapter:
                 context=path,
                 transcript="",
                 extraction=encode_coverage([drop]),
+                # An unreadable workbook has no intrinsic timestamp; pass the deterministic sentinel
+                # explicitly (L1) so even this error path never falls back to wall-clock now().
+                timestamp=deterministic_timestamp(None),
             )
             return source, [], [drop]
 
         try:
             transcript, units, cell_drops = _serialize(wb_formula, wb_data)
             feature_drops = _feature_drops(wb_formula)
-            # A deterministic, document-intrinsic timestamp (mirrors EmailAdapter sourcing it from
-            # the Date header, NOT now()). The workbook's OOXML `created` property is the analog: a
-            # spreadsheet has no Date header, so we use docProps/core.xml's creation time when
-            # present. Without this, Source.timestamp defaults to wall-clock and two parses of the
-            # SAME bytes produce non-equal Sources — breaking determinism AND round-trip parity (the
-            # persisted Source no longer re-distills identically). `created` is preserved verbatim
-            # across an openpyxl round-trip (unlike `modified`, which openpyxl re-stamps on save).
-            raw_created = getattr(wb_formula.properties, "created", None)  # type: ignore[attr-defined]
         finally:
             wb_formula.close()
             wb_data.close()
 
-        created: datetime | None = raw_created if isinstance(raw_created, datetime) else None
+        # A deterministic, document-intrinsic timestamp (mirrors EmailAdapter sourcing it from the
+        # Date header, NOT now()). The workbook's OOXML docProps `created` is the analog: a
+        # spreadsheet has no Date header, so we use docProps/core.xml's creation time WHEN PRESENT.
+        #
+        # We read it from the RAW bytes via `intrinsic_created`, NOT from `wb.properties.created`:
+        # openpyxl FABRICATES a wall-clock `created` (`created or now()`) whenever the part lacks the
+        # element, which would re-introduce the very non-determinism this front-fix removes. Reading
+        # the raw XML yields None faithfully when the document carried no creation date, which
+        # `deterministic_timestamp` then maps to the EPOCH_ZERO sentinel — so an .xlsx with no
+        # intrinsic `created` parses to a byte-identical Source twice.
+        created = intrinsic_created(raw)
 
         drops = cell_drops + feature_drops
-        if created is not None:
-            source = Source(
-                id=path,
-                context=path,
-                transcript=transcript,
-                extraction=encode_coverage(drops),
-                timestamp=created,
-            )
-        else:
-            source = Source(
-                id=path,
-                context=path,
-                transcript=transcript,
-                extraction=encode_coverage(drops),
-            )
+        # ALWAYS pass an explicit deterministic timestamp (L1): the workbook's docProps `created`
+        # when present, else the EPOCH_ZERO sentinel — NEVER the wall-clock Source default factory,
+        # so an .xlsx with no `created` parses to a byte-identical Source twice. deterministic_timestamp
+        # also coerces openpyxl's tz-naive `created` to UTC. See adapters/_timestamps.py for WHY.
+        source = Source(
+            id=path,
+            context=path,
+            transcript=transcript,
+            extraction=encode_coverage(drops),
+            timestamp=deterministic_timestamp(created),
+        )
         return source, units, drops
 
     # ------------------------------------------------------------------ #
