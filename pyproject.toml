@@ -32,6 +32,15 @@ ai = ["pydantic-ai"]
 # and is lazy-imported inside the Excel adapter only (mirror the [ai] discipline), so bare
 # `pip install .` still runs the deterministic spine with zero openpyxl and zero AI.
 excel = ["openpyxl"]
+# PowerPoint (.pptx) adapter dep (ADAPT-04) — python-pptx is NON-AI, MIT, spec-named, and
+# PRE-APPROVED (CONTEXT decision 1 + RESEARCH Package Legitimacy Audit; the only SUS signal is
+# `unknown-downloads`, a known PyPI-API false positive). It lives behind an extra and is
+# lazy-imported inside the PPTX adapter only (mirror the [ai]/[excel] discipline), so bare
+# `pip install .` still runs the deterministic spine with zero python-pptx and zero AI. Its
+# transitive C-extensions (lxml, Pillow, XlsxWriter, typing_extensions) are sandboxed behind the
+# extra and never reachable from core. python-pptx ships no type stubs and we do NOT add a
+# types-* package (mirror the Excel Any-typing decision).
+pptx = ["python-pptx"]
 panel = ["panel", "holoviews", "bokeh", "numpy", "pandas"]
 # import-linter (PKG-04): the static forbidden-contract tool enforcing core has no AI import edge.
 dev = ["pytest", "black", "ipdb", "ipython", "isort", "mypy", "import-linter"]
