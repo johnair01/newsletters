@@ -35,6 +35,11 @@ from ..distill.coverage import Coverage, Unextracted
 from ..distill.ports import DistillationResult
 from ..locators import FreeLocator
 from ..semantic import Distillation, Source
+from ._coverage_codec import (
+    decode_coverage,
+    encode_coverage,
+    not_reconstructable_marker,
+)
 from ._html_text import strip_html
 from .normalize import normalize
 
@@ -124,14 +129,11 @@ class EmailAdapter:
 
     name = "email"
 
-    def __init__(self) -> None:
-        # parse() records each Source's adapter-side unextracted[] (U1-U7) here, keyed by
-        # source.id, so the contract-exact distill(sources) can recover the drops that are NOT
-        # reconstructable from the decoded transcript alone (a forwarded part, an attachment, a
-        # charset fallback). This mirrors manual.py constructor-injecting its WorkSession: the
-        # adapter carries the format-specific state distill() needs, while distill(sources) stays
-        # signature-exact with DistillPort.
-        self._adapter_unextracted: dict[str, list[Unextracted]] = {}
+    # The adapter is now STATELESS across parse()/distill() (TASK ZERO, R1): the per-Source
+    # unextracted[] determination travels on the Source itself (``Source.extraction`` via the
+    # shared codec), NOT in an instance dict keyed by source.id. A fresh adapter re-``distill()``ing
+    # a persisted Source therefore reconstructs the SAME coverage — "no silent drops" holds across
+    # persistence, not just same-instance. (The old per-instance source.id-keyed drop dict is gone.)
 
     # ------------------------------------------------------------------ #
     # Parse: raw .eml bytes -> (Source, body-claim units, partial unextracted[])
@@ -196,11 +198,12 @@ class EmailAdapter:
             id=path,
             context=path,
             transcript=transcript,
+            extraction=encode_coverage(unextracted),
             **({"timestamp": timestamp} if timestamp is not None else {}),
         )
         units = header_units + paragraphs
-        # Record adapter-side drops so the contract-exact distill(sources) can recover them.
-        self._adapter_unextracted[source.id] = unextracted
+        # The adapter-side drops (U1-U7) now ride on the Source via the typed carrier (R1), so they
+        # survive a model_dump_json round-trip and distill() recovers them with NO instance state.
         return source, units, unextracted
 
     # ------------------------------------------------------------------ #
@@ -318,6 +321,16 @@ class EmailAdapter:
         traces: list[Source] = []
 
         for source in sources:
+            # R2 safety-net (CONTEXT R2 — belt-and-suspenders): a Source this adapter did not
+            # produce carries no ``extraction`` record. Its adapter-side drops (a stripped
+            # attachment, a forwarded part) are NOT reconstructable from the transcript alone, so
+            # we must NOT silently report complete=True. Record an explicit
+            # 'coverage-not-reconstructable' marker (forces Coverage.complete=False via its
+            # validator) — honest uncertainty over a false full-coverage claim. For a Source this
+            # adapter parse()d, ``extraction`` is set, so the marker does NOT fire.
+            if source.extraction is None:
+                merged_unextracted.append(not_reconstructable_marker(source.id))
+
             units, adapter_unx = self._units_for(source)
             claims, norm_unx = normalize(source, units)
             all_claims.extend(claims)
@@ -347,8 +360,11 @@ class EmailAdapter:
 
         The adapter-side ``unextracted[]`` (U1-U7) is NOT reconstructable from the decoded
         transcript alone (a stripped attachment leaves no trace there), so it is recovered from
-        the per-source record ``parse()`` stored. A ``Source`` not produced by this adapter's
-        ``parse`` simply has no recorded drops — its claims are still minted faithfully.
+        the typed carrier ``parse()`` set on the Source (``source.extraction``) via the shared
+        codec — so a round-tripped Source distills with identical coverage on a FRESH adapter
+        (R1, TASK ZERO). A ``Source`` not produced by this adapter has no carrier; ``decode_coverage``
+        returns ``[]`` (its claims still mint faithfully, and the R2 marker in ``distill()`` flags
+        the unaccountable coverage).
         """
         transcript = source.transcript
         if "\n\n" in transcript:
@@ -361,5 +377,5 @@ class EmailAdapter:
             if ": " in line
         ]
         paragraphs = _segment_paragraphs(body_block) if body_block else []
-        adapter_unx = self._adapter_unextracted.get(source.id, [])
+        adapter_unx = decode_coverage(source.extraction)
         return header_units + paragraphs, adapter_unx
