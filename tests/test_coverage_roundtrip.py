@@ -25,6 +25,8 @@ It has three layers:
 
 from __future__ import annotations
 
+import importlib.util
+import io
 import pathlib
 
 import pytest
@@ -62,9 +64,62 @@ def _email_fixtures() -> list[tuple[str, bytes, str]]:
     ]
 
 
+# The Excel adapter joins the SAME matrix (Plan 03). openpyxl is the optional [excel] extra, so the
+# whole Excel case is skipped cleanly when it is absent — the bare-install gate is unaffected. The
+# committed byte-reproducible golden corpus is Plan 04; here we author tiny in-memory .xlsx bytes
+# covering a representative spread (literal, formula-cache gap, error cell) so coverage parity is
+# proven for Excel too.
+_HAS_OPENPYXL = importlib.util.find_spec("openpyxl") is not None
+
+
+def _xlsx_fixtures() -> list[tuple[str, bytes, str]]:
+    import openpyxl
+
+    def _bytes(build) -> bytes:
+        wb = openpyxl.Workbook()
+        build(wb.active)
+        buf = io.BytesIO()
+        wb.save(buf)
+        return buf.getvalue()
+
+    def _literals(ws) -> None:
+        ws.title = "S"
+        ws["A1"] = "text"
+        ws["A2"] = 42
+
+    def _formula_gap(ws) -> None:
+        ws.title = "F"
+        ws["A1"] = 2
+        ws["A2"] = "=A1*10"  # openpyxl writes no cache -> a formula-cache-gap drop
+
+    def _error_cell(ws) -> None:
+        ws.title = "E"
+        ws["A1"] = "#DIV/0!"  # an error cell -> a drop
+
+    return [
+        ("literals.xlsx", _bytes(_literals), "literals.xlsx"),
+        ("formula_gap.xlsx", _bytes(_formula_gap), "formula_gap.xlsx"),
+        ("error_cell.xlsx", _bytes(_error_cell), "error_cell.xlsx"),
+    ]
+
+
+def _excel_adapter_factory():
+    from newsletters.adapters.excel_adapter import ExcelAdapter
+
+    return ExcelAdapter()
+
+
 # (id, adapter_factory, fixtures_loader)
 ADAPTER_CASES = [
     pytest.param(EmailAdapter, _email_fixtures, id="email"),
+    pytest.param(
+        _excel_adapter_factory,
+        _xlsx_fixtures,
+        id="excel",
+        marks=pytest.mark.skipif(
+            not _HAS_OPENPYXL, reason="optional [excel] extra (openpyxl) not installed"
+        ),
+    ),
 ]
 
 

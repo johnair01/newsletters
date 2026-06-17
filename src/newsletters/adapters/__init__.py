@@ -14,12 +14,16 @@ from __future__ import annotations
 
 from ..distill import register
 from .email_adapter import EmailAdapter
+from .excel_adapter import ExcelAdapter
 from .normalize import normalize
 
-# Register the Email adapter under the name "email" on package import, so an operator can select
-# it via ``newsletters.distill.resolve("email")``. The shape guard in ``register`` confirms it
-# satisfies the @runtime_checkable ``DistillPort`` (a ``name`` attribute + a ``distill`` method).
-# This import side-effect is acyclic (``distill`` does not import ``adapters``) and AI-free.
+# Register the Email + Excel adapters on package import, so an operator can select either via
+# ``newsletters.distill.resolve("email")`` / ``resolve("excel")``. The shape guard in ``register``
+# confirms each satisfies the @runtime_checkable ``DistillPort`` (a ``name`` attribute + a
+# ``distill`` method). This import side-effect is acyclic (``distill`` does not import ``adapters``)
+# and AI-free — importing ``excel_adapter`` does NOT pull openpyxl (it is lazy, behind the loader),
+# so ``register(ExcelAdapter())`` runs on a bare (no-``[excel]``) install.
 register(EmailAdapter())
+register(ExcelAdapter())
 
-__all__ = ["normalize", "EmailAdapter"]
+__all__ = ["normalize", "EmailAdapter", "ExcelAdapter"]
