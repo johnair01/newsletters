@@ -19,6 +19,7 @@ from __future__ import annotations
 from ..locators import FreeLocator, Locator, SessionLocator
 from .conformance import assert_conforms
 from .coverage import Coverage, Unextracted
+from .faithfulness import SpanContainmentFaithfulness, route_unfaithful_to_missing
 from .manual import ManualBackend
 from .ports import (
     DistillationResult,
@@ -34,6 +35,9 @@ __all__ = [
     "DistillationResult",
     "FaithfulnessCheck",
     "StructuralFaithfulness",
+    # faithfulness gate (Phase-3 PROV-02 — deterministic span-containment, no AI)
+    "SpanContainmentFaithfulness",
+    "route_unfaithful_to_missing",
     # conformance — the reusable RUNTIME malformed-backend guard (SOCK-05)
     "assert_conforms",
     # registry (NOT re-exported at package root — would shadow templates.register)

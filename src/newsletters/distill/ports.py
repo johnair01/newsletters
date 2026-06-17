@@ -67,8 +67,15 @@ class DistillPort(Protocol):
 # --------------------------------------------------------------------------- #
 
 
+@runtime_checkable
 class FaithfulnessCheck(Protocol):
-    """The injectable faithfulness predicate seam (Phase 3 swaps in span-containment)."""
+    """The injectable faithfulness predicate seam (Phase 3 swaps in span-containment).
+
+    ``@runtime_checkable`` (parity with ``DistillPort``) lets a test assert a concrete checker
+    satisfies the seam via ``isinstance(check, FaithfulnessCheck)`` — a shallow ATTRIBUTE-presence
+    guard (it confirms ``entails`` exists, not its signature). It changes no behavior of the
+    structural / span-containment checkers, both of which already duck-type the protocol.
+    """
 
     def entails(self, claim: Claim) -> bool: ...
 
