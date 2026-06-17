@@ -1,10 +1,9 @@
-# mirrors newsletters pyproject.toml, but we install things in 
-# the base image for now so that we don't have to install them every time
+# mirrors newsletters pyproject.toml, but we install things in
+# the base image for now so that we don't have to install them every time.
+# AI tooling here = the [ai] extra (pydantic-ai); the core package itself stays AI-free (PKG-01).
+# langsmith dropped (telemetry / phone-home, CLAUDE.md Out-of-Scope); langchain/langgraph dropped (unused).
 pydantic-ai[examples]
 structlog
 typer[all]
 sqlmodel
-langgraph
-langsmith
 mem0ai
-langchain[anthropic]

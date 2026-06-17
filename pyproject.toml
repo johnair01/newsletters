@@ -10,19 +10,26 @@ authors = [
     { name = "JJ Airuoyo", email = "ijairuoyo@gmail.com" },
     { name = "Nate Neibauer", email = "nneibauer044@gmail.com" },
 ]
+# Core runtime deps — NON-AI ONLY (PKG-01). The deterministic capture->review->render spine
+# must install and run with zero AI dependencies. Every AI/LLM package lives behind the [ai]
+# extra and is lazy-imported inside the AI backend only (CLAUDE.md hard rule). sqlmodel is kept
+# because src/newsletters/models.py uses it (`from sqlmodel import SQLModel, Field`) — it is NOT AI.
 dependencies = [
     "pydantic>=2",
-    "pydantic-ai",
     "typer[all]",
     "sqlmodel",
-    "langgraph",
-    "langsmith",
-    "langchain[anthropic]",
 ]
 
 [project.optional-dependencies]
+# AI/LLM backend deps (PKG-02) — lazy-imported only inside the future AI backend, never core.
+# pydantic-ai is the single planned backend (AI-01); it transitively pulls logfire (the
+# Phase-1 pydantic-plugin leak source), so keeping it OUT of core is the direct fix.
+# langsmith (telemetry / phone-home) is DROPPED entirely per CLAUDE.md Out-of-Scope — it is
+# NOT relocated here. langchain/langgraph are removed entirely (zero usage; not the backend).
+ai = ["pydantic-ai"]
 panel = ["panel", "holoviews", "bokeh", "numpy", "pandas"]
-dev = ["pytest", "black", "ipdb", "ipython", "isort", "mypy"]
+# import-linter (PKG-04): the static forbidden-contract tool enforcing core has no AI import edge.
+dev = ["pytest", "black", "ipdb", "ipython", "isort", "mypy", "import-linter"]
 test = ["pytest"]
 
 [tool.black]
