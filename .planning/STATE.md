@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-06-17T16:30:54.824Z"
+last_updated: "2026-06-17T16:31:47.748Z"
 last_activity: 2026-06-17 -- Phase 06 execution started
 progress:
   total_phases: 14
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 ## Current Position
 
 Phase: 06 (powerpoint-adapter) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-06-17 -- Phase 06 execution started
 
@@ -70,6 +70,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 05 P03 | 6min | 2 tasks | 4 files |
 | Phase 05 P04 | 8min | 2 tasks | 11 files |
 | Phase 06 P02 | 4min | 2 tasks | 4 files |
+| Phase 06 P01 | 20min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Excel golden corpus: pin both docProps AND zip-entry timestamps for byte-reproducible .xlsx fixtures (openpyxl stamps zip local headers from the save-time wall-clock independently)
 - [Phase ?]: ExcelAdapter Source.timestamp derives from wb.properties.created (document-intrinsic), not now() — fixed a real determinism/round-trip-parity bug (Rule 1)
 - [Phase ?]: 06-02: confirmed shape._element.graphicData_uri is reliable on python-pptx 1.0.2 (risk A1); lxml a:graphicData/@uri fallback agrees — 06-03 uses accessor first, keeps fallback
+- [Phase ?]: 06-01: Fixed EPOCH_ZERO sentinel (1970-01-01Z) for no-intrinsic adapter timestamps, never now()
+- [Phase ?]: 06-01: Excel reads docProps created from raw OOXML (intrinsic_created), not openpyxl properties which fabricate a wall-clock created when absent
 
 ### Pending Todos
 
@@ -132,6 +135,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-17T16:30:54.816Z
+Last session: 2026-06-17T16:31:40.101Z
 Stopped at: Completed 06-02-PLAN.md
 Resume file: None
