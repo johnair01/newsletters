@@ -7,6 +7,26 @@
 
 ## Where we are right now
 
+**2026-06-17 (late+) — Phase 5 SHIPPED: Excel adapter + the adapter pattern hardened.**
+✅ **Phase 5 — Excel Adapter** (ADAPT-03/06, verified 3/3). `ExcelAdapter` (registered `"excel"`,
+`openpyxl` behind a lazy `[excel]` extra) double-loads `.xlsx` (formula view + data view), serializes
+the workbook into a canonical `Sheet!A1\tvalue` transcript, canonicalizes values faithfully
+(bool→TRUE/FALSE, int→`str`, float→`repr`, dates→`isoformat`), anchors merged cells once, and routes
+everything openpyxl can't resolve — **uncomputed formula cells (no cache), error cells, charts,
+images** — to `unextracted[]`, never a fake `0`. 8 byte-reproducible golden fixtures prove zero
+silent drops. Also ✅ **Task Zero** (carried Phase-4 fix): adapter `unextracted[]` now travels on a
+typed `Source.extraction` carrier (leaf `locators.py`, excluded from `content_hash`), so coverage
+survives a `Source` JSON round-trip — proven by a parity matrix passing for BOTH email + excel; the
+in-memory dict is gone; an R2 safety-net reports `complete=False` (never false `complete=True`) when
+coverage can't be reconstructed. 280 tests pass; AI-optional + acyclic-import contracts held.
+> ⚠ **Carried risks (non-blocking) → address at Phase 6 front (before PPTX copies the pattern):**
+> (1) **Adapter timestamp determinism** — `Source.timestamp` is sourced from the document's intrinsic
+> date (email `Date`, xlsx `properties.created`); if a real-world file lacks it, the adapter falls back
+> to `now()` → non-deterministic output (breaks the determinism/parity property). Add a deterministic
+> fallback (fixed epoch / content-derived), applied across ALL adapters. (2) The image→`unextracted`
+> branch is correct but not yet exercised e2e (openpyxl drops images on reload; no real image in corpus)
+> — add a real-image fixture when convenient. See `05-VERIFICATION.md`.
+
 **2026-06-17 (late) — Phase 4 SHIPPED: first adapter + the shared faithful normalizer.**
 ✅ **Phase 4 — Shared Adapter Normalizer & Email Adapter** (ADAPT-01/02/06, verified 3/3). The
 faithful-extraction rule now lives in exactly ONE place: `adapters/normalize.py` (the only code that
