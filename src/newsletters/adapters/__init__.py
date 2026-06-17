@@ -12,6 +12,14 @@ The Email adapter (Plan 02) and future adapters (Excel, PPTX) slot in alongside 
 
 from __future__ import annotations
 
+from ..distill import register
+from .email_adapter import EmailAdapter
 from .normalize import normalize
 
-__all__ = ["normalize"]
+# Register the Email adapter under the name "email" on package import, so an operator can select
+# it via ``newsletters.distill.resolve("email")``. The shape guard in ``register`` confirms it
+# satisfies the @runtime_checkable ``DistillPort`` (a ``name`` attribute + a ``distill`` method).
+# This import side-effect is acyclic (``distill`` does not import ``adapters``) and AI-free.
+register(EmailAdapter())
+
+__all__ = ["normalize", "EmailAdapter"]
