@@ -356,3 +356,143 @@ def test_loader_returns_module_when_openpyxl_present() -> None:
     mod = _load_openpyxl()
     assert getattr(mod, "__name__", None) == "openpyxl", mod
     assert "openpyxl" not in set(AI_MODULES), "openpyxl must never be classed as AI"
+
+
+# --- ADAPT-04 / T-06-03 / T-06-05: the optional [pptx] (python-pptx) lazy boundary ------- #
+#
+# python-pptx is NOT AI — the forbid-ai contract is unaffected — but the SAME minimal-core / lazy
+# discipline that keeps AI (and openpyxl) out of the bare install must keep python-pptx out of it
+# too: a bare `pip install .` (no [pptx]) must `import newsletters`, `import newsletters.adapters`,
+# and run the spine with ZERO python-pptx (and zero of its transitive lxml/Pillow C-extensions).
+# These gates mirror the [excel] gates above and prove the lazy boundary holds. They are written
+# NOW so that when 06-03 registers PptxAdapter on package import, it inherits a green bare-install
+# gate proving registration stays lazy / extra-free.
+
+PPTX_LOADER_PATH = REPO_ROOT / "src" / "newsletters" / "adapters" / "_pptx_loader.py"
+
+
+def test_pptx_extra_declared() -> None:
+    """pyproject declares `pptx = ["python-pptx"]` and python-pptx is the ONLY dep in that extra."""
+    data = _load_pyproject()
+    extras = data["project"]["optional-dependencies"]
+    assert "pptx" in extras, f"missing [pptx] extra: {sorted(extras)}"
+    pptx_names = {_req_name(r) for r in extras["pptx"]}
+    assert "python-pptx" in pptx_names, extras["pptx"]
+    # python-pptx is the only dependency this phase may add to the extra.
+    assert pptx_names == {"python-pptx"}, f"[pptx] must contain only python-pptx, got {pptx_names}"
+    # python-pptx must NOT be an AI package (sanity: it must not trip the AI requirement gate).
+    assert not (pptx_names & set(AI_REQUIREMENT_NAMES)), pptx_names
+
+
+def test_pptx_loader_has_no_toplevel_pptx_import() -> None:
+    """The lazy loader module has ZERO top-level (runtime) `import pptx` / `from pptx`.
+
+    A top-level import here would be pulled in transitively by `import newsletters.adapters`
+    (the package `register()`s its adapters on import once 06-03 lands), breaking the bare
+    install. The only pptx import allowed is INSIDE `_load_pptx()`. (A `TYPE_CHECKING`-guarded
+    import would live under an `if TYPE_CHECKING:` block, indented, not at column 0, so the
+    column-0 check below does not see it.)
+    """
+    source = PPTX_LOADER_PATH.read_text()
+    toplevel_edges = [
+        line
+        for line in source.splitlines()
+        # column-0 (module-top) import statements only — indented ones live inside functions or
+        # the TYPE_CHECKING guard and are not executed on a bare runtime import.
+        if line.startswith("import pptx") or line.startswith("from pptx")
+    ]
+    assert not toplevel_edges, (
+        f"_pptx_loader.py has top-level pptx import(s) — breaks the bare install: "
+        f"{toplevel_edges}"
+    )
+
+
+def test_adapters_package_imports_without_pptx() -> None:
+    """`import newsletters.adapters` SUCCEEDS even when python-pptx cannot be imported.
+
+    Simulates a bare install by installing a `sys.meta_path` finder that blocks `pptx` BEFORE
+    importing the package (works regardless of whether the dev .venv has python-pptx). The package
+    import must not require the extra; the loader module must import too (its pptx import is lazy,
+    inside a function). After 06-03 registers PptxAdapter on package import, this gate proves the
+    registration stays lazy / extra-free.
+    """
+    code = (
+        "import sys\n"
+        "from importlib.abc import MetaPathFinder\n"
+        "class _Block(MetaPathFinder):\n"
+        "    def find_spec(self, name, path=None, target=None):\n"
+        "        if name == 'pptx' or name.startswith('pptx.'):\n"
+        "            raise ImportError('blocked pptx (simulated bare install)')\n"
+        "        return None\n"
+        "sys.modules.pop('pptx', None)\n"
+        "sys.meta_path.insert(0, _Block())\n"
+        "import newsletters\n"
+        "import newsletters.adapters\n"
+        "from newsletters.adapters import _pptx_loader\n"
+        "assert 'pptx' not in sys.modules, sys.modules.get('pptx')\n"
+        "print('adapters import clean without pptx')\n"
+    )
+    env = {**os.environ, "PYDANTIC_DISABLE_PLUGINS": "true"}
+    proc = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, env=env, cwd=REPO_ROOT
+    )
+    assert proc.returncode == 0, (
+        f"newsletters.adapters failed to import without python-pptx:\n{proc.stdout}{proc.stderr}"
+    )
+
+
+def test_pptx_loader_raises_teaching_error_without_pptx() -> None:
+    """`_load_pptx()` raises a teaching ImportError naming `[pptx]` when python-pptx is absent.
+
+    Again blocks pptx via a meta-path finder so the assertion holds whether or not the dev .venv
+    has the extra installed.
+    """
+    code = (
+        "import sys\n"
+        "from importlib.abc import MetaPathFinder\n"
+        "class _Block(MetaPathFinder):\n"
+        "    def find_spec(self, name, path=None, target=None):\n"
+        "        if name == 'pptx' or name.startswith('pptx.'):\n"
+        "            raise ImportError('blocked pptx (simulated bare install)')\n"
+        "        return None\n"
+        "sys.modules.pop('pptx', None)\n"
+        "sys.meta_path.insert(0, _Block())\n"
+        "from newsletters.adapters._pptx_loader import _load_pptx\n"
+        "try:\n"
+        "    _load_pptx()\n"
+        "except ImportError as e:\n"
+        "    msg = str(e)\n"
+        "    assert '[pptx]' in msg, msg\n"
+        "    assert 'python-pptx' in msg, msg\n"
+        "    print('teaching ImportError ok')\n"
+        "else:\n"
+        "    raise AssertionError('expected ImportError when python-pptx is absent')\n"
+    )
+    env = {**os.environ, "PYDANTIC_DISABLE_PLUGINS": "true"}
+    proc = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, env=env, cwd=REPO_ROOT
+    )
+    assert proc.returncode == 0, (
+        f"loader did not raise the teaching ImportError without python-pptx:\n"
+        f"{proc.stdout}{proc.stderr}"
+    )
+
+
+def test_pptx_loader_returns_module_when_present() -> None:
+    """With python-pptx installed (dev .venv), `_load_pptx()` returns the module — no false error.
+
+    python-pptx is not in AI_MODULES, so loading it must not be conflated with an AI leak; this
+    guards that the happy path works in the dev/CI env where `[pptx]` IS installed. Skips cleanly
+    on a bare env so the bare-install gate is unaffected.
+    """
+    try:
+        import pptx  # noqa: F401
+    except ImportError:
+        import pytest
+
+        pytest.skip("python-pptx not installed (bare env); happy path enforced in dev/CI [pptx]")
+    from newsletters.adapters._pptx_loader import _load_pptx
+
+    mod = _load_pptx()
+    assert getattr(mod, "__name__", None) == "pptx", mod
+    assert "pptx" not in set(AI_MODULES), "python-pptx must never be classed as AI"
