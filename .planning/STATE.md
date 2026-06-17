@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-06-17T16:31:47.748Z"
+last_updated: "2026-06-17T16:43:13.048Z"
 last_activity: 2026-06-17 -- Phase 06 execution started
 progress:
   total_phases: 14
   completed_phases: 4
   total_plans: 19
-  completed_plans: 16
+  completed_plans: 17
   percent: 29
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 ## Current Position
 
 Phase: 06 (powerpoint-adapter) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-06-17 -- Phase 06 execution started
 
@@ -71,6 +71,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 05 P04 | 8min | 2 tasks | 11 files |
 | Phase 06 P02 | 4min | 2 tasks | 4 files |
 | Phase 06 P01 | 20min | 2 tasks | 4 files |
+| Phase 06 P03 | 35min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -107,6 +108,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 06-02: confirmed shape._element.graphicData_uri is reliable on python-pptx 1.0.2 (risk A1); lxml a:graphicData/@uri fallback agrees — 06-03 uses accessor first, keeps fallback
 - [Phase ?]: 06-01: Fixed EPOCH_ZERO sentinel (1970-01-01Z) for no-intrinsic adapter timestamps, never now()
 - [Phase ?]: 06-01: Excel reads docProps created from raw OOXML (intrinsic_created), not openpyxl properties which fabricate a wall-clock created when absent
+- [Phase ?]: 06-03: python-pptx core_properties.created is faithful (None when absent), unlike openpyxl — no raw-XML workaround needed; used it directly via deterministic_timestamp
+- [Phase ?]: 06-03: PptxAdapter clones ExcelAdapter — recursive shape walk, Slide N / <shape.name> locators, notes last, empty frames skipped-empty, full SmartArt/chart/picture/media/OLE taxonomy with zero silent drops
 
 ### Pending Todos
 
@@ -135,6 +138,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-17T16:31:40.101Z
+Last session: 2026-06-17T16:43:00.027Z
 Stopped at: Completed 06-02-PLAN.md
 Resume file: None

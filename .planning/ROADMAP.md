@@ -183,7 +183,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 2** *(blocked on Wave 1 — needs `_timestamps.py` + `_pptx_loader.py`)*
 
-- [ ] 06-03-PLAN.md — `PptxAdapter` (registered `"pptx"`): ordered slide/shape walk, group recursion (L3), per-paragraph/cell/notes verbatim claims, full unreadable taxonomy (SmartArt/chart/picture/media/OLE → `unextracted[]`, L2), drops on `Source.extraction`, deterministic timestamp, conforms; lazy python-pptx only (ADAPT-04 criteria 1+2)
+- [x] 06-03-PLAN.md — `PptxAdapter` (registered `"pptx"`): ordered slide/shape walk, group recursion (L3), per-paragraph/cell/notes verbatim claims, full unreadable taxonomy (SmartArt/chart/picture/media/OLE → `unextracted[]`, L2), drops on `Source.extraction`, deterministic timestamp, conforms; lazy python-pptx only (ADAPT-04 criteria 1+2)
 
 **Wave 3** *(blocked on Wave 2 — drives the built adapter)*
 
@@ -328,7 +328,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 3. Content-Addressed Provenance & Faithfulness Gate | 3/3 | Complete   | 2026-06-17 |
 | 4. Shared Adapter Normalizer & Email Adapter | 2/3 | In Progress|  |
 | 5. Excel Adapter | 4/4 | Complete   | 2026-06-17 |
-| 6. PowerPoint Adapter | 2/4 | In Progress|  |
+| 6. PowerPoint Adapter | 3/4 | In Progress|  |
 | 7. Power BI Adapter | 0/TBD | Not started | - |
 | 8. Site Content Model & Stable IDs | 0/TBD | Not started | - |
 | 9. Rev2 Site IA, Navigation & Source Links | 0/TBD | Not started | - |
