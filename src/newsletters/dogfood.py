@@ -176,20 +176,60 @@ READERS = {
 # Sources + sessions — our actual journey
 # --------------------------------------------------------------------------- #
 
+def _record_transcript(lead: str, decisions: list[Decision]) -> str:
+    """Build a Source transcript that is the verbatim record of a session's decisions.
+
+    The session ``Source`` IS the record of what was decided in that session, so its
+    transcript faithfully contains each decision statement verbatim. This is what lets the
+    migration content-address each decision's trace by locating its span — we are not
+    inventing evidence, we are recording (and then pinning) the decisions that were made.
+    """
+    return lead + "\n\n" + "\n".join(f"- {d.text}" for d in decisions)
+
+
+def _address_report(report: Surface, sources: list[Source]) -> MigrationReport:
+    """Set each ClaimsBlock trace's span to its claim text and content-address it.
+
+    A captured decision becomes a Claim whose single Trace points back at the session
+    Source (``capture.py``). Here we pin that trace to the verbatim claim text inside the
+    source transcript — the span IS the decision statement, which the transcript records
+    verbatim — and content-address it via the migration helper. Faithful: the claim text
+    is unchanged; we only add the span + hash + offsets.
+    """
+    lookup = {s.id: s for s in sources}
+    traces: list[Trace] = []
+    for block in report.blocks:
+        if isinstance(block, ClaimsBlock):
+            for claim in block.claims:
+                for trace in claim.evidence:
+                    if not trace.span:
+                        trace.span = claim.text  # the verbatim decision statement
+                    traces.append(trace)
+    return address_corpus_traces(lookup, traces)
+
+
 def _sources_and_reports() -> list[Surface]:
+    kickoff_decisions = [
+        Decision(text="Land the spec set + design references as the source of truth, "
+                 "rather than dumping the zip.", source_id="session-kickoff",
+                 locator="docs/", topics=["process", "vision"]),
+        Decision(text="Keep the Python core at src/newsletters and document the "
+                 "architecture §4 repo-shape mapping in CLAUDE.md.",
+                 source_id="session-kickoff", locator="CLAUDE.md", topics=["core"]),
+        Decision(text="Implement the typed spine with all three invariants enforced "
+                 "in code, agentic distill left an honest stub.",
+                 source_id="session-kickoff", locator="semantic.py",
+                 topics=["core", "design"]),
+        Decision(text="Neutralize the GSD.md supply-chain redirect to 'verify any "
+                 "install against its official source' and flag it for review.",
+                 source_id="session-kickoff", locator="GSD.md", topics=["process"]),
+    ]
     src_kickoff = Source(
         id="session-kickoff", context="claude-code",
-        transcript="Foundation pass: spec set, repo shape, typed semantic spine, tests.",
-    )
-    src_datamodel = Source(
-        id="session-datamodel", context="claude-code · design conversation",
-        transcript="Reasoning over the core data models with JJ — two layers, templates, "
-        "Report vs Article, the agent boundary, capture modes, promotions.",
-    )
-    src_rev1 = Source(
-        id="session-rev1", context="claude-code",
-        transcript="Rev1 end-to-end: refactor to templates + policy + capture + promotion, "
-        "a token-faithful HTML renderer, and this dogfood content.",
+        transcript=_record_transcript(
+            "Foundation pass: spec set, repo shape, typed semantic spine, tests.",
+            kickoff_decisions,
+        ),
     )
 
     kickoff = build_report(
@@ -197,21 +237,7 @@ def _sources_and_reports() -> list[Surface]:
             id="session-kickoff", title="Kicking off the build", tool="Claude Code",
             artifacts=["docs/", "src/newsletters/semantic.py", "tests/"],
             sources=[src_kickoff],
-            decisions=[
-                Decision(text="Land the spec set + design references as the source of truth, "
-                         "rather than dumping the zip.", source_id="session-kickoff",
-                         locator="docs/", topics=["process", "vision"]),
-                Decision(text="Keep the Python core at src/newsletters and document the "
-                         "architecture §4 repo-shape mapping in CLAUDE.md.",
-                         source_id="session-kickoff", locator="CLAUDE.md", topics=["core"]),
-                Decision(text="Implement the typed spine with all three invariants enforced "
-                         "in code, agentic distill left an honest stub.",
-                         source_id="session-kickoff", locator="semantic.py",
-                         topics=["core", "design"]),
-                Decision(text="Neutralize the GSD.md supply-chain redirect to 'verify any "
-                         "install against its official source' and flag it for review.",
-                         source_id="session-kickoff", locator="GSD.md", topics=["process"]),
-            ],
+            decisions=kickoff_decisions,
         ),
         surface_id="report-kickoff", title="Kicking off the build — spec set, repo shape, typed spine",
         eyebrow="Report · how we solved it", author=AUTHOR,
@@ -234,35 +260,45 @@ def _sources_and_reports() -> list[Surface]:
     ]))
     kickoff.publish(reviewer=AUTHOR)
 
+    datamodel_decisions = [
+        Decision(text="Two layers, not five peers: a Truth layer (Source→Claim→"
+                 "Distillation) and a Surface layer over it.", source_id="session-datamodel",
+                 locator="layers", topics=["design", "core"], confidence=0.95),
+        Decision(text="The four surfaces are one parameterized template, not four "
+                 "classes — cadence, personalization, signal color, review policy are "
+                 "config.", source_id="session-datamodel", locator="templates",
+                 topics=["design", "core"], confidence=0.95),
+        Decision(text="The Report is the investigation you approve (light PR); the "
+                 "Article is the durable, peer-reviewed lesson promoted from it.",
+                 source_id="session-datamodel", locator="report-vs-article",
+                 topics=["design", "process"], confidence=0.95),
+        Decision(text="Problem-solving agents are external and operator-owned; "
+                 "Newsletters owns capture + trust + publish, never the agent.",
+                 source_id="session-datamodel", locator="agent-boundary",
+                 topics=["process", "vision"], confidence=0.9),
+        Decision(text="Default capture is post-session and reads the workspace "
+                 "(tool-agnostic); push-integration is the operator add-on.",
+                 source_id="session-datamodel", locator="capture",
+                 topics=["process", "core"], confidence=0.9),
+        Decision(text="Two human-gated promotions form the system's grammar: "
+                 "Claim→KPI (measurable) and Report→Article (durable).",
+                 source_id="session-datamodel", locator="promotions",
+                 topics=["design", "measurement"], confidence=0.9),
+    ]
+    src_datamodel = Source(
+        id="session-datamodel", context="claude-code · design conversation",
+        transcript=_record_transcript(
+            "Reasoning over the core data models with JJ — two layers, templates, "
+            "Report vs Article, the agent boundary, capture modes, promotions.",
+            datamodel_decisions,
+        ),
+    )
+
     datamodel = build_report(
         WorkSession(
             id="session-datamodel", title="Getting the data models right", tool="Claude Code",
             artifacts=["docs/vision.md"], sources=[src_datamodel],
-            decisions=[
-                Decision(text="Two layers, not five peers: a Truth layer (Source→Claim→"
-                         "Distillation) and a Surface layer over it.", source_id="session-datamodel",
-                         locator="layers", topics=["design", "core"], confidence=0.95),
-                Decision(text="The four surfaces are one parameterized template, not four "
-                         "classes — cadence, personalization, signal color, review policy are "
-                         "config.", source_id="session-datamodel", locator="templates",
-                         topics=["design", "core"], confidence=0.95),
-                Decision(text="The Report is the investigation you approve (light PR); the "
-                         "Article is the durable, peer-reviewed lesson promoted from it.",
-                         source_id="session-datamodel", locator="report-vs-article",
-                         topics=["design", "process"], confidence=0.95),
-                Decision(text="Problem-solving agents are external and operator-owned; "
-                         "Newsletters owns capture + trust + publish, never the agent.",
-                         source_id="session-datamodel", locator="agent-boundary",
-                         topics=["process", "vision"], confidence=0.9),
-                Decision(text="Default capture is post-session and reads the workspace "
-                         "(tool-agnostic); push-integration is the operator add-on.",
-                         source_id="session-datamodel", locator="capture",
-                         topics=["process", "core"], confidence=0.9),
-                Decision(text="Two human-gated promotions form the system's grammar: "
-                         "Claim→KPI (measurable) and Report→Article (durable).",
-                         source_id="session-datamodel", locator="promotions",
-                         topics=["design", "measurement"], confidence=0.9),
-            ],
+            decisions=datamodel_decisions,
         ),
         surface_id="report-datamodel", title="Getting the data models right",
         eyebrow="Report · how we solved it", author=AUTHOR,
@@ -305,26 +341,36 @@ def _sources_and_reports() -> list[Surface]:
     ]))
     datamodel.publish(reviewer=AUTHOR)
 
+    rev1_decisions = [
+        Decision(text="Surfaces compose from typed content blocks — the blocks ARE the "
+                 "slots; only prose is templated, structure stays typed.",
+                 source_id="session-rev1", locator="blocks", topics=["core", "design"]),
+        Decision(text="A self-contained HTML renderer ports the design tokens 1:1 so "
+                 "Rev1 is viewable with no server.", source_id="session-rev1",
+                 locator="render.py", topics=["design"]),
+        Decision(text="Per-template review policy is enforced at publish: Report "
+                 "self-approves, the Article requires a peer.", source_id="session-rev1",
+                 locator="ReviewPolicy", topics=["core", "process"]),
+        Decision(text="Provenance + lineage track the process on every surface — which "
+                 "tool, which session, what it derived from / produced.",
+                 source_id="session-rev1", locator="Provenance", topics=["process", "measurement"]),
+    ]
+    src_rev1 = Source(
+        id="session-rev1", context="claude-code",
+        transcript=_record_transcript(
+            "Rev1 end-to-end: refactor to templates + policy + capture + promotion, "
+            "a token-faithful HTML renderer, and this dogfood content.",
+            rev1_decisions,
+        ),
+    )
+
     rev1 = build_report(
         WorkSession(
             id="session-rev1", title="Rev1 — rendering the surfaces", tool="Claude Code",
             artifacts=["src/newsletters/templates.py", "src/newsletters/render.py",
                        "src/newsletters/capture.py", "src/newsletters/promote.py"],
             sources=[src_rev1],
-            decisions=[
-                Decision(text="Surfaces compose from typed content blocks — the blocks ARE the "
-                         "slots; only prose is templated, structure stays typed.",
-                         source_id="session-rev1", locator="blocks", topics=["core", "design"]),
-                Decision(text="A self-contained HTML renderer ports the design tokens 1:1 so "
-                         "Rev1 is viewable with no server.", source_id="session-rev1",
-                         locator="render.py", topics=["design"]),
-                Decision(text="Per-template review policy is enforced at publish: Report "
-                         "self-approves, the Article requires a peer.", source_id="session-rev1",
-                         locator="ReviewPolicy", topics=["core", "process"]),
-                Decision(text="Provenance + lineage track the process on every surface — which "
-                         "tool, which session, what it derived from / produced.",
-                         source_id="session-rev1", locator="Provenance", topics=["process", "measurement"]),
-            ],
+            decisions=rev1_decisions,
         ),
         surface_id="report-rev1", title="Rev1 — rendering the surfaces end to end",
         eyebrow="Report · in review", author=AUTHOR,
@@ -354,6 +400,16 @@ def _sources_and_reports() -> list[Surface]:
         FanoutLink(kind="show", title="Episode 01 — Building Newsletters in the open"),
     ]))
     rev1.open_pull_request(pr_url="(this PR)")  # left In Review on purpose
+
+    # PROV-01 / D-4: content-address the Rev1 corpus IN PLACE. Each report's claim traces
+    # are pinned to their verbatim decision statement inside the session Source transcript,
+    # so the shipped sample corpus is itself content-addressed and drift-aware. Faithful:
+    # spans/claim text are unchanged; only hash+offsets are added. Anything unlocatable would
+    # be reported on the MigrationReport (here every decision is recorded verbatim, so the
+    # corpus addresses cleanly and is never stale at capture time).
+    _address_report(kickoff, [src_kickoff])
+    _address_report(datamodel, [src_datamodel])
+    _address_report(rev1, [src_rev1])
 
     return [kickoff, datamodel, rev1]
 

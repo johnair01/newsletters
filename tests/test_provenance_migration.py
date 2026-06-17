@@ -164,6 +164,34 @@ def test_built_corpus_has_no_stale_traces_at_capture_time():
             assert t.is_stale_against(sources[t.source_id]) is False
 
 
+def test_built_corpus_is_faithful_span_round_trips_to_live_source():
+    """FAITHFUL: every addressed trace's span is a verbatim window of its live source.
+
+    Guards the regression where migration silently rewrote the claim/span text: the stored
+    span must equal both the live transcript window AND (for the decision-derived traces)
+    the claim text it evidences — migration adds metadata, it never editorializes.
+    """
+    from newsletters.semantic import ClaimsBlock
+
+    surfaces = build_surfaces()
+    checked = 0
+    for s in surfaces:
+        sources = {src.id: src for src in s.traces}
+        for b in s.blocks:
+            if isinstance(b, ClaimsBlock):
+                for c in b.claims:
+                    for t in c.evidence:
+                        if not t.is_addressed:
+                            continue
+                        src = sources[t.source_id]
+                        # the recomputed window equals the stored span (self-verifying)
+                        assert src.transcript[t.start : t.end] == t.span
+                        # and the span is the verbatim claim text — not a rewrite
+                        assert t.span == c.text
+                        checked += 1
+    assert checked, "expected at least one addressed, faithful trace in the corpus"
+
+
 def test_build_site_still_writes_the_same_surface_set_as_non_empty_html(tmp_path):
     """Migration did not change the surface set/order, and every file renders to HTML."""
     expected_ids = [s.id for s in build_surfaces()]
