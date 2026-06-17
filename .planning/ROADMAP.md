@@ -174,7 +174,20 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Shapes the adapter cannot read (e.g. SmartArt, grouped shapes) are reported in `unextracted[]`, so the reviewer sees the slide had content the extractor skipped
   3. A golden-file test covers the PowerPoint adapter against a fixture containing SmartArt and grouped shapes, asserting zero silent drops
 
-**Plans**: TBD
+**Plans**: 4 plans (3 waves)
+
+**Wave 1** *(parallel — disjoint file ownership)*
+
+- [ ] 06-01-PLAN.md — FRONT FIX (CONTEXT decision 0 / L1): shared `adapters/_timestamps.py` (`EPOCH_ZERO` + `deterministic_timestamp`); retrofit email + excel off the `now()` fallback; cross-adapter determinism test (ADAPT-04 pattern prerequisite)
+- [ ] 06-02-PLAN.md — PACKAGING (CONTEXT decision 1): `pptx = ["python-pptx"]` extra + lazy `_pptx_loader.py` (no top-level pptx import); install python-pptx in `.venv`; extend the bare-install AI-isolation gate; A1 graphic-frame `@uri` accessor + lxml-fallback probe (ADAPT-04)
+
+**Wave 2** *(blocked on Wave 1 — needs `_timestamps.py` + `_pptx_loader.py`)*
+
+- [ ] 06-03-PLAN.md — `PptxAdapter` (registered `"pptx"`): ordered slide/shape walk, group recursion (L3), per-paragraph/cell/notes verbatim claims, full unreadable taxonomy (SmartArt/chart/picture/media/OLE → `unextracted[]`, L2), drops on `Source.extraction`, deterministic timestamp, conforms; lazy python-pptx only (ADAPT-04 criteria 1+2)
+
+**Wave 3** *(blocked on Wave 2 — drives the built adapter)*
+
+- [ ] 06-04-PLAN.md — Byte-reproducible `.pptx` golden corpus (ADAPT-06 + criterion 3): SmartArt + nested grouped shapes, title+body, text box, table, notes, chart, image, empty slide; zero-silent-drops (incl. nested-group accounting) + verbatim + content-addressed + conformance + Source-determinism (L5) + round-trip coverage parity; join the parity matrix + the cross-adapter determinism test
 
 ### Phase 7: Power BI Adapter
 
@@ -315,7 +328,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 3. Content-Addressed Provenance & Faithfulness Gate | 3/3 | Complete   | 2026-06-17 |
 | 4. Shared Adapter Normalizer & Email Adapter | 2/3 | In Progress|  |
 | 5. Excel Adapter | 4/4 | Complete   | 2026-06-17 |
-| 6. PowerPoint Adapter | 0/TBD | Not started | - |
+| 6. PowerPoint Adapter | 0/4 | Not started | - |
 | 7. Power BI Adapter | 0/TBD | Not started | - |
 | 8. Site Content Model & Stable IDs | 0/TBD | Not started | - |
 | 9. Rev2 Site IA, Navigation & Source Links | 0/TBD | Not started | - |
