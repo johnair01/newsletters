@@ -7,6 +7,32 @@
 
 ## Where we are right now
 
+**2026-06-17 (eve) — Phases 1–3 SHIPPED end-to-end. The trust spine is now formally enforced.**
+Running the Rev2 roadmap autonomously (discuss → plan → execute → verify per phase, gates re-run
+independently each time, every plan committed + pushed).
+
+- ✅ **Phase 1 — Distill Socket Contract:** one `DistillPort` + registry + zero-AI `ManualBackend` +
+  coverage manifest (`unextracted[]`) + conformance suite + the injectable faithfulness seam
+  (`FaithfulnessCheck`/`_enforce`). Verified 4/4.
+- ✅ **Phase 2 — AI-Optional Packaging Boundary:** core deps cut to `pydantic/typer/sqlmodel`;
+  `pydantic-ai` behind `[ai]`; `langsmith/langchain/langgraph` dropped. `.importlinter` forbids
+  core→AI; CI (`.github/workflows/ci.yml`) runs a **bare-install** full-pipeline gate + lint-imports
+  on every push. This *closed a real leak found in Phase 1* — the bare-install isolation test passes
+  strictly (the dev venv's ambient `logfire` pydantic-plugin is the only reason it xfails locally).
+  Verified 4/4 (PKG-01..04).
+- ✅ **Phase 3 — Content-Addressed Provenance & Faithfulness Gate:** `Trace` now pins SHA-256(full
+  source) + char offsets + verbatim span via `Trace.from_source`; **STALE is computed** (live hash ≠
+  recorded hash) — editing a source flips dependent claims to STALE, never silent mis-attribution.
+  The no-AI **faithfulness gate** (`SpanContainmentFaithfulness`, normalized containment) is defaulted
+  at the socket seam so every backend inherits it; unfaithful claims route to `missing[]`, never
+  surfaced. Rev1 sample corpus migrated in place (20 traces addressed, 0 stale, build byte-identical).
+  Verified 3/3 (PROV-01/02). All stdlib; AI-optional contract stayed green throughout.
+
+**Next step:** Phase 4 — Shared Adapter Normalizer & Email Adapter (smart-discuss → plan → execute).
+The faithful-extraction rule lands in one shared `normalize()`; the Email `.eml` adapter is the first
+stdlib adapter, minting traces via `Trace.from_source` (so adapter claims are content-addressed and
+come under the strict gate automatically).
+
 **2026-06-17 — A2 design pass routed (no code). The roadmap grew two phases.** A `/gsd-explore`
 session settled the long-open A1-vs-A2 question: does Signals stay a pure capture→trust→publish
 membrane (A1), or add a first-class Problem/Solution lifecycle layer (A2)? **Decision: A2, scoped as
@@ -48,6 +74,18 @@ end-to-end; Wave 2 adds the conformance suite + the hard-rule tests.
 
 ## Decisions, and why (teaching log — decide once, don't re-litigate)
 
+- **Faithfulness gate scope — "Option A": strict containment only where there's content-addressed
+  evidence; un-addressed traces fall back to structural (is-traced)** (2026-06-17, Phase 3). An
+  executor caught that the live capture path mints *empty-span* traces, so a strict "claim text must
+  appear in span" rule would falsely reject every Rev1/capture claim — violating *faithful-not-
+  suggestive* (no false positives). Resolution mirrors the approved STALE rule: **absence of content-
+  addressing means "not applicable," never a false verdict.** So the gate has teeth exactly where
+  there's a real verbatim span to check, and **self-strengthens** as the pipeline adopts content-
+  addressing. *Accepted scope boundary (forward note, not a gap):* claims born on the live `capture.py`
+  path get the structural pass until that path is content-addressed — which happens naturally as the
+  **adapters** (Phase 4+) mint traces via `Trace.from_source`. Rejected Option B (harden `capture.py`
+  now) as scope creep into a phase whose criteria were already met. Verifier confirmed 3/3 criteria in
+  live code; the only reason it flagged `human_needed` was to get this scope call on record — now made.
 - **A2 over A1 — model the problem lifecycle, but as a legibility layer, not a tracker** (2026-06-17).
   The scattered `problem→owned→solution→promoted` lifecycle gets a first-class `Problem` entity above
   `Source` *because* someone needs to query the portfolio across problems (A1 can't aggregate state it
