@@ -27,8 +27,8 @@ from pathlib import Path
 import pytest
 
 from newsletters.adapters._timestamps import EPOCH_ZERO
-from newsletters.semantic import Trace
-from newsletters.worksurface import capture_files
+from newsletters.semantic import ClaimsBlock, Trace
+from newsletters.worksurface import build_work_surfaces, capture_files
 
 
 def _snapshot(paths: list[Path]) -> dict[str, tuple[float, str]]:
@@ -111,6 +111,81 @@ def test_capture_files_rejects_path_escaping_root(tmp_path: Path) -> None:
     (tmp_path / "inside.md").write_text("ok\n", encoding="utf-8")
     with pytest.raises(ValueError):
         capture_files(["../outside.md"], root=tmp_path)
+
+
+def test_work_report_inherits_traced_structure() -> None:
+    """WORK-02/03: the hand-authored work Report inherits the traced structure (Plan 11-03).
+
+    Every ClaimsBlock claim on a work surface EITHER content-addresses to an ingested file
+    span (``evidence[0].is_addressed`` with ``source_id`` in the ingested file ids — the
+    span pins to a real, openable repo file) OR appears in ``surface.missing`` — nothing
+    untraced or fabricated sneaks through (mirrors open_pull_request invariant 2,
+    semantic.py:525-531). Asserts:
+
+      * the happy path is real: ≥1 claim is genuinely content-addressed to a real file span
+        (not all-missing) and its span is the verbatim file slice (drift-checkable);
+      * the report builds via the zero-AI ``capture.build_report`` path (provenance.tool set);
+      * at least one claim was honestly routed to ``missing[]`` (a deliberately-paraphrased
+        claim is NOT fabricated — faithful, not suggestive);
+      * each work surface carries a populated ``Surface.lineage.derived_from`` of ingested
+        file ids (the structure half of WORK-03).
+    """
+    surfaces = build_work_surfaces()
+    assert surfaces, "build_work_surfaces() returned no surfaces"
+
+    addressed_total = 0
+    missing_total = 0
+
+    for surface in surfaces:
+        # The ingested file ids this surface cites = its Source traces' ids (== POSIX relpaths).
+        ingested_ids = {src.id for src in surface.traces}
+        assert ingested_ids, f"{surface.id} has no ingested file Sources to cite"
+
+        # Lineage (WORK-03 structure half): derived_from is the ingested file ids, and every
+        # entry is a real cited file id — nothing fabricated.
+        assert surface.lineage.derived_from, f"{surface.id} has empty lineage.derived_from"
+        assert set(surface.lineage.derived_from) <= ingested_ids, (
+            f"{surface.id} lineage.derived_from cites ids it did not ingest"
+        )
+
+        missing_total += len(surface.missing)
+
+        for block in surface.blocks:
+            if not isinstance(block, ClaimsBlock):
+                continue
+            for claim in block.claims:
+                # Invariant 2 (mirrored): a claim that survives onto a ClaimsBlock MUST be
+                # content-addressed to a real ingested file span — anything not verbatim was
+                # routed to missing[] (and never appears here as an untraced/fabricated claim).
+                assert claim.is_traced, (
+                    f"{surface.id}: claim {claim.text[:40]!r} is untraced — it should have "
+                    "been routed to missing[], never left on a ClaimsBlock"
+                )
+                trace = claim.evidence[0]
+                assert trace.is_addressed, (
+                    f"{surface.id}: claim {claim.text[:40]!r} trace is not content-addressed"
+                )
+                assert trace.source_id in ingested_ids, (
+                    f"{surface.id}: claim trace pins {trace.source_id!r}, not an ingested file"
+                )
+                # The span IS the verbatim file slice — content-addressed, drift-checkable.
+                src = next(s for s in surface.traces if s.id == trace.source_id)
+                assert trace.span == src.transcript[trace.start : trace.end]
+                assert trace.span in src.transcript
+                assert not trace.is_stale_against(src)
+                addressed_total += 1
+
+        # The zero-AI manual backend stamped provenance (capture.build_report path).
+        assert surface.provenance is not None, f"{surface.id} has no provenance"
+        assert surface.provenance.tool, f"{surface.id} provenance.tool is empty"
+
+    # The happy path is REAL: at least one claim genuinely content-addressed to a file span.
+    assert addressed_total >= 1, "no claim content-addressed to a real ingested file span"
+    # And honesty is real: at least one paraphrase was routed to missing[], not fabricated.
+    assert missing_total >= 1, (
+        "expected ≥1 claim routed to missing[] (a paraphrase that does not verbatim-locate) — "
+        "faithful, not suggestive; nothing fabricated"
+    )
 
 
 @pytest.mark.skip(
