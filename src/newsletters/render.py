@@ -101,7 +101,17 @@ def link_for_source(
 # --------------------------------------------------------------------------- #
 
 _CSS = """
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+/* Self-hosted fonts (no external call). The three SIL-OFL families are vendored as
+   woff2 under content/rev1/site/fonts/ (OFL-*.txt travels with them); src is a
+   RELATIVE url so the rendered Library is offline / self-contained (WORK-01, L3).
+   Instrument Sans is a variable font: one file covers weights 400-600. */
+@font-face{font-family:'DM Serif Display';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/dm-serif-display-400.woff2') format('woff2')}
+@font-face{font-family:'DM Serif Display';font-style:italic;font-weight:400;font-display:swap;src:url('fonts/dm-serif-display-400-italic.woff2') format('woff2')}
+@font-face{font-family:'DM Mono';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/dm-mono-400.woff2') format('woff2')}
+@font-face{font-family:'DM Mono';font-style:normal;font-weight:500;font-display:swap;src:url('fonts/dm-mono-500.woff2') format('woff2')}
+@font-face{font-family:'DM Mono';font-style:italic;font-weight:400;font-display:swap;src:url('fonts/dm-mono-400-italic.woff2') format('woff2')}
+@font-face{font-family:'Instrument Sans';font-style:normal;font-weight:400 600;font-display:swap;src:url('fonts/instrument-sans-variable.woff2') format('woff2')}
+@font-face{font-family:'Instrument Sans';font-style:italic;font-weight:400;font-display:swap;src:url('fonts/instrument-sans-400-italic.woff2') format('woff2')}
 *,*::before,*::after{box-sizing:border-box}
 .signals{
   --color-ink:#0a0a0f;--color-paper:#f5f3ee;--color-white:#fff;
