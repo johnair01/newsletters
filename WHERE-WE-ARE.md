@@ -7,6 +7,22 @@
 
 ## Where we are right now
 
+**2026-06-18 — Phase 9 SHIPPED & VERIFIED (5/5): Rev2 Site IA, Navigation & Source Links
+(SITE-02..06).** The deployed site now has a real **8-section marketing Home** at `index.html`
+(recreated from the approved `design-reference` prototype, design-system tokens matched), a separate
+**Library status-board** at `library.html` (3 CSS-grid columns by gate state — `Page.gate` now
+load-bearing — no JS), **four nav destinations** (Start here/Newsletters/Articles/The Show) +
+breadcrumbs + within-type prev/next, and **working source links** (cited file → repo blob, session →
+in-site anchor, neither → plain text — never a dead link) with `FanoutLink.href` populated + SVG fan-out
+anchors. All output regenerates from `render.py` (generated marker + byte-stable; SITE-06). 502 tests
+pass. UI audit PASS 23/24 (the only <prototype gap is the static no-JS persona demo, deferred to the
+`web/` phase). **Two issues my independent verification caught + fixed:** (1) a 09-01 *stale-green* —
+the executor ran pytest before regenerating content, so `test_existing_links_do_not_rot` (which reads
+the built dir) didn't see the new `library.html`; (2) SC4 links were well-formed but **404'd** (stale
+`nneibaue` handle vs the real `johnair01/newsletters`; two locators missing the `src/newsletters/`
+prefix) — fixed + guarded by a test that every repo-blob link points at a file that EXISTS. **Next:
+Phase 10 — Reviewer Surfacing & Merge-Block Gate.**
+
 **2026-06-18 — Phase 8 SHIPPED & VERIFIED (2/2): Site Content Model & Stable IDs (SITE-01).** The
 pivot from extraction to surfaces. New typed `Site → Collection → Page` model (`src/newsletters/site.py`,
 stdlib+Pydantic, AI-free) + a stdlib `slugify` + an **append-only ID ledger** (`content/rev1/ids.json`,
