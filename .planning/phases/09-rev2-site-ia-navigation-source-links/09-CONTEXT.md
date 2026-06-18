@@ -40,6 +40,33 @@ the renderer/templates; no hand-edited HTML).
 7. **Template regen (SITE-06):** all of `content/rev1/site/` regenerates from `render.py`; a test
    asserts no file is hand-edited (re-render → byte-stable, or a "generated" guard).
 
+## UI-SPEC-locked choices (09-UI-SPEC.md accepted 2026-06-18)
+
+- **N1 — Four nav destinations:** *Start here · Newsletters · Articles · The Show* (verbatim
+  `surfaces.md` L8 / existing `_NAV_ITEMS`). The three type hubs resolve to each Collection's first
+  `Page.href` via `Site.by_slug`. Library + Report are intentionally OUTSIDE the four-item spine —
+  reached via Home §5 "Enter →" and a footer `library.html` link. ("Four real destinations" satisfied.)
+- **N2 — Source-link targets:** a configurable `source_base_url` (default = the repo blob base used in
+  Home §7's repo lockup), with relative fallback. `link_for_source()`: file-path locator
+  (`docs/vision.md`, `semantic.py`) → repo blob URL; session/transcript locator → in-site anchor to the
+  recording surface; neither → **plain text, NEVER a dead link**. Populate `FanoutLink.href`
+  (`semantic.py:355`, currently unused) and turn the `diagrams.fanout()` SVG boxes into SVG `<a>`
+  anchors (no JS). Transcript-prefix locators do NOT suffice as link targets (they render as text).
+- **N3 — Library board:** pure-CSS 3-column grid (`display:grid;repeat(3,1fr)`) keyed off `Page.gate`
+  (now load-bearing) — columns **Draft · In Review · Published** colored per design-system §6
+  (default/amber/blue). Cards = 3px-left-signal `<a>` with stable `ref` + title + status tag. **NO JS.**
+  Empty column → header + muted placeholder.
+- **N4 — Route split:** Home takes `index.html`; the board moves to `library.html`; update the build +
+  all links accordingly (existing per-surface `{slug}.html` filenames stay stable per Phase-8 L3).
+- **N5 — Determinism (SITE-06):** NO `datetime.now()` (or any nondeterminism) in rendered HTML; the
+  regen test (re-render → byte-stable + a "generated" marker) is the guard. All output from `render.py`.
+- **N6 — Static-faithful interactivity:** the React persona/theme re-cut can't run statically — render
+  the DEFAULT persona's letter inline (no-JS faithful); the theme toggle stays the existing tiny JS
+  already in `_page` (not new behavior). Editorial half-step spacing (18.5/30/26px) is authoritative
+  over a strict 8-pt grid (document Spacing Exceptions for the UI-checker).
+- **Waves:** W1 Home (SITE-02) → W2 Board + nav/breadcrumb/prev-next (SITE-03/04) → W3 source links +
+  regen test (SITE-05/06). Dependent-ordered (W2 needs W1's index/library split; W3 needs W2's nav targets).
+
 ## Hard rules in play
 - **Visual fidelity is not optional** — match `docs/design-system.md` tokens + the design-reference
   look exactly. Flat editorial, `--radius: 0`, the three-font system.
