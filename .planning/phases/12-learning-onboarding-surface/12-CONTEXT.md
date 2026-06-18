@@ -56,6 +56,38 @@ already-reviewed, traced claims** — it never authors new factual prose.
    example + the spec section. NOT the V3 PulseIQ learning engine (out of scope — only the typed
    re-cut/preset). NO AI. Read-only/no-auto-publish/all prior contracts hold.
 
+## Research-locked choices (12-RESEARCH.md accepted 2026-06-18, HIGH confidence)
+
+- **L1 — `learning` SurfaceTemplate:** `name="learning"`, `display_name="Learning"`,
+  `cadence=ON_DEMAND`, `personalized=True` (emphasis hook only), `signal_color=GREEN`,
+  `scope=AudienceScope.INDIVIDUAL`, `review_policy=ReviewPolicy.light()`,
+  `slots=["start_here","prerequisites","glossary","going_deeper"]`, `distance=4`; add to `_REGISTRY`
+  (templates.py:165). Wiring already supports a 5th type (Site groups by distance; board by gate;
+  nav has `.get(...)` fallbacks; `L-{:03d}` ledger ref exists; `FanoutLink(kind="learning")` authored).
+- **L2 — Faithful learning preset:** `learning_surface(distillation, *, audience, glossary_terms,
+  prerequisites, author) -> Surface`. SELECT/ORDER/LINK existing traced claims only — NO authored prose.
+  Progressive disclosure = three ORDERED DOM sections (Start here / Prerequisites / Going deeper), NO
+  JS, ordered deterministically by **`confidence` + `topics`** (A3 — derived, NO schema change, stable+
+  total key for byte-stability). Reuse `claims_for`/`Corpus.emphasis`. Emits only `ClaimsBlock` +
+  a new typed `GlossaryBlock` (each term's definition is a traced **`Claim`**, never a `str`/invented);
+  an un-traceable glossary term → `surface.missing[]` (honesty panel). NO free `ProseBlock`.
+- **L3 — LEARN-02 provenance = pure reuse** (`link_for_source`, `_claim_spans`, `_claim_badge`,
+  `_honesty_panel` run unchanged on the learning surface). Every concept/term/step links to its source.
+- **L4 — OnboardingPath model:** `OnboardingPath(id, title, audience_label, steps:
+  list[OnboardingStep(slug, label)])` — an ORDERED list of slug refs, NOT a Surface (no claims, **no own
+  review gate** — A5: it is navigation over surfaces that ALREADY passed the gate; it publishes nothing
+  new, so no-auto-publish is not implicated). Lives in a NEW `src/newsletters/learning.py` (NOT site.py
+  — protect its identity-only import boundary). `render_path()` resolves each step via `Site.by_slug`
+  and reuses the Phase-9 `_prevnext` device.
+- **L5 — Dogfood example (real, not stub):** re-cut `report-datamodel` (richest content-addressed claim
+  set); onboarding path `show-ep01 → report-datamodel → <the new learning re-cut>`; reuse the existing
+  newcomer `Corpus` (dogfood.py:168). Build into content/rev1/site (byte-stable).
+- **L6 — Tests:** FAITHFUL — assert NO string on the learning surface that isn't a traced reviewed
+  claim (glossary defs are traced Claims; no invented prose); un-glossed term → honesty panel; LEARN-02
+  every concept/term/step traces; LEARN-03 ordered path + prev/next within the track; no-external-call;
+  byte-stable double-render.
+- **L7 — Spec:** add the learning-surface + onboarding-path section to docs/surfaces.md (fill the gap).
+
 ## Hard rules in play
 - **Faithful, not suggestive** — the learning re-cut SELECTS/ORDERS/links traced claims + traced
   glossary definitions; it NEVER invents explanatory prose. Un-traceable → not taught (honesty panel).
