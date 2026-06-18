@@ -11,14 +11,25 @@ import pathlib
 
 from newsletters.dogfood import build_site, build_surfaces
 from newsletters.render import (
+    _block_html,
     _breadcrumb,
     _nav_targets,
     _prevnext,
+    link_for_source,
     render_home,
     render_library,
     render_surface,
+    source_base_url,
 )
-from newsletters.semantic import ReviewState
+from newsletters.semantic import (
+    Claim,
+    ClaimsBlock,
+    FanoutBlock,
+    FanoutLink,
+    ReviewState,
+    Trace,
+)
+from newsletters.locators import FreeLocator, SessionLocator
 from newsletters.site import Collection, Ledger, Page, Site
 
 
@@ -371,3 +382,68 @@ def test_rendered_surface_has_breadcrumb_above_and_prevnext_below(tmp_path: path
     # The breadcrumb sits above the masthead; prev/next sits below the blocks.
     assert body.index("nl-crumb") < body.index('class="masthead"')
     assert body.index("nl-prevnext") > body.index('class="masthead"')
+
+
+# --------------------------------------------------------------------------- #
+# Wave 3 — Task 1: source_base_url + link_for_source() + linked evidence chips
+# (SITE-05 part 1). The resolution rule: file-path locator → repo blob URL;
+# session/transcript locator → in-site anchor (or plain text when no target);
+# neither → plain text. NEVER a dead/href="None" link.
+# --------------------------------------------------------------------------- #
+
+
+def test_link_for_source_file_path_locator_resolves_to_repo_blob_url() -> None:
+    # A FreeLocator that looks like a repo path → {source_base_url}{path}.
+    for path in ("docs/vision.md", "CLAUDE.md", "semantic.py", "src/newsletters/render.py"):
+        t = Trace(source_id="session-kickoff", locator=FreeLocator(text=path))
+        assert link_for_source(t) == f"{source_base_url}{path}"
+
+
+def test_link_for_source_base_url_none_returns_relative_path() -> None:
+    # base_url=None → a relative repo path for offline/self-hosted output, not an absolute URL.
+    t = Trace(source_id="session-kickoff", locator=FreeLocator(text="docs/vision.md"))
+    url = link_for_source(t, base_url=None)
+    assert url == "../docs/vision.md"
+    assert "github.com" not in url
+
+
+def test_link_for_source_session_locator_without_target_returns_none() -> None:
+    # A SessionLocator / session-* source with no file path and no in-site target → None
+    # (caller renders plain text), never a fabricated/dead URL.
+    t = Trace(source_id="session-kickoff", locator=SessionLocator(source_id="session-kickoff"))
+    assert link_for_source(t, site=None) is None
+    # A doc-* source id whose locator is not a path also yields None when unresolvable.
+    t2 = Trace(source_id="doc-roadmap", locator=FreeLocator(text="Phase 0 / Phase 2"))
+    assert link_for_source(t2, site=None) is None
+
+
+def test_link_for_source_resolves_session_to_in_site_anchor_via_by_slug() -> None:
+    # When the source_id maps to a recording surface in the Site, link to its {slug}.html.
+    site = _full_site()
+    # show-ep01 is a real page slug in the dogfood corpus.
+    assert site.by_slug("show-ep01") is not None
+    t = Trace(source_id="show-ep01", locator=SessionLocator(source_id="show-ep01"))
+    assert link_for_source(t, site=site) == "show-ep01.html"
+
+
+def test_claims_block_links_file_path_chip_keeps_unresolvable_plain() -> None:
+    # A claim whose trace locator is a file path → an <a class="ev-chip"> to the blob URL.
+    linked = ClaimsBlock(claims=[
+        Claim(text="A traced finding.",
+              evidence=[Trace(source_id="session-kickoff", locator=FreeLocator(text="docs/vision.md"))],
+              confidence=0.9),
+    ])
+    html = _block_html(linked)
+    assert '<a class="ev-chip"' in html
+    assert f'href="{source_base_url}docs/vision.md"' in html
+    # An unresolvable locator (free text, no path) stays a plain <span class="ev-chip">.
+    plain = ClaimsBlock(claims=[
+        Claim(text="A finding with a non-path locator.",
+              evidence=[Trace(source_id="doc-roadmap", locator=FreeLocator(text="Phase 0 / Phase 2"))],
+              confidence=0.9),
+    ])
+    phtml = _block_html(plain)
+    assert '<span class="ev-chip">' in phtml
+    assert "<a class=\"ev-chip\"" not in phtml
+    # And in no case is a dead href emitted.
+    assert 'href="None"' not in html and 'href="None"' not in phtml
