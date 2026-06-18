@@ -127,6 +127,12 @@ The three personas, their accents, and the exact per-reader copy used in V1 are 
   *readers* (receive personalized surfaces).
 - **Deployment:** self-hosted. Private corpora and source data stay in the operator's
   environment, reached through modular **MCP servers** (see `architecture.md`).
+- **The simplest on-ramp — the work-surface flow.** An operator can `pip install` and point a
+  **read-only** local ingest (`capture_files`) at their own codebase (data stays local, no
+  external calls), hand-author a Report about how the work was done, publish it through the
+  review gate, and run `newsletters build/check --corpus work` to render and gate a Library that
+  shows provenance + lineage on every surface. This is the same trust spine the product
+  preaches, practiced on a real repo — the full flow is documented in `architecture.md` §8.
 - **Openness:** MIT-licensed, forkable. Every surface is a slot-marked template so any team
   can repopulate it with their own specifics — the method travels, the design comes with it.
 

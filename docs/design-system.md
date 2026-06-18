@@ -64,6 +64,15 @@ re-pick colors or fonts. The aesthetic is **flat editorial**: hairline rules, ha
 
 Loaded from Google Fonts in the prototype; self-host in production.
 
+> **Self-host mandate — EXECUTED (Phase 11).** The production renderer (`render.py`) no longer
+> reaches out to Google Fonts. The OFL fonts are **vendored and self-hosted**: `@font-face`
+> blocks reference the woff2 files with a *relative* `fonts/…woff2` url, and `newsletters build`
+> emits the font set (plus its OFL licenses) beside the HTML (`content/rev1/site/fonts/`, and a
+> copy into `content/work/site/fonts/` for the work corpus). If a vendored font is absent, the
+> DM-first font-stack fallback applies (Georgia / system sans / monospace). Either way the
+> rendered Library bakes **zero external font call** — proven by the no-external-call render
+> tests. This realizes the standing "self-host in production" mandate.
+
 | Token | Stack | Role |
 |---|---|---|
 | `--font-display` | `'DM Serif Display', Georgia, serif` | Display / headlines (also italic for emphasis) |

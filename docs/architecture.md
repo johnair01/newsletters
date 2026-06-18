@@ -186,3 +186,46 @@ The Reports in `content/rev1/` are the working record of *why*; this section is 
 - **The renderer** (`render.py`) emits token-faithful standalone HTML (light + dark, the
   signal colors, the gate badge) — `newsletters build` writes the Library to
   `content/rev1/site/`. The agentic distill (`synthesize`) remains an external/Phase-4 stub.
+
+---
+
+## 8. The work-surface install / dogfood flow (Phase 11 — as implemented)
+
+Phase 11 makes the product run on a **real codebase**, not just the Rev1 sample. The same
+trust spine — content-addressed claims, the review gate, provenance + lineage on every
+surface — applies to a hand-authored Report about how *this* build was done. The flow an
+operator runs (`src/newsletters/worksurface.py`):
+
+1. **Install.** `pip install newsletters` — the bare install is light and **AI-free** (the AI
+   backend lives behind the `[ai]` extra; the work flow needs none of it).
+2. **Point the read-only ingest at the code.** `worksurface.capture_files(paths, root=...)`
+   reads a *curated list* of local files **READ-ONLY** (`Path.read_text` only — never a write
+   to the scanned tree, **no network call**) into content-addressed `Source` records. Each
+   `Source.id` is the POSIX relpath, so a claim citing it links back to the working repo file
+   for free. Data stays local; nothing is transmitted (consistent with the §5 MCP/local-data
+   stance and the §6 "no external calls on content" NFR).
+3. **Hand-author a Report.** `worksurface.build_work_report(...)` lifts hand-written
+   `Decision`s into a Draft Report via the zero-AI manual backend (`capture.build_report`).
+   Each claim **content-addresses** to a verbatim span of its cited file (`Trace.from_source`);
+   any claim that does *not* verbatim-locate is routed to `Surface.missing[]` — **faithful, not
+   fabricated**. No auto-publish: the work-report stays Draft until a human publishes it.
+4. **Publish / render the Library.** `worksurface.build_work_site(out="content/work/site")`
+   renders the corpus to standalone HTML, reusing the Phase 9/10 devices: a claim→repo-file
+   link, the verbatim trace span, the honesty panel (the `missing[]` gaps), and the masthead's
+   **provenance** (`captured via`) + **lineage** (`derived from` the ingested files, and the
+   per-audience fan-out it `produced`). The work output **self-hosts its fonts** (see
+   `design-system.md`) so the Library makes **zero external call**, just like Rev1.
+5. **Gate it through the SAME trust gate.** `newsletters check --corpus work` runs the
+   corpus-agnostic `review.review_blockers` over the work corpus's PUBLISHED surfaces:
+   **exit 0** when clean, **nonzero** on any STALE / un-entailed / open-`missing[]` blocker.
+   The selector routes the *builder*, never forks the gate — the work corpus passes the
+   identical merge-block contract as Rev1.
+
+**The `--corpus {rev1|work}` selector.** Both `newsletters build` and `newsletters check`
+accept `--corpus` (default `rev1`, so existing behavior is unchanged):
+
+- `build --corpus rev1` → `content/rev1/site` (the sample); `build --corpus work` →
+  `content/work/site` (the real corpus).
+- `check --corpus rev1` gates the sample; `check --corpus work` gates the real corpus — both
+  through the **same** `review_blockers`. The work corpus keeps its **own** append-only ledger
+  (`content/work/ids.json`), so the sample/real boundary is preserved at the ledger layer.
