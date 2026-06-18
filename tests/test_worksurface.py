@@ -22,13 +22,19 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 from pathlib import Path
 
 import pytest
 
 from newsletters.adapters._timestamps import EPOCH_ZERO
+from newsletters.render import repo_url
 from newsletters.semantic import ClaimsBlock, Trace
-from newsletters.worksurface import build_work_surfaces, capture_files
+from newsletters.worksurface import (
+    build_work_site,
+    build_work_surfaces,
+    capture_files,
+)
 
 
 def _snapshot(paths: list[Path]) -> dict[str, tuple[float, str]]:
@@ -188,18 +194,160 @@ def test_work_report_inherits_traced_structure() -> None:
     )
 
 
-@pytest.mark.skip(
-    reason="Wave-0 e2e scaffold: ingest (11-02, DONE) -> build_work_report (11-03) -> "
-    "publish + render (11-04) -> newsletters check --corpus work (11-05). Later stages are "
-    "filled by Plans 11-03/04/05; kept skipped so it never fails the suite prematurely."
-)
+# --------------------------------------------------------------------------- #
+# Plan 11-04 (WORK-03) — PUBLISH the work site: provenance + lineage VISIBLE on
+# every surface, ZERO auto-loading external calls, byte-stable across renders.
+# --------------------------------------------------------------------------- #
+
+
+def _work_report_html(out: Path) -> str:
+    """Build the work site into ``out`` and return the work Report page's HTML.
+
+    The work Report's slug == its id (``work-report``, L3 backward-compat), so its page
+    is ``work-report.html`` — the surface that must show the process (WORK-03).
+    """
+    written = build_work_site(out)
+    report = out / "work-report.html"
+    assert report in written, "build_work_site did not emit the work Report page"
+    return report.read_text(encoding="utf-8")
+
+
+def test_provenance_lineage_visible(tmp_path: Path) -> None:
+    """WORK-03: the published work Report shows the PROCESS on the surface itself.
+
+    Asserts ALL of the reused Phase 9/10 provenance/lineage devices render against the
+    real work corpus:
+      (a) a claim->repo-file link — a ``link_for_source`` blob URL into THIS repo (so a
+          reader can open the cited file);
+      (b) a ``claim-span`` div — the verbatim trace span beside the claim;
+      (c) the ``honesty`` panel — the gaps shown on the surface (the 1 missing[] item);
+      (d) a masthead lineage/provenance bit — "derived from" (real because Plan 11-03
+          populated Surface.lineage) and "captured via";
+      (e) a ``fan-row`` — the fan-out chain (lineage.produced, finalized in this plan).
+    """
+    html = _work_report_html(tmp_path)
+
+    # (a) claim->repo-file link: a working blob URL into THIS repo for a cited file.
+    blob_re = re.compile(re.escape(repo_url) + r"/blob/main/([^\"'#]+)")
+    cited = blob_re.findall(html)
+    assert cited, "no claim->repo-file link (link_for_source blob URL) on the work Report"
+    # The cited path is a real file in this repo (a working citation, not just well-formed).
+    repo_root = Path(__file__).resolve().parent.parent
+    assert any((repo_root / p.rstrip("/")).exists() for p in cited), (
+        f"work Report cites repo paths that do not exist: {cited}"
+    )
+
+    # (b) verbatim trace span beside the claim.
+    assert 'class="claim-span"' in html, "no verbatim claim-span on the work Report"
+
+    # (c) the honesty panel, showing the 1 deliberately-paraphrased missing[] item.
+    assert 'class="honesty"' in html, "no honesty panel on the work Report"
+    surface = build_work_surfaces()[0]
+    assert surface.missing, "fixture invariant: the work Report must carry a missing[] item"
+    for entry in surface.missing:
+        # The missing text is shown to the reviewer (escaped) — never published silently.
+        assert "unsubstantiated" in html, "honesty panel does not flag the missing[] item"
+        assert entry.split(".")[0] in html or entry[:20] in html, (
+            "the missing[] claim text is not surfaced in the honesty panel"
+        )
+
+    # (d) masthead lineage + provenance summary (real, driven by Surface.lineage / Provenance).
+    assert "derived from" in html, "masthead does not show the lineage 'derived from' summary"
+    assert "captured via" in html, "masthead does not show the 'captured via' provenance"
+
+    # (e) the fan-out chain — lineage.produced finalized now that the fan-out exists.
+    assert 'class="fan-row"' in html, "no fan-out row (fan-row) on the work Report"
+
+
+def test_no_external_calls_in_work_output(tmp_path: Path) -> None:
+    """A2 / T-11-10: the WORK output auto-loads ZERO external resources (self-hosted fonts).
+
+    Mirrors the rev1 no-external-call lock (test_render.py): no Google-Fonts host, no
+    ``@import url(http``, no ``src="http"``, no CSS ``url(http`` (e.g. @font-face), no
+    ``<link href="http">``. Clickable ``<a href="https://...">`` repo links are NAVIGATION
+    (A2) and stay permitted — the work corpus must be as clean as rev1, carrying the Plan
+    11-01 self-hosted fonts into content/work/site/.
+    """
+    written = build_work_site(tmp_path)
+    pages = sorted(p for p in written if p.suffix == ".html")
+    assert pages, "build_work_site produced no HTML to scan"
+
+    forbidden = (
+        "fonts.googleapis.com",
+        "fonts.gstatic.com",
+        "@import url('http",
+        '@import url("http',
+        "@import url(http",
+        'src="http',
+        "src='http",
+    )
+    css_url_fetch = re.compile(r"url\(\s*['\"]?https?://")
+    link_href_http = re.compile(r"<link\b[^>]*\bhref\s*=\s*['\"]https?://", re.IGNORECASE)
+
+    for page in pages:
+        html = page.read_text(encoding="utf-8")
+        for needle in forbidden:
+            assert needle not in html, (
+                f"{page.name} bakes an auto-loading external resource: {needle!r}"
+            )
+        assert not css_url_fetch.search(html), (
+            f"{page.name} has a CSS url(http...) fetch — work fonts must be self-hosted"
+        )
+        assert not link_href_http.search(html), (
+            f"{page.name} has a <link href=\"http...\"> auto-loaded resource"
+        )
+
+    # The self-hosted fonts the @font-face relative urls reference must actually be present
+    # in the work output (so the work Library is genuinely self-contained, not just url-clean).
+    fonts_dir = tmp_path / "fonts"
+    assert fonts_dir.is_dir(), "build_work_site did not emit the self-hosted fonts/ dir"
+    assert any(fonts_dir.glob("*.woff2")), "no woff2 fonts in the work output fonts/ dir"
+
+    # A2 lock: clickable navigation anchors stay ABSOLUTE and are NOT flagged.
+    report = (tmp_path / "work-report.html").read_text(encoding="utf-8")
+    assert f'href="{repo_url}' in report, (
+        "the no-external-call guard must still permit clickable repo links (A2 navigation)"
+    )
+
+
+def test_work_site_byte_stable(tmp_path: Path) -> None:
+    """SITE-06: build_work_site is byte-stable across two renders (no datetime.now())."""
+    a, b = tmp_path / "a", tmp_path / "b"
+    wa = build_work_site(a)
+    wb = build_work_site(b)
+    names_a = sorted(p.name for p in wa)
+    names_b = sorted(p.name for p in wb)
+    assert names_a == names_b, "the two work renders produced a different file set"
+    for name in names_a:
+        assert (a / name).read_bytes() == (b / name).read_bytes(), (
+            f"{name} is not byte-identical across renders (nondeterminism in the work output)"
+        )
+
+
 def test_operator_flow_end_to_end(tmp_path: Path) -> None:
     """The full WORK happy path an operator runs against a real codebase.
 
-    1. capture_files(curated repo files) -> content-addressed Source[]            (11-02, this plan)
+    1. capture_files(curated repo files) -> content-addressed Source[]            (11-02)
     2. build_work_report(sources, ...)   -> Draft Report Surface, claims traced    (11-03)
-    3. surface.publish(reviewer)         -> review gate, no auto-publish           (11-04)
-    4. render_surface / build_work_site  -> provenance + lineage, NO external call (11-04)
+    3. surface stays Draft               -> review gate, NO auto-publish           (11-04)
+    4. build_work_site -> render_surface -> provenance + lineage, NO external call (11-04)
     5. newsletters check --corpus work   -> exit 0 clean / nonzero on a blocker    (11-05)
+
+    Stages 1-4 are exercised here; stage 5 (the ``--corpus work`` check) lands in Plan 11-05.
     """
-    raise NotImplementedError("filled by Plans 11-03/04/05")
+    # 1-2. The corpus exists, traced, with the honesty drop and the populated lineage.
+    surfaces = build_work_surfaces()
+    assert surfaces, "no work surfaces"
+    report = surfaces[0]
+    assert report.lineage.derived_from, "lineage not populated (11-03)"
+
+    # 3. NO auto-publish — the work-report stays Draft; the board reflects its real state.
+    assert report.gate.value == "draft", "the work-report must NOT auto-publish (Draft gate)"
+
+    # 4. Render the corpus to a self-contained site; the process is visible, zero external call.
+    written = build_work_site(tmp_path)
+    assert (tmp_path / "work-report.html") in written
+    html = (tmp_path / "work-report.html").read_text(encoding="utf-8")
+    assert "derived from" in html and 'class="honesty"' in html
+
+    # 5. left for Plan 11-05 (the `newsletters check --corpus work` gate).
