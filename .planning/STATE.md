@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
+status: executing
 stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-06-18T10:36:29.412Z"
-last_activity: 2026-06-18 -- Phase 07 marked complete
+last_updated: "2026-06-18T11:02:02.680Z"
+last_activity: 2026-06-18 -- Phase 08 execution started
 progress:
   total_phases: 14
   completed_phases: 6
-  total_plans: 23
-  completed_plans: 22
+  total_plans: 25
+  completed_plans: 23
   percent: 43
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-14)
 
 **Core value:** A deterministic, auditable pipeline that traces every published claim to evidence and never auto-publishes — AI is an optional accelerator, never an authority.
-**Current focus:** Phase 07 — power-bi-adapter
+**Current focus:** Phase 08 — site-content-model-stable-ids
 
 ## Current Position
 
-Phase: 07 — COMPLETE
-Plan: 4 of 4
-Status: Phase 07 complete
-Last activity: 2026-06-18 -- Phase 07 marked complete
+Phase: 08 (site-content-model-stable-ids) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-06-18 -- Phase 08 execution started
 
 Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-03 complete)
 
@@ -75,6 +75,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 06 P04 | ~7min | 2 tasks | 13 files |
 | Phase 07 P03 | 25m | 3 tasks | 5 files |
 | Phase 07 P04 | 15m | 2 tasks | 4 files |
+| Phase 08 P01 | 30min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -118,6 +119,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 07-03: PowerBiAdapter registered 'powerbi' — stdlib PBIP/TMDL+PBIR onto shared normalize(); timestamp always EPOCH_ZERO; _R_NO_DATA_ROWS forces fail-loud; zero new dependency
 - [Phase ?]: 07-04: Power BI golden corpus is hand-authored plain text via stdlib write_text (zero authoring dep)
 - [Phase ?]: 07-04: the golden has no skip-mark — the powerbi adapter is stdlib-only so the corpus runs on a bare install
+- [Phase 08]: 08-01: identity moved out of presentation into a deterministic core (site.py); stable IDs = pure function of content + an append-only ledger (content/rev1/ids.json); existing slug->ref IMMUTABLE, new = max(per-type ordinal)+1; slug defaults to Surface.id for Rev1 backward-compat; reorder/insert stability proven by test_reorder_and_insert_preserve_ids (L7)
 
 ### Pending Todos
 
@@ -146,6 +148,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-18T10:18:51.167Z
+Last session: 2026-06-18T11:01:21.431Z
 Stopped at: Completed 06-02-PLAN.md
 Resume file: None

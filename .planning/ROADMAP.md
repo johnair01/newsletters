@@ -230,7 +230,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 08-01-PLAN.md — Identity core (TDD): `site.py` slugify + append-only `Ledger` + `Site/Collection/Page` + `from_surfaces`/`by_slug`, the reorder/insert stability test (L7), seeded `content/rev1/ids.json`, package exports
+
+- [x] 08-01-PLAN.md — Identity core (TDD): `site.py` slugify + append-only `Ledger` + `Site/Collection/Page` + `from_surfaces`/`by_slug`, the reorder/insert stability test (L7), seeded `content/rev1/ids.json`, package exports
 - [ ] 08-02-PLAN.md — Page-driven renderer: rewrite `render_library` to use `Page.ref` (drop the positional index) + `build_site` builds the Site, plus the spec update (L2) and the no-rot regression test
 
 **UI hint**: yes
@@ -348,7 +349,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 5. Excel Adapter | 4/4 | Complete   | 2026-06-17 |
 | 6. PowerPoint Adapter | 4/4 | Complete   | 2026-06-17 |
 | 7. Power BI Adapter | 4/4 | Complete   | 2026-06-18 |
-| 8. Site Content Model & Stable IDs | 0/TBD | Not started | - |
+| 8. Site Content Model & Stable IDs | 1/2 | In Progress|  |
 | 9. Rev2 Site IA, Navigation & Source Links | 0/TBD | Not started | - |
 | 10. Reviewer Surfacing & Merge-Block Gate | 0/TBD | Not started | - |
 | 11. Work-Surface Installation | 0/TBD | Not started | - |
