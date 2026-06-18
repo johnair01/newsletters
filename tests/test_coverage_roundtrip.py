@@ -128,6 +128,38 @@ def _pptx_adapter_factory():
     return PptxAdapter()
 
 
+# The PowerBI adapter (Plan 07-03) joins the SAME matrix. Unlike excel/pptx it has NO optional extra
+# (stdlib-only — pbixray DEFERRED, zero new dependency), so the powerbi case runs on a bare install
+# too — NO skip-mark is needed. Its BYTE ``parse(raw, path)`` entrypoint handles the fixtures here: a
+# single dropped ``.tmdl`` (authored inline with ``write_text``/``encode``, exercising the model +
+# measure-DAX + no-data-rows drops) AND the ``.pbix`` deferral (a few-byte binary, path ``fake.pbix``,
+# exercising the whole-source ``_R_PBIX_BINARY`` branch). All imports are local to the recipe so this
+# file gains no top-level dependency.
+_POWERBI_TMDL = (
+    "table Sales\n"
+    "\n"
+    "\t/// The fact table of sales transactions\n"
+    "\tmeasure 'Total Sales' = SUMX('Sales', 'Sales'[Quantity] * 'Sales'[Net Price])\n"
+    "\t\tformatString: $ #,##0\n"
+    "\n"
+    "\tcolumn Quantity\n"
+    "\t\tdataType: int64\n"
+)
+
+
+def _powerbi_fixtures() -> list[tuple[str, bytes, str]]:
+    return [
+        ("Sales.tmdl", _POWERBI_TMDL.encode("utf-8"), "Sales.tmdl"),
+        ("fake.pbix", b"PK\x03\x04not-a-real-pbix", "fake.pbix"),
+    ]
+
+
+def _powerbi_adapter_factory():
+    from newsletters.adapters.powerbi_adapter import PowerBiAdapter
+
+    return PowerBiAdapter()
+
+
 # (id, adapter_factory, fixtures_loader)
 ADAPTER_CASES = [
     pytest.param(EmailAdapter, _email_fixtures, id="email"),
@@ -147,6 +179,8 @@ ADAPTER_CASES = [
             not _HAS_PPTX, reason="optional [pptx] extra (python-pptx) not installed"
         ),
     ),
+    # No skip-mark: the powerbi adapter is stdlib-only, so it runs on a bare install too.
+    pytest.param(_powerbi_adapter_factory, _powerbi_fixtures, id="powerbi"),
 ]
 
 

@@ -242,6 +242,35 @@ def _pptx_factory():
     return PptxAdapter()
 
 
+# --------------------------------------------------------------------------- #
+# The PowerBiAdapter joins this matrix (Plan 07-03). PBIP is the ONE format with NO intrinsic date
+# (Q-F: the model/report text files carry no `created` analog; the adapter NEVER reads mtime), so its
+# determinism contract is "ALWAYS EPOCH_ZERO" — BOTH the no-intrinsic AND the with-intrinsic recipe
+# map to EPOCH_ZERO. The "with_intrinsic" recipe is therefore a single dropped .tmdl (which always
+# parses to EPOCH_ZERO) with an expected value of EPOCH_ZERO — there is no intrinsic-date branch to
+# exercise. The powerbi adapter is stdlib-only (no optional extra), so NO skip-mark is needed; all
+# imports stay local to the recipe so this file gains no top-level dependency.
+_POWERBI_TMDL_BYTES = (
+    b"table Sales\n\n\tcolumn Quantity\n\t\tdataType: int64\n"
+)
+
+
+def _powerbi_no_intrinsic() -> bytes:
+    """A single dropped .tmdl -> the adapter has no intrinsic timestamp -> EPOCH_ZERO."""
+    return _POWERBI_TMDL_BYTES
+
+
+def _powerbi_with_intrinsic() -> tuple[bytes, datetime]:
+    """PBIP has NO intrinsic-date branch: a .tmdl ALWAYS parses to EPOCH_ZERO (the contract)."""
+    return _POWERBI_TMDL_BYTES, EPOCH_ZERO
+
+
+def _powerbi_factory():
+    from newsletters.adapters.powerbi_adapter import PowerBiAdapter
+
+    return PowerBiAdapter()
+
+
 # (id, adapter_factory, no_intrinsic_bytes_loader, with_intrinsic_loader)
 _DETERMINISM_CASES = [
     pytest.param(_email_factory, _eml_no_date, _eml_with_date, id="email"),
@@ -264,6 +293,13 @@ _DETERMINISM_CASES = [
         marks=pytest.mark.skipif(
             not _HAS_PPTX, reason="optional [pptx] extra (python-pptx) not installed"
         ),
+    ),
+    # No skip-mark: stdlib-only. PBIP's determinism contract is ALWAYS EPOCH_ZERO (no intrinsic date).
+    pytest.param(
+        _powerbi_factory,
+        _powerbi_no_intrinsic,
+        _powerbi_with_intrinsic,
+        id="powerbi",
     ),
 ]
 
@@ -294,10 +330,17 @@ def test_no_intrinsic_timestamp_parses_byte_identical_twice(
 def test_intrinsic_timestamp_is_preserved(
     factory, _no_intrinsic_bytes, with_intrinsic
 ) -> None:
-    """A doc WITH an intrinsic timestamp still uses that date (no regression from the front-fix)."""
+    """A doc WITH an intrinsic timestamp still uses that date (no regression from the front-fix).
+
+    PBIP (powerbi) is the ONE format with NO intrinsic-date branch — its determinism contract is
+    "always EPOCH_ZERO" (Q-F), so its with-intrinsic recipe legitimately expects EPOCH_ZERO. The
+    "must NOT be EPOCH_ZERO" guard therefore applies only to formats whose recipe expects a real
+    intrinsic date; for the always-EPOCH_ZERO contract, ``expected == EPOCH_ZERO`` IS the assertion.
+    """
     raw, expected = with_intrinsic()
     source, _u, _x = factory().parse(raw, "with-intrinsic.doc")
     assert source.timestamp == expected, (
         "an intrinsic document date must be preserved, never replaced by EPOCH_ZERO"
     )
-    assert source.timestamp != EPOCH_ZERO
+    if expected != EPOCH_ZERO:
+        assert source.timestamp != EPOCH_ZERO
