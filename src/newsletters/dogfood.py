@@ -17,7 +17,7 @@ from pathlib import Path
 from .capture import Decision, WorkSession, build_report
 from .diagrams import personalization, two_layer
 from .promote import promote_report_to_article
-from .render import render_library, render_surface
+from .render import render_home, render_library, render_surface
 from .semantic import (
     Claim,
     ClaimsBlock,
@@ -671,10 +671,15 @@ def build_site(out_dir: str | Path = "content/rev1/site") -> list[Path]:
         p = out / page.href
         p.write_text(render_surface(page.surface), encoding="utf-8")
         written.append(p)
+    # Route split (SITE-02 / N4): the marketing Home owns index.html; the Library archive
+    # moves to library.html. Per-surface {slug}.html filenames stay byte-stable (Phase-8 L3).
+    index = out / "index.html"
+    index.write_text(render_home(site), encoding="utf-8")
+    written.append(index)
     # Library lists one representative newsletter (the rest are its per-reader re-cuts).
     listed = [s for s in surfaces if not (s.kind == "newsletter" and s.id != "newsletter-jj")]
     library = Site.from_surfaces(listed, ledger=ledger)
-    index = out / "index.html"
-    index.write_text(render_library(library), encoding="utf-8")
-    written.append(index)
+    library_page = out / "library.html"
+    library_page.write_text(render_library(library), encoding="utf-8")
+    written.append(library_page)
     return written
