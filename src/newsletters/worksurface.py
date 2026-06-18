@@ -36,13 +36,15 @@ modules; importable on a bare, no-extras install (policed by ``tests/test_ai_opt
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from pathlib import Path
 
+from . import capture
 from .adapters._timestamps import EPOCH_ZERO
-from .semantic import Source
+from .capture import Decision, WorkSession
+from .semantic import ClaimsBlock, Source, Surface, Trace
 
-__all__ = ["capture_files"]
+__all__ = ["capture_files", "build_work_report", "build_work_surfaces"]
 
 
 def capture_files(paths: Iterable[str | Path], *, root: Path | None = None) -> list[Source]:
@@ -99,3 +101,205 @@ def capture_files(paths: Iterable[str | Path], *, root: Path | None = None) -> l
     # symlinks can yield ids in a different order, so sort the final records by their canonical id).
     sources.sort(key=lambda s: s.id)
     return sources
+
+
+# --------------------------------------------------------------------------- #
+# WORK-02 / WORK-03 — hand-author a Report about how THIS build was done.
+# --------------------------------------------------------------------------- #
+#
+# An operator authors a Report BY HAND and it inherits the traced structure: each claim is
+# content-addressed (``Trace.from_source``) to a VERBATIM span of a real repo file ingested by
+# ``capture_files`` above. A claim whose text is NOT verbatim-locatable in its cited file is
+# routed to ``Surface.missing[]`` — faithful, never fabricated (the honesty panel shows it).
+#
+# This MIRRORS dogfood ``_address_report`` (the content-addressing precedent) but the corpus
+# is REAL: the spans pin to actual codebase files, not a synthesized session transcript. We
+# reuse the one zero-AI manual backend (``capture.build_report``) and the one canonical pinning
+# constructor (``Trace.from_source``) — no new hashing, no hand-minted offset, no AI import.
+
+
+def build_work_report(
+    sources: Sequence[Source],
+    decisions: Sequence[Decision],
+    *,
+    surface_id: str,
+    title: str,
+    author: str,
+    narrative: str,
+    tool: str = "Claude Code",
+    eyebrow: str = "Report · how this build was done",
+) -> Surface:
+    """Hand-author a Draft work Report, content-addressing each claim to a real file span.
+
+    Builds a :class:`~newsletters.capture.WorkSession` from ``decisions`` (each ``source_id``
+    an ingested file id) + ``sources``, lifts it to a Draft Report via the zero-AI manual
+    backend :func:`newsletters.capture.build_report` (a traced ``ClaimsBlock`` + provenance),
+    then content-addresses every claim MIRRORING dogfood ``_address_report``:
+
+      * ``start = src.transcript.find(claim.text)``; if ``>= 0`` the claim text is a verbatim
+        slice of the cited file, so the trace is pinned via ``Trace.from_source`` (the SOLE
+        minting path) — span = the verbatim file slice, drift-checkable;
+      * if ``< 0`` (paraphrase / not verbatim) the claim is NOT fabricated an offset — its text
+        is routed to ``Surface.missing[]`` and the claim is dropped from the ClaimsBlock, so
+        every surviving claim is genuinely traced (open_pull_request invariant 2 holds).
+
+    Finally populates ``Surface.lineage.derived_from`` with the ingested file ids the surface
+    cites (the structure half of WORK-03; ``produced`` is filled once the fan-out exists in
+    Plan 11-04). Zero AI, zero new runtime dependency.
+
+    Args:
+        sources: the ingested file Sources (from :func:`capture_files`) the claims pin into.
+        decisions: hand-written decisions; each ``text`` should be a VERBATIM slice of the file
+            named by its ``source_id`` so it content-addresses (anything paraphrased -> missing[]).
+        surface_id, title, author, narrative: the Report's identity + lead prose.
+        tool: the provenance tool stamp (a human/agent name; never an AI runtime import).
+        eyebrow: the surface eyebrow.
+
+    Returns:
+        A Draft Report ``Surface`` whose claims are content-addressed-or-missing, with
+        ``lineage.derived_from`` populated. The review gate is untouched (no auto-publish).
+    """
+    by_id = {s.id: s for s in sources}
+    session = WorkSession(
+        id=surface_id,
+        title=title,
+        tool=tool,
+        artifacts=sorted(by_id),
+        sources=list(sources),
+        decisions=list(decisions),
+    )
+    report = capture.build_report(
+        session,
+        surface_id=surface_id,
+        title=title,
+        eyebrow=eyebrow,
+        author=author,
+        narrative=narrative,
+    )
+
+    # Content-address each claim to its cited file span, OR route it honestly to missing[].
+    for block in report.blocks:
+        if not isinstance(block, ClaimsBlock):
+            continue
+        kept: list = []
+        for claim in block.claims:
+            if not claim.evidence:
+                report.missing.append(claim.text)
+                continue
+            trace = claim.evidence[0]
+            src = by_id.get(trace.source_id)
+            start = src.transcript.find(claim.text) if src is not None else -1
+            if src is not None and start >= 0:
+                # Verbatim: pin via the SOLE content-address constructor. Span = file slice.
+                claim.evidence[0] = Trace.from_source(
+                    src, start, start + len(claim.text), locator=trace.locator
+                )
+                kept.append(claim)
+            else:
+                # Paraphrase / un-locatable: NEVER fabricate an offset. Show it as missing.
+                report.missing.append(claim.text)
+        block.claims = kept
+
+    # WORK-03 (structure half): lineage = the ingested file ids this surface cites.
+    report.lineage.derived_from = [
+        sid for sid in sorted(by_id) if _cites_source(report, sid)
+    ]
+    return report
+
+
+def _cites_source(surface: Surface, source_id: str) -> bool:
+    """True iff some surviving (content-addressed) claim on ``surface`` cites ``source_id``."""
+    return any(
+        trace.source_id == source_id
+        for block in surface.blocks
+        if isinstance(block, ClaimsBlock)
+        for claim in block.claims
+        for trace in claim.evidence
+    )
+
+
+# The CURATED file list the work Report cites (the files whose verbatim spans the claims pin
+# to). A curated list, never a broad glob — no orphan Sources, every Source is evidence.
+_WORK_FILES: tuple[str, ...] = (
+    "CLAUDE.md",
+    "src/newsletters/semantic.py",
+    "src/newsletters/capture.py",
+    "docs/architecture.md",
+)
+
+
+def build_work_surfaces(*, root: Path | None = None, author: str = "Claude") -> list[Surface]:
+    """Assemble the hand-authored WORK corpus: the work Report about how this build was done.
+
+    Ingests the curated :data:`_WORK_FILES` READ-ONLY via :func:`capture_files`, authors a
+    handful of hand-written :class:`~newsletters.capture.Decision`s — each ``text`` a VERBATIM
+    slice of its cited file so it content-addresses (plus one deliberately-paraphrased decision
+    that routes to ``missing[]``, proving honesty is real), and builds the Draft work Report via
+    :func:`build_work_report`. This is the corpus the renderer (Plan 11-04) and the check gate
+    (Plan 11-05) consume. Zero AI, zero new dependency, deterministic (``EPOCH_ZERO`` sources).
+    """
+    sources = capture_files(_WORK_FILES, root=root)
+
+    # Hand-written decisions. Each VERBATIM text is a real slice of its cited file (so it
+    # content-addresses); the LAST decision is a deliberate PARAPHRASE that does not appear
+    # verbatim, so it is routed to missing[] — faithful, not suggestive, never fabricated.
+    decisions = [
+        Decision(
+            text="No auto-publish, ever.",
+            source_id="CLAUDE.md",
+            topics=["process", "core"],
+        ),
+        Decision(
+            text="Every published claim traces to evidence.",
+            source_id="CLAUDE.md",
+            topics=["process", "core"],
+        ),
+        Decision(
+            text="AI-optional core.",
+            source_id="CLAUDE.md",
+            topics=["core"],
+        ),
+        Decision(
+            text="Faithful, not suggestive.",
+            source_id="CLAUDE.md",
+            topics=["process", "design"],
+        ),
+        Decision(
+            text="Cannot open a review with untraced claims; move them to `missing`.",
+            source_id="src/newsletters/semantic.py",
+            topics=["core"],
+        ),
+        Decision(
+            text="Newsletters does **not** do the problem-solving.",
+            source_id="src/newsletters/capture.py",
+            topics=["process", "vision"],
+        ),
+        Decision(
+            text="recorded `reviewer`. **No auto-publish path exists.**",
+            source_id="docs/architecture.md",
+            topics=["process"],
+        ),
+        # DELIBERATE PARAPHRASE (not verbatim in any cited file): proves an un-locatable
+        # claim is routed to missing[] and never given a fabricated offset.
+        Decision(
+            text="Newsletters quietly publishes the best draft on the operator's behalf.",
+            source_id="CLAUDE.md",
+            topics=["process"],
+        ),
+    ]
+
+    report = build_work_report(
+        sources,
+        decisions,
+        surface_id="work-report",
+        title="How this build was done — the trust spine, traced to the code",
+        author=author,
+        narrative=(
+            "An operator authored this Report by hand about how Newsletters itself was built, "
+            "and it inherits the traced structure: each load-bearing decision content-addresses "
+            "to a verbatim span of a real file in this repository — the same trust property the "
+            "product preaches, practiced on its own build. Claims that did not verbatim-locate "
+            "are shown honestly as missing, never fabricated."
+        ),
+    )
+    return [report]
