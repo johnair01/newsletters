@@ -316,9 +316,8 @@ def test_breadcrumb_renders_home_collection_page_segments() -> None:
     hub = _nav_targets(site)["Newsletters"]
     assert f'href="{hub}"' in crumb
     assert col.display_name in crumb
-    assert page.title in crumb
     # The current page is NOT a link — it appears in a non-anchor "here" span.
-    assert f'<a href="{page.href}"' not in crumb
+    assert f'<span class="here">{page.title}</span>' in crumb
 
 
 def test_prevnext_middle_page_has_both_neighbors_within_its_type() -> None:
@@ -341,12 +340,12 @@ def test_prevnext_first_page_has_no_prev_last_has_no_next() -> None:
     first, last = col.pages[0], col.pages[-1]
     first_out = _prevnext(site, first)
     last_out = _prevnext(site, last)
-    # First page: a next, no prev.
+    # First page: a next link, no prev anchor.
     assert f'href="{col.pages[1].href}"' in first_out
-    assert "&larr;" not in first_out and "prev" not in first_out.lower()
-    # Last page: a prev, no next.
+    assert 'class="prev"' not in first_out and "&larr;" not in first_out
+    # Last page: a prev link, no next anchor.
     assert f'href="{col.pages[-2].href}"' in last_out
-    assert "&rarr;" not in last_out and "next" not in last_out.lower()
+    assert 'class="next"' not in last_out and "&rarr;" not in last_out
 
 
 def test_prevnext_single_page_collection_renders_neither() -> None:
@@ -365,8 +364,10 @@ def test_prevnext_single_page_collection_renders_neither() -> None:
 def test_rendered_surface_has_breadcrumb_above_and_prevnext_below(tmp_path: pathlib.Path) -> None:
     build_site(tmp_path)
     html = (tmp_path / "show-ep01.html").read_text(encoding="utf-8")
-    assert "nl-crumb" in html
-    assert "nl-prevnext" in html
+    # Inspect only the rendered body (the <style> block defines these classes too).
+    body = html[html.index("</style>"):]
+    assert "nl-crumb" in body
+    assert "nl-prevnext" in body
     # The breadcrumb sits above the masthead; prev/next sits below the blocks.
-    assert html.index("nl-crumb") < html.index("masthead")
-    assert html.index("nl-prevnext") > html.index("masthead")
+    assert body.index("nl-crumb") < body.index('class="masthead"')
+    assert body.index("nl-prevnext") > body.index('class="masthead"')

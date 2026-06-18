@@ -28,7 +28,7 @@ from .semantic import (
     ReviewState,
     Surface,
 )
-from .site import Page, Site
+from .site import Collection, Page, Site
 
 # --------------------------------------------------------------------------- #
 # Tokens — ported 1:1 from signals/tokens.css, plus chrome + layout + blocks
@@ -485,6 +485,61 @@ def _active_for(surface: Surface) -> str:
     )
 
 
+def _collection_for(site: Site, page: Page) -> Collection | None:
+    """The Collection that owns ``page`` (matched by surface kind)."""
+    for c in site.collections:
+        if c.kind == page.kind:
+            return c
+    return None
+
+
+def _breadcrumb(site: Site, page: Page) -> str:
+    """``Home › {Collection.display_name} › {Page.title}`` — the per-surface trail (SITE-04).
+
+    Home links to ``index.html``; the Collection segment links to that surface-type's
+    resolved hub (the nav target); the current Page is plain text (no link, ``--text``).
+    Mono 11px with ``›`` separators in ``--line`` (the gate-separator glyph).
+    """
+    col = _collection_for(site, page)
+    hub = _nav_targets(site).get(_active_for(page.surface), "index.html") if col else "index.html"
+    sep = '<span class="sep">&rsaquo;</span>'
+    parts = [f'<a href="index.html">Home</a>{sep}']
+    if col is not None:
+        parts.append(f'<a href="{_e(hub)}">{_e(col.display_name)}</a>{sep}')
+    parts.append(f'<span class="here">{_e(page.title)}</span>')
+    return f'<nav class="nl-crumb" aria-label="Breadcrumb">{"".join(parts)}</nav>'
+
+
+def _prevnext(site: Site, page: Page) -> str:
+    """Prev/next WITHIN the page's own Collection (SITE-04 / ROADMAP SC3).
+
+    Neighbors are resolved by the page's index in its OWN ``Collection.pages`` order —
+    never crossing surface type. The first page has no prev, the last has no next, a
+    single-page collection has neither (returns an empty row with no links).
+    """
+    col = _collection_for(site, page)
+    pages = col.pages if col is not None else [page]
+    try:
+        i = next(idx for idx, p in enumerate(pages) if p.slug == page.slug)
+    except StopIteration:
+        i = 0
+    prev = pages[i - 1] if i > 0 else None
+    nxt = pages[i + 1] if i < len(pages) - 1 else None
+    left = (
+        f'<a class="prev" href="{_e(prev.href)}"><span class="lab">&larr; Previous</span>'
+        f'<span class="ti">{_e(prev.title)}</span></a>'
+        if prev is not None
+        else ""
+    )
+    right = (
+        f'<a class="next" href="{_e(nxt.href)}"><span class="lab">Next &rarr;</span>'
+        f'<span class="ti">{_e(nxt.title)}</span></a>'
+        if nxt is not None
+        else ""
+    )
+    return f'<div class="nl-prevnext">{left}{right}</div>'
+
+
 def render_surface(
     surface: Surface,
     *,
@@ -532,7 +587,11 @@ def render_surface(
         f'<div class="mast-meta">{" &middot; ".join(meta_bits)}</div>'
         f'<div class="mast-meta">{_gate_badge(surface.gate)}</div></div>'
     )
-    body = f'<main class="wrap">{masthead}{blocks}</main>'
+    # Breadcrumb (above the masthead) + prev/next (foot of the surface) resolve neighbors
+    # from the Site; only emitted on the build path where both are supplied (SITE-04).
+    crumb = _breadcrumb(site, page) if site is not None and page is not None else ""
+    prevnext = _prevnext(site, page) if site is not None and page is not None else ""
+    body = f'{crumb}<main class="wrap">{masthead}{blocks}{prevnext}</main>'
     return _page(
         title=surface.title,
         signal_css=t.signal_color.css_var,
