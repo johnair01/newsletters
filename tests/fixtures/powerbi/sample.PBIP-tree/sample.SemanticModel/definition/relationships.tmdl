@@ -1,0 +1,3 @@
+relationship abc-123
+	fromColumn: Sales.'Product Key'
+	toColumn: Product.'Product Key'

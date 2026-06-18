@@ -1,0 +1,13 @@
+table Sales
+
+	/// The fact table of sales transactions
+	measure 'Total Sales' = SUMX('Sales', 'Sales'[Quantity] * 'Sales'[Net Price])
+		formatString: $ #,##0
+
+	column Quantity
+		dataType: int64
+		summarizeBy: sum
+
+	column 'Net Price'
+		dataType: decimal
+		summarizeBy: none

@@ -1,0 +1,4 @@
+table Product
+
+	column 'Product Key'
+		dataType: int64
