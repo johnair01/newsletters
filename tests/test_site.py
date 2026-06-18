@@ -245,7 +245,11 @@ def test_existing_links_do_not_rot():
     index to the Site model. Read-only: the committed ledger is loaded but never saved.
     """
     site_dir = Path(__file__).resolve().parent.parent / "content" / "rev1" / "site"
-    existing = sorted(p.name for p in site_dir.glob("*.html") if p.name != "index.html")
+    # index.html (the Home) and library.html (the archive board) are site CHROME pages produced by the
+    # renderer, not per-surface Pages — exclude both; every OTHER file must be a Page href (Phase-9
+    # route split, SITE-02: Home moved to index.html, the board to library.html).
+    _chrome = {"index.html", "library.html"}
+    existing = sorted(p.name for p in site_dir.glob("*.html") if p.name not in _chrome)
 
     ledger_path = Path(__file__).resolve().parent.parent / "content" / "rev1" / "ids.json"
     ledger = Ledger.load(str(ledger_path))

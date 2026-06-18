@@ -11,6 +11,7 @@ Typed config drives the structure; only the prose lives in templated strings (De
 from __future__ import annotations
 
 import html
+from typing import TypedDict
 
 from .diagrams import fanout as _fanout_svg
 from .semantic import (
@@ -540,8 +541,19 @@ _HOME_PERSONAS = [
     ("lead", "EL", "An eng lead", "Sponsors the team", "var(--color-accent)"),
 ]
 
+class _HomeLetter(TypedDict):
+    """One persona's re-cut weekly letter (home.jsx ``LETTERS`` entry)."""
+
+    kicker: str
+    tag: str
+    title: str
+    body: str
+    items: list[tuple[str, str]]
+    why: str
+
+
 # The re-cut letters (home.jsx LETTERS — same reviewed record, different emphasis).
-_HOME_LETTERS = {
+_HOME_LETTERS: dict[str, _HomeLetter] = {
     "maintainer": {
         "kicker": "Your weekly · checkout-svc",
         "tag": "Root cause",
