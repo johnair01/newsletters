@@ -44,6 +44,37 @@ detection `stale_claims`/`is_stale`, `SpanContainmentFaithfulness.entails`, `rou
    typed-`Trace.locator` forward note (Phases 4–7) may be relevant for richer trace display — assess,
    but don't pull a cross-adapter refactor in unless cheap.
 
+## Research-locked choices (10-RESEARCH.md accepted 2026-06-18, HIGH confidence)
+
+- **L1 — Add `Surface.missing: list[str] = []` (the PROV-03 carrier, A1).** `Surface` currently has no
+  `missing` field (only `Distillation` does, `semantic.py:300`), so missing[] has no path onto a rendered
+  surface. Add an OPTIONAL `Surface.missing` (default `[]`, backward-compat, invariant-3-safe — never
+  carries the private corpus), populated at the capture/promote seam. Additive spine change.
+- **L2 — Checker = new pure module `src/newsletters/review.py`** (sibling of render.py, NOT in distill/
+  which stays modality-agnostic): typed `Blocker(surface_id, kind ∈ {stale|unentailed|open_missing},
+  detail, locator)` + `review_blockers(surface, sources) -> list[Blocker]`, REUSING `Claim.is_stale`
+  (`semantic.py:199`) + `SpanContainmentFaithfulness.entails` (`faithfulness.py:62`) — no new trust
+  logic. STALE checked first, `elif`-guarding un-entailed.
+- **L3 — Published-only scope.** Block only PUBLISHED surfaces (Draft/In-Review exempt — publication is
+  the trust boundary; `open_pull_request` tolerates mid-review gaps). On a published surface, ALL three
+  (STALE / un-entailed / open-`missing[]`) are blockers. (route_unfaithful_to_missing handles un-entailed
+  at distill time; the checker catches hand-authored/bypassed surfaces — defense in depth.)
+- **L4 — CLI `newsletters check` (Typer, exit 1 on any blocker)** with a clear per-surface report.
+  Reuses `typer[all]` (already a CORE dep, pyproject.toml:19) — ZERO new dependency.
+- **L5 — Third CI job** in `.github/workflows/ci.yml` runs `newsletters check` on the bare `.[test]`
+  install (stdlib/AI-free → keeps PKG-03/PKG-04 green); fails the build on any blocker so an unsafe
+  surface cannot merge.
+- **L6 — Renderer surfacing (PROV-03):** a per-surface "what's not here / not verified" amber panel
+  (`--color-amber` design-system §6) listing `Surface.missing[]` + the Source `unextracted[]`; the
+  claim-beside-verbatim-trace view expands the evidence chip to show `Trace.span` inline with an inline
+  STALE/unfaithful badge — thread a `{s.id: s}` sources lookup into `_block_html` (`render.py:434`, it
+  has none today). No JS, deterministic, every interpolation `_e()`-escaped.
+- **L7 — Prove the gate FIRES (Phase-7 lesson):** `tests/test_review.py` with THREE crafted PUBLISHED
+  fixtures — (1) STALE (`Trace.from_source` then mutate the transcript to drift the hash), (2) un-entailed
+  (addressed trace whose span omits the claim text), (3) open-`missing[]` (non-empty `Surface.missing`)
+  — each asserting the right `Blocker`; PLUS an e2e test that `newsletters check` exits nonzero; PLUS a
+  subprocess no-AI-import guard. A negative gate that only ever sees clean input proves nothing.
+
 ## Hard rules in play
 - **Every published claim traces to evidence; unsubstantiated → `missing[]`, shown to the reviewer.**
   This phase makes "shown to the reviewer" literally true on every surface + enforced in CI.
