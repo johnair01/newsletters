@@ -30,7 +30,7 @@
 - [x] **ADAPT-02**: An Email adapter extracts structured content from `.eml` into `Claim(+Trace)`, reporting unextracted parts
 - [x] **ADAPT-03**: An Excel adapter extracts cell/sheet structure via openpyxl, routing uncomputed/`None` formula cells to `unextracted[]`
 - [x] **ADAPT-04**: A PowerPoint adapter extracts slide/shape text via python-pptx, reporting shapes it cannot read (e.g. SmartArt)
-- [ ] **ADAPT-05**: A Power BI adapter extracts from PBIP/TMDL text (or pbixray fallback), reporting row-cap/aggregation limits
+- [x] **ADAPT-05**: A Power BI adapter extracts from PBIP/TMDL text (or pbixray fallback), reporting row-cap/aggregation limits
 - [x] **ADAPT-06**: Each adapter is covered by golden-file tests (fixture file → expected typed claims+traces)
 
 ### Provenance & Faithfulness
@@ -121,7 +121,7 @@ Mapped during roadmap creation (2026-06-14). Every v1 requirement maps to exactl
 | ADAPT-06 | Phase 4 — Shared Adapter Normalizer & Email Adapter | Complete |
 | ADAPT-03 | Phase 5 — Excel Adapter | Complete |
 | ADAPT-04 | Phase 6 — PowerPoint Adapter | Complete |
-| ADAPT-05 | Phase 7 — Power BI Adapter | Pending |
+| ADAPT-05 | Phase 7 — Power BI Adapter | Complete |
 | SITE-01 | Phase 8 — Site Content Model & Stable IDs | Pending |
 | SITE-02 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Pending |
 | SITE-03 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Pending |

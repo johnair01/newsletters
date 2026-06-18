@@ -205,12 +205,12 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 1** *(parallel — disjoint file ownership; pure stdlib parsers, unit-testable)*
 
-- [ ] 07-01-PLAN.md — Stdlib TMDL line/indent parser (`_tmdl.py`, L2): ordered verbatim `(object-path, value)` units for tables/columns/measures/relationships/hierarchies/annotations; DAX extracted as TEXT, never evaluated; directQuery surfaced as a signal (ADAPT-05, D-3/L2)
-- [ ] 07-02-PLAN.md — Stdlib PBIR report reader (`_pbir.py`, L3): verbatim page/visual/textbox/field units + the typed row-cap/aggregation detection taxonomy (TopN, restricting filters, summarized/aggregated bindings, DirectQuery/rowlimit), filter literals disclosed as config text (ADAPT-05, D-4/L3)
+- [x] 07-01-PLAN.md — Stdlib TMDL line/indent parser (`_tmdl.py`, L2): ordered verbatim `(object-path, value)` units for tables/columns/measures/relationships/hierarchies/annotations; DAX extracted as TEXT, never evaluated; directQuery surfaced as a signal (ADAPT-05, D-3/L2)
+- [x] 07-02-PLAN.md — Stdlib PBIR report reader (`_pbir.py`, L3): verbatim page/visual/textbox/field units + the typed row-cap/aggregation detection taxonomy (TopN, restricting filters, summarized/aggregated bindings, DirectQuery/rowlimit), filter literals disclosed as config text (ADAPT-05, D-4/L3)
 
 **Wave 2** *(blocked on Wave 1 — composes both parsers)*
 
-- [ ] 07-03-PLAN.md — `PowerBiAdapter` (registered `powerbi`): folder `parse_path` + byte `parse`, canonical prefixed transcript (L5), `.pbix` deferral (L1/`_R_PBIX_BINARY`), the full `_R_*` taxonomy + categorical `_R_NO_DATA_ROWS` → `unextracted[]` (fail loud), drops on `Source.extraction`, EPOCH_ZERO timestamp, conforms; joins the parity + determinism matrices (ADAPT-05 criteria 1+2)
+- [x] 07-03-PLAN.md — `PowerBiAdapter` (registered `powerbi`): folder `parse_path` + byte `parse`, canonical prefixed transcript (L5), `.pbix` deferral (L1/`_R_PBIX_BINARY`), the full `_R_*` taxonomy + categorical `_R_NO_DATA_ROWS` → `unextracted[]` (fail loud), drops on `Source.extraction`, EPOCH_ZERO timestamp, conforms; joins the parity + determinism matrices (ADAPT-05 criteria 1+2)
 
 **Wave 3** *(blocked on Wave 2 — drives the built adapter)*
 
@@ -342,7 +342,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 4. Shared Adapter Normalizer & Email Adapter | 2/3 | In Progress|  |
 | 5. Excel Adapter | 4/4 | Complete   | 2026-06-17 |
 | 6. PowerPoint Adapter | 4/4 | Complete   | 2026-06-17 |
-| 7. Power BI Adapter | 0/TBD | Not started | - |
+| 7. Power BI Adapter | 3/4 | In Progress|  |
 | 8. Site Content Model & Stable IDs | 0/TBD | Not started | - |
 | 9. Rev2 Site IA, Navigation & Source Links | 0/TBD | Not started | - |
 | 10. Reviewer Surfacing & Merge-Block Gate | 0/TBD | Not started | - |
