@@ -477,6 +477,18 @@ class Surface(BaseModel):
     eyebrow: str = ""
     blocks: list[Block] = Field(default_factory=list)
     traces: list[Source] = Field(default_factory=list)
+    # The PROV-03 carrier (L1): the surface-level mirror of ``Distillation.missing``. Carries the
+    # unsubstantiated/un-entailed material that must be SHOWN to the reviewer, populated at the
+    # capture/promote seam in a later plan. OPTIONAL and additive — defaults to ``[]`` so every
+    # existing Surface (which has no ``missing`` key) still validates and round-trips, mirroring the
+    # optional-additive style of ``Source.extraction`` (above). It carries PLAIN STRINGS ONLY — never
+    # a Corpus / Source / Distillation object — so invariant 3 (private corpus never serialized) is
+    # preserved, and it does NOT touch the publish/review gate (the carrier is pure).
+    missing: list[str] = Field(
+        default_factory=list,
+        description="PROV-03 carrier: unsubstantiated material to show the reviewer. Additive, "
+        "invariant-3-safe (str entries only); does not alter the publish gate.",
+    )
     audience_label: Optional[str] = None
     byline: list[str] = Field(default_factory=list)
     review: Review = Field(default_factory=Review)
