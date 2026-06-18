@@ -65,7 +65,7 @@ in order:
 
 7. **For developers (`#developers`)** — accent `SectionDivider` "For developers · clone it,
    point it at your work"; two-column. Left: a GitHub repo lockup
-   (`nneibaue / newsletters · public`), the Source/Distillation/Surface explainer, "Clone the
+   (`johnair01 / newsletters · public`), the Source/Distillation/Surface explainer, "Clone the
    repo" + "Read the spec" buttons. Right: two `PromptBlock`s — `install` (`pip install
    newsletters`) and `synthesize.py` (the API example from `architecture.md` §2).
 

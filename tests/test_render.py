@@ -134,7 +134,7 @@ def test_home_section6_five_practices() -> None:
 
 def test_home_section7_repo_lockup_and_two_prompt_blocks() -> None:
     html = render_home(_site())
-    assert "nneibaue" in html and "newsletters" in html
+    assert "johnair01" in html and "newsletters" in html
     assert "pip install newsletters" in html
     assert "synthesize" in html
     # Two dark prompt panels (install + synthesize.py).
@@ -583,3 +583,25 @@ def test_no_dead_link_every_internal_href_resolves(tmp_path: pathlib.Path) -> No
             # Internal page links end in .html with no scheme and no fragment/anchor part.
             if href.endswith(".html") and "://" not in href and "#" not in href:
                 assert href in rendered, f"{page.name} links to missing file {href}"
+
+
+def test_file_path_source_links_resolve_to_real_files(tmp_path: pathlib.Path) -> None:
+    """SITE-05 means *working* links, not merely well-formed ones: every repo-blob source link in the
+    generated site must point at a path that ACTUALLY EXISTS in the repo. This guards the gap the
+    Phase-9 verifier caught (the stale ``nneibaue`` handle + bare-filename locators that lived under
+    ``src/newsletters/``) — a link that 404s is a broken citation, which the trust model forbids.
+    """
+    import re
+
+    from newsletters.render import repo_url
+
+    repo_root = pathlib.Path(__file__).resolve().parent.parent
+    build_site(tmp_path)
+    blob_re = re.compile(re.escape(repo_url) + r"/blob/main/([^\"'#]+)")
+    checked = 0
+    for page in tmp_path.glob("*.html"):
+        for path in blob_re.findall(page.read_text(encoding="utf-8")):
+            path = path.rstrip("/")
+            assert (repo_root / path).exists(), f"source link 404 — {path!r} cited in {page.name}"
+            checked += 1
+    assert checked > 0, "expected at least one file-path source link in the dogfood corpus"

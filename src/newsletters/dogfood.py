@@ -219,7 +219,7 @@ def _sources_and_reports() -> list[Surface]:
                  source_id="session-kickoff", locator="CLAUDE.md", topics=["core"]),
         Decision(text="Implement the typed spine with all three invariants enforced "
                  "in code, agentic distill left an honest stub.",
-                 source_id="session-kickoff", locator="semantic.py",
+                 source_id="session-kickoff", locator="src/newsletters/semantic.py",
                  topics=["core", "design"]),
         Decision(text="Neutralize the GSD.md supply-chain redirect to 'verify any "
                  "install against its official source' and flag it for review.",
@@ -348,7 +348,7 @@ def _sources_and_reports() -> list[Surface]:
                  source_id="session-rev1", locator="blocks", topics=["core", "design"]),
         Decision(text="A self-contained HTML renderer ports the design tokens 1:1 so "
                  "Rev1 is viewable with no server.", source_id="session-rev1",
-                 locator="render.py", topics=["design"]),
+                 locator="src/newsletters/render.py", topics=["design"]),
         Decision(text="Per-template review policy is enforced at publish: Report "
                  "self-approves, the Article requires a peer.", source_id="session-rev1",
                  locator="ReviewPolicy", topics=["core", "process"]),

@@ -43,10 +43,12 @@ from .site import Collection, Page, Site, slugify
 #      no file path) → an IN-SITE anchor (``{slug}.html``) to the surface that records it,
 #      resolved via ``Site.by_slug``. No in-site target → ``None``.
 #   3. neither → ``None`` — the caller renders PLAIN TEXT, never a dead/``href="None"`` link.
-# The default base matches the Home §7 repo lockup (``nneibaue / newsletters``, surfaces.md
-# L68), keeping the renderer host-agnostic (open-by-default, self-hostable — CLAUDE.md).
+# The default base points at the repo where this code actually lives (``johnair01/newsletters``), so
+# every cited-source link genuinely RESOLVES (SITE-05 — "working links", not just well-formed ones).
+# It stays a single configurable knob (``source_base_url``), keeping the renderer host-agnostic
+# (open-by-default, self-hostable — CLAUDE.md); a self-hoster overrides it for their own fork.
 
-repo_url = "https://github.com/nneibaue/newsletters"
+repo_url = "https://github.com/johnair01/newsletters"
 source_base_url = f"{repo_url}/blob/main/"
 spec_url = f"{source_base_url}docs/architecture.md"
 
@@ -1135,7 +1137,7 @@ def _home_developers() -> str:
         '<section id="developers" class="home-sec">'
         + _section_divider("For developers · clone it, point it at your work", "accent")
         + '<div class="dev-grid"><div class="dev-copy">'
-        f'<a class="dev-lockup" href="{_e(repo_url)}">{_ICON_GIT} <span class="org">nneibaue</span> / '
+        f'<a class="dev-lockup" href="{_e(repo_url)}">{_ICON_GIT} <span class="org">johnair01</span> / '
         '<span class="repo">newsletters</span><span class="pub">public</span></a>'
         "<p>Everything is a typed, type-safe model so outputs stay consistent and auditable. Three "
         "core objects carry the whole system: a <strong>Source</strong> (what happened), a "
