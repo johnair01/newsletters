@@ -27,9 +27,12 @@ from newsletters.semantic import (
     FanoutBlock,
     FanoutLink,
     ReviewState,
+    Source,
+    Surface,
     Trace,
 )
-from newsletters.locators import FreeLocator, SessionLocator
+from newsletters.locators import ExtractedDrop, ExtractionRecord, FreeLocator, SessionLocator
+from newsletters.templates import SurfaceTemplate
 from newsletters.site import Collection, Ledger, Page, Site
 
 
@@ -605,3 +608,70 @@ def test_file_path_source_links_resolve_to_real_files(tmp_path: pathlib.Path) ->
             assert (repo_root / path).exists(), f"source link 404 — {path!r} cited in {page.name}"
             checked += 1
     assert checked > 0, "expected at least one file-path source link in the dogfood corpus"
+
+
+# --------------------------------------------------------------------------- #
+# Phase 10 — Plan 03 / Task 1: claim-beside-verbatim-span review view (PROV-03 / SC3).
+# Each claim renders its addressed Trace.span inline beside the evidence chip — visible
+# WITHOUT a click — and a STALE or un-entailed claim carries an inline amber badge.
+# --------------------------------------------------------------------------- #
+
+from newsletters.templates import REPORT as _REPORT  # noqa: E402
+
+
+def _src(sid: str, transcript: str) -> Source:
+    """A tiny Source whose live content_hash() addresses the given transcript."""
+    return Source(id=sid, transcript=transcript)
+
+
+def test_claim_renders_inline_verbatim_span() -> None:
+    """An addressed claim renders its verbatim Trace.span in the HTML — no click, no JS."""
+    src = _src("session-x", "the latency regression was a missing index on orders")
+    trace = Trace.from_source(src, 0, len(src.transcript))
+    block = ClaimsBlock(claims=[
+        Claim(text="the latency regression was a missing index on orders",
+              evidence=[trace], confidence=0.9),
+    ])
+    html = _block_html(block, sources={src.id: src})
+    # The verbatim span text is present inline (the claim-beside-trace view).
+    assert "missing index on orders" in html
+    assert 'class="claim-span"' in html
+    # A clean addressed+entailed+non-stale claim carries no badge.
+    assert "claim-badge" not in html
+
+
+def test_unaddressed_trace_shows_chip_without_empty_span_box() -> None:
+    """A Rev1 (un-addressed, empty-span) trace shows the chip alone — no empty span box."""
+    block = ClaimsBlock(claims=[
+        Claim(text="A Rev1 finding with an un-addressed trace.",
+              evidence=[Trace(source_id="session-kickoff", locator=FreeLocator(text="docs/vision.md"))],
+              confidence=0.9),
+    ])
+    html = _block_html(block, sources={})
+    # The evidence chip is present; no empty claim-span box is emitted (faithful, not suggestive).
+    assert "ev-chip" in html
+    assert 'class="claim-span"' not in html
+
+
+def test_claim_flags_stale_and_unfaithful_inline() -> None:
+    """A STALE claim and an un-entailed claim each render their inline amber badge."""
+    # (1) STALE: the live source has drifted from the hash the trace pinned.
+    src_now = _src("session-drift", "the deploy succeeded after the rollback")
+    trace = Trace.from_source(src_now, 0, len(src_now.transcript))
+    drifted = _src("session-drift", "TOTALLY DIFFERENT CONTENT — the source changed underneath")
+    stale_block = ClaimsBlock(claims=[
+        Claim(text="the deploy succeeded after the rollback", evidence=[trace], confidence=0.9),
+    ])
+    stale_html = _block_html(stale_block, sources={drifted.id: drifted})
+    assert "STALE" in stale_html
+    assert "claim-badge" in stale_html
+
+    # (2) UNFAITHFUL: the addressed span does NOT contain the claim text.
+    src2 = _src("session-y", "the cache hit rate climbed to 94 percent")
+    trace2 = Trace.from_source(src2, 0, len(src2.transcript))
+    unfaithful_block = ClaimsBlock(claims=[
+        Claim(text="the database was fully migrated to Postgres", evidence=[trace2], confidence=0.9),
+    ])
+    unfaithful_html = _block_html(unfaithful_block, sources={src2.id: src2})
+    assert "unfaithful" in unfaithful_html.lower()
+    assert "claim-badge" in unfaithful_html
