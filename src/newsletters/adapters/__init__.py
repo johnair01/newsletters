@@ -16,6 +16,7 @@ from ..distill import register
 from .email_adapter import EmailAdapter
 from .excel_adapter import ExcelAdapter
 from .normalize import normalize
+from .powerbi_adapter import PowerBiAdapter
 from .pptx_adapter import PptxAdapter
 
 # Register the Email + Excel + PPTX adapters on package import, so an operator can select any via
@@ -28,5 +29,12 @@ from .pptx_adapter import PptxAdapter
 register(EmailAdapter())
 register(ExcelAdapter())
 register(PptxAdapter())
+register(PowerBiAdapter())
 
-__all__ = ["normalize", "EmailAdapter", "ExcelAdapter", "PptxAdapter"]
+__all__ = [
+    "normalize",
+    "EmailAdapter",
+    "ExcelAdapter",
+    "PptxAdapter",
+    "PowerBiAdapter",
+]
