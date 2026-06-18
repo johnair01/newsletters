@@ -151,6 +151,27 @@ _CSS = """
 .lib-title{font-family:var(--font-display);font-size:23px;color:var(--text)}
 .lib-tail{font-style:italic;color:var(--text-dim);font-size:14px}
 .lib-meta{text-align:right;font-family:var(--font-mono);font-size:10px;color:var(--text-dim);letter-spacing:.04em}
+/* library status board (SITE-03) — pure CSS grid, three gate-state columns */
+.lib-board{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:34px;align-items:start}
+.lib-col-head{display:flex;align-items:baseline;gap:8px;padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.lib-col-label{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--col-accent,var(--text))}
+.lib-col-count{font-family:var(--font-mono);font-size:10px;color:var(--text-dim)}
+.lib-col-empty{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);font-style:italic;padding:8px 0}
+.lib-card{display:block;background:var(--card);border:1px solid var(--line);border-left:3px solid var(--signal);padding:16px 18px;margin-bottom:14px}
+.lib-card .ref{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--signal)}
+.lib-card .ti{font-family:var(--font-display);font-size:19px;line-height:1.12;color:var(--text);margin:6px 0 10px}
+.lib-card .meta{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);letter-spacing:.03em;margin-bottom:10px}
+/* breadcrumb + prev/next (SITE-04 nav model) */
+.nl-crumb{max-width:1180px;margin:0 auto;padding:18px 44px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--font-mono);font-size:11px;letter-spacing:.02em;color:var(--text-dim)}
+.nl-crumb a{color:var(--text-dim);border-bottom:1px solid transparent}
+.nl-crumb a:hover{color:var(--text);border-bottom-color:var(--line)}
+.nl-crumb .sep{color:var(--line)}
+.nl-crumb .here{color:var(--text)}
+.nl-prevnext{display:flex;justify-content:space-between;gap:24px;border-top:1px solid var(--line);margin-top:40px;padding-top:22px}
+.nl-prevnext a{display:block;max-width:46%}
+.nl-prevnext a.next{margin-left:auto;text-align:right}
+.nl-prevnext .lab{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-dim)}
+.nl-prevnext .ti{font-family:var(--font-display);font-size:18px;line-height:1.15;color:var(--text);margin-top:6px}
 /* eyebrow variants (Home accent/brand dividers) */
 .sg-eyebrow.brand{color:var(--color-brand-primary)}
 .sg-eyebrow.accent{color:var(--color-accent)}
@@ -228,7 +249,7 @@ _CSS = """
 .home-invite-panel{background:var(--color-surface-low);border-left:3px solid var(--color-accent);padding:40px 44px}
 .home-invite-cta{font-family:var(--font-display);font-style:italic;font-size:27px;line-height:1.32;max-width:640px}
 .home-invite-btns{display:flex;gap:14px;margin-top:26px;flex-wrap:wrap}
-@media(max-width:820px){.wrap{padding:40px 22px}.mast-title{font-size:34px}.lib-surface{grid-template-columns:44px 1fr}.lib-meta{grid-column:1/-1;text-align:left}.nl-links{display:none}}
+@media(max-width:820px){.wrap{padding:40px 22px}.mast-title{font-size:34px}.lib-surface{grid-template-columns:44px 1fr}.lib-meta{grid-column:1/-1;text-align:left}.lib-board{grid-template-columns:1fr}.nl-crumb{padding:18px 22px 0}.nl-links{display:none}}
 @media(max-width:980px){.nl-2col,.nl-demo-grid,.nl-how-grid{grid-template-columns:1fr}.demo-pick{position:static}.nl-practice-grid,.nl-pipe{grid-template-columns:1fr 1fr}.nl-surface-row{grid-template-columns:56px 1fr}.nl-surface-row .surface-meta{grid-column:1/-1;text-align:left}.home-h1{font-size:52px}}
 @media(max-width:720px){.nl-links{display:none}.nl-practice-grid,.nl-pipe{grid-template-columns:1fr}.dev-grid{grid-template-columns:1fr}.home-h1{font-size:40px}}
 """
@@ -488,25 +509,70 @@ def _lib_ref_label(page: Page) -> str:
     return page.kind[:2].upper()
 
 
-def render_library(site: Site, *, theme: str = "light") -> str:
-    """Render the Library/Hub index — the durable archive of every surface.
+# The three board columns, in the ReviewState ladder order (design-system.md §6).
+# Each entry: (state, label, the --col-accent token for the mono header).
+_BOARD_COLUMNS: list[tuple[ReviewState, str, str]] = [
+    (ReviewState.DRAFT, "Draft", "var(--text)"),
+    (ReviewState.IN_REVIEW, "In Review", "var(--color-amber)"),
+    (ReviewState.PUBLISHED, "Published", "var(--color-brand-primary)"),
+]
 
-    Page-driven (SITE-01): each row's lead label is the Page's stable ref/identity
-    (via :func:`_lib_ref_label`), not a positional ``enumerate`` index, and the link
-    target is ``page.href`` (== ``{slug}.html``). Reordering the surfaces no longer
-    renumbers the Library or rots a link.
+
+def _board_card(page: Page) -> str:
+    """One board card — a ref-led `<a>` to ``page.href`` with the 3px left signal border.
+
+    Lead = the stable :func:`_lib_ref_label` (SITE-01: identity, never an enumerate
+    position). Title is serif; the template display-name + cadence are the mono meta;
+    the gate is shown as the :func:`_status_tag` pill.
     """
-    rows = []
+    s = page.surface
+    return (
+        f'<a class="lib-card" href="{_e(page.href)}" style="--signal:{page.signal_color.css_var}">'
+        f'<span class="ref">{_e(_lib_ref_label(page))}</span>'
+        f'<div class="ti">{_e(page.title)}</div>'
+        f'<div class="meta">{_e(s.template.display_name)} &middot; {_e(s.template.cadence.label)}</div>'
+        f"{_status_tag(s)}</a>"
+    )
+
+
+def _board_column(state: ReviewState, label: str, accent: str, pages: list[Page]) -> str:
+    """One gate-state column: a mono header (label + count, colored per the gate mapping)
+    over its stacked cards. An EMPTY column still renders its header + a muted placeholder
+    so the three-state board shape stays legible (T-09-04)."""
+    head = (
+        '<div class="lib-col-head">'
+        f'<span class="lib-col-label" style="--col-accent:{accent}">{_e(label)}</span>'
+        f'<span class="lib-col-count">({len(pages)})</span></div>'
+    )
+    if pages:
+        body = "".join(_board_card(p) for p in pages)
+    else:
+        body = '<div class="lib-col-empty">No surfaces in this state.</div>'
+    return f'<div class="lib-col">{head}{body}</div>'
+
+
+def _board(site: Site) -> str:
+    """The pure-CSS status board: ``site.pages()`` grouped by ``Page.gate`` into the three
+    ReviewState columns (Draft / In Review / Published), in ladder order. NO JS."""
+    buckets: dict[ReviewState, list[Page]] = {state: [] for state, _, _ in _BOARD_COLUMNS}
     for page in site.pages():
-        s = page.surface
-        rows.append(
-            f'<a class="lib-surface" href="{_e(page.href)}" style="--signal:{page.signal_color.css_var}">'
-            f'<span class="lib-idx">{_e(_lib_ref_label(page))}</span>'
-            f'<span><span class="lib-title">{_e(page.title)}</span> '
-            f'<span class="lib-tail">— {_e(s.template.tagline)}</span></span>'
-            f'<span class="lib-meta">{_e(s.template.display_name)}<br>{_e(s.template.cadence.label)}'
-            f'<br>{_e(page.gate.value)}</span></a>'
-        )
+        buckets[page.gate].append(page)
+    cols = "".join(
+        _board_column(state, label, accent, buckets[state])
+        for state, label, accent in _BOARD_COLUMNS
+    )
+    return f'<div class="lib-board">{cols}</div>'
+
+
+def render_library(site: Site, *, theme: str = "light") -> str:
+    """Render the Library — a three-column gate-state status board (SITE-03).
+
+    Page-driven (SITE-01): each card's lead label is the Page's stable ref/identity
+    (via :func:`_lib_ref_label`), not a positional ``enumerate`` index, and the link
+    target is ``page.href`` (== ``{slug}.html``). Pages are grouped into the three
+    ``ReviewState`` columns by ``Page.gate`` (now load-bearing) — pure CSS grid, no JS,
+    with an empty-column placeholder so the board shape is always legible.
+    """
     intro = (
         '<div class="masthead"><div class="sg-eyebrow">The Library &middot; working in the open</div>'
         '<h1 class="sg-display mast-title">One reviewed record, fanned out.</h1>'
@@ -519,7 +585,7 @@ def render_library(site: Site, *, theme: str = "light") -> str:
         + '<figcaption>One reviewed record, four surfaces — the Newsletter re-cuts per '
         'reader from their own private corpus.</figcaption></figure></div>'
     )
-    body = f'<main class="wrap">{intro}{"".join(rows)}</main>'
+    body = f'<main class="wrap">{intro}{_board(site)}</main>'
     return _page(title="The Library", signal_css="var(--color-brand-primary)", body=body, active="Start here", theme=theme)
 
 
