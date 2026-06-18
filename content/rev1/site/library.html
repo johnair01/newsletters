@@ -90,6 +90,9 @@
 .claim-text{font-size:15.5px;line-height:1.55;color:var(--text)}
 .claim-ev{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
 .ev-chip{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.06em;color:var(--text-dim);background:var(--color-surface-low);padding:3px 7px}
+.claim-span{font-family:var(--font-mono);font-size:11.5px;line-height:1.5;color:var(--text);background:var(--color-surface-low);border-left:2px solid var(--line);padding:8px 12px;margin-top:8px;max-width:720px;white-space:pre-wrap}
+.claim-span::before{content:'\201C'}.claim-span::after{content:'\201D'}
+.claim-badge{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--color-amber);border:1px solid var(--color-amber);padding:2px 6px;margin-left:8px;line-height:1}
 .conf{font-family:var(--font-mono);font-size:9.5px;color:var(--text-dim)}
 .chapter{display:grid;grid-template-columns:64px 1fr;gap:18px;padding:14px 0;border-top:1px solid var(--line)}
 .chapter .t{font-family:var(--font-mono);font-size:11px;color:var(--signal)}
@@ -100,6 +103,12 @@
 .item .bo{font-size:15px;line-height:1.6;color:var(--text);max-width:700px}
 .rationale{background:var(--color-brand-light);border-left:3px solid var(--signal);padding:18px 22px;max-width:760px}
 .rationale .h{font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--signal);margin-bottom:8px}
+.honesty{background:var(--color-surface-low);border-left:3px solid var(--color-amber);padding:18px 22px;max-width:760px;margin:30px 0}
+.honesty .h{font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--color-amber);margin-bottom:10px}
+.honesty ul{margin:0}.honesty li{font-size:14px;line-height:1.55;color:var(--text);padding:5px 0;border-top:1px solid var(--line)}
+.honesty li:first-child{border-top:0}
+.honesty .kind{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--color-amber);margin-right:8px}
+.honesty .clean{font-size:13.5px;color:var(--text-dim);font-style:italic}
 .diagram{border:1px solid var(--line);border-left:3px solid var(--signal);background:var(--card);padding:24px 26px}
 .diagram svg{width:100%;height:auto;display:block;overflow:visible}
 .diagram .dh{font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--signal);margin-bottom:16px}

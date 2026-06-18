@@ -742,3 +742,24 @@ def test_honesty_panel_has_no_script() -> None:
     assert "<img src=x onerror=alert(1)>" not in html
     assert "&lt;script&gt;" in html  # the dropped locator text is shown, escaped
     assert html.count("<script>") == 1  # only the theme toggle
+
+
+# --------------------------------------------------------------------------- #
+# Phase 10 — Plan 03 / Task 3: the dogfood build path carries the honesty panel on
+# every surface, and the site stays byte-stable across two renders (SITE-06).
+# --------------------------------------------------------------------------- #
+
+
+def test_dogfood_surfaces_carry_the_honesty_panel(tmp_path: pathlib.Path) -> None:
+    """Every per-surface page in the built site shows the always-present honesty panel."""
+    build_site(tmp_path)
+    site = _full_site()
+    surface_pages = {page.href for page in site.pages()}
+    seen = 0
+    for p in tmp_path.glob("*.html"):
+        if p.name not in surface_pages:
+            continue  # index.html / library.html are not Surface renders
+        text = p.read_text(encoding="utf-8")
+        assert 'class="honesty"' in text, f"honesty panel missing on {p.name}"
+        seen += 1
+    assert seen > 0, "expected at least one rendered dogfood surface"

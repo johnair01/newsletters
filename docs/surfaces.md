@@ -118,6 +118,41 @@ This is the `Surface(kind="report")` made visible — the most data-dense view.
 
 ---
 
+## The review view — every surface shows its work (PROV-03)
+
+Every rendered surface makes the review gate *visible*, not merely enforced. Two devices,
+both always present, neither behind a click:
+
+**Claim beside its verbatim trace (SC3).** In a `ClaimsBlock`, each claim renders its
+addressed `Trace.span` inline — the verbatim source snippet sits in a quoted mono
+`.claim-span` box directly under the claim text, *by default* (no toggle, no JavaScript).
+An un-addressed Rev1 trace (empty span) shows its evidence chip alone — never an empty box
+(faithful, not suggestive). A claim that has **drifted** from its live source carries an
+inline amber `STALE` badge; a claim whose addressed span does **not contain** the claim text
+carries an inline amber `unfaithful` badge (`SpanContainmentFaithfulness`). A clean
+addressed-entailed-non-stale claim carries no badge. So an unfaithful claim is visible
+*without a click*. The `{source_id: Source}` lookup the STALE check needs is derived from the
+surface's own `traces`, so no caller signature changes.
+
+**The "What's not here / not verified" honesty panel.** After the blocks, every surface
+renders one amber `.honesty` panel listing, never collapsed:
+
+- every `Surface.missing[]` entry — the *unsubstantiated / un-entailed* material; and
+- for every traced `Source` with an `extraction` record, each `unextracted[]` drop as
+  `locator.display` + `reason` — the *coverage gaps* an adapter could not read.
+
+When both lists are empty the same panel shell renders a positive "Fully traced — nothing
+outstanding" confirmation: the panel's *presence* is the proof on every surface. Uses
+`--color-amber` with a mono uppercase eyebrow; pure markup, no JS, every interpolation
+HTML-escaped (XSS-safe). The shipped Rev1 corpus is all-clean, so it renders the positive
+confirmation and no badges fire — the gate-fires proof lives in the renderer tests.
+
+**Block scope.** The claim-beside-span device applies to `ClaimsBlock` claims; the honesty
+panel applies to the surface as a whole regardless of its blocks. Both render identically in
+draft, in-review, and published state — review is shown at every gate, not only at publish.
+
+---
+
 ## The Hub / Library (reference)
 
 **File:** `design-reference/Signals Hub.html` (+ `signals/hub.jsx`). The converged hub that
