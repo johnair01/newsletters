@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-06-18T11:40:39.830Z"
+stopped_at: Completed 09-02-PLAN.md
+last_updated: "2026-06-18T11:56:23.684Z"
 last_activity: 2026-06-18 -- Phase 09 execution started
 progress:
   total_phases: 14
   completed_phases: 7
   total_plans: 28
-  completed_plans: 25
+  completed_plans: 26
   percent: 50
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 ## Current Position
 
 Phase: 09 (rev2-site-ia-navigation-source-links) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-06-18 -- Phase 09 execution started
 
@@ -78,6 +78,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 08 P01 | 30min | 2 tasks | 5 files |
 | Phase 08 P02 | 25min | 2 tasks | 7 files |
 | Phase 09 P01 | 7min | 3 tasks | 14 files |
+| Phase 09 P02 | 9min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -125,6 +126,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 08-02: Library is Page-driven — renders page.ref (R-001/EP01/A-001) from the Site/ledger, not a positional enumerate index; filenames byte-stable (L3); spec documents the ID convention + content model (L2)
 - [Phase ?]: Home (SITE-02): default inline persona = maintainer (matches home.jsx useState); canonical copy from home.jsx LETTERS/NL_*, not dogfood READERS
 - [Phase ?]: Route split: index.html=Home, library.html=archive; per-surface {slug}.html stays byte-stable
+- [Phase ?]: Library is a fixed three-column gate-state board (Draft/In Review/Published) keyed off Page.gate; empty columns keep a muted placeholder so the board shape never collapses
+- [Phase ?]: _nav_targets resolves the four nav destinations to real first-pages (index.html fallback only for empty collections); render_surface keeps optional site=/page= kwargs so context-free callers stay green
 
 ### Pending Todos
 
@@ -153,6 +156,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-18T11:40:15.084Z
-Stopped at: Completed 06-02-PLAN.md
+Last session: 2026-06-18T11:56:23.676Z
+Stopped at: Completed 09-02-PLAN.md
 Resume file: None
