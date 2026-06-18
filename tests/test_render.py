@@ -492,7 +492,8 @@ def test_diagrams_fanout_wraps_boxes_in_svg_anchors_only_with_links() -> None:
         "Newsletters": "newsletter-newcomer.html",
     })
     assert "<a " in linked
-    assert 'href="show-ep01.html"' in linked
+    # SVG attributes use single quotes throughout diagrams.py.
+    assert "href='show-ep01.html'" in linked
     assert "<svg" in linked and "</svg>" in linked
 
 

@@ -404,6 +404,31 @@ def _ev_chip(t: Trace, site: Site | None) -> str:
     return f'<span class="ev-chip">{label}</span>'
 
 
+def _resolve_title(site: Site | None, title: str) -> Page | None:
+    """Resolve a FanoutLink title to the sibling Page it names — exact title first, then
+    ``Site.by_slug(slugify(title))`` as a fallback. ``None`` when the title names no real
+    surface (a descriptive fan-out label) → the row stays plain text (faithful)."""
+    if site is None:
+        return None
+    for p in site.pages():
+        if p.title == title:
+            return p
+    return site.by_slug(slugify(title))
+
+
+def _fanout_row(link, site: Site | None) -> str:
+    """One fan-out row. Links to ``link.href`` when set, else to the resolved sibling
+    surface's ``page.href``; otherwise renders plain text — never a dead/``href="None"`` link
+    (populates the long-unused ``FanoutLink.href``, semantic.py:355)."""
+    href = link.href or (lambda p: p.href if p else None)(_resolve_title(site, link.title))
+    tag = f'<span class="sg-tag cat">{_e(link.kind)}</span>'
+    if href:
+        title = f'<a class="lib-title" style="font-size:18px" href="{_e(href)}">{_e(link.title)}</a>'
+    else:
+        title = f'<span class="lib-title" style="font-size:18px">{_e(link.title)}</span>'
+    return f'<div class="fan-row">{tag}{title}</div>'
+
+
 def _block_html(b, site: Site | None = None) -> str:
     if isinstance(b, ProseBlock):
         paras = "".join(f"<p>{_e(p)}</p>" for p in b.text.split("\n\n") if p.strip())
@@ -464,11 +489,7 @@ def _block_html(b, site: Site | None = None) -> str:
             f'<pre class="sg-prompt-body">{_e(b.body)}</pre></div></div>'
         )
     if isinstance(b, FanoutBlock):
-        rows = "".join(
-            f'<div class="fan-row"><span class="sg-tag cat">{_e(l.kind)}</span>'
-            f'<span class="lib-title" style="font-size:18px">{_e(l.title)}</span></div>'
-            for l in b.links
-        )
+        rows = "".join(_fanout_row(l, site) for l in b.links)
         h = f'<h3 class="block-h">{_e(b.heading)}</h3>' if b.heading else ""
         return f'<div class="block">{h}<div class="fanout">{rows}</div></div>'
     if isinstance(b, RationaleBlock):
@@ -498,6 +519,27 @@ def _nav_targets(site: Site) -> dict[str, str]:
     for label, kind in _NAV_KIND.items():
         targets[label] = first_by_kind.get(kind) or "index.html"
     return targets
+
+
+def _fanout_box_links(site: Site) -> dict[str, str]:
+    """Map the fan-out SVG box labels to a real destination href so the diagram navigates.
+
+    The Show / The Article / Newsletters resolve to their nav-target hub; The Report (which
+    is intentionally OUTSIDE the four-item nav spine, N1) resolves to the first report Page,
+    falling back to ``library.html``. Labels with no resolvable target are simply omitted —
+    :func:`~newsletters.diagrams.fanout` then leaves that box static (never a dead anchor)."""
+    targets = _nav_targets(site)
+    first_report = next(
+        (c.pages[0].href for c in site.collections if c.kind == "report" and c.pages),
+        "library.html",
+    )
+    label_to_href = {
+        "The Show": targets.get("The Show"),
+        "The Article": targets.get("Articles"),
+        "Newsletters": targets.get("Newsletters"),
+        "The Report": first_report,
+    }
+    return {label: href for label, href in label_to_href.items() if href}
 
 
 def _nav(active: str, theme: str = "light", targets: dict[str, str] | None = None) -> str:
@@ -767,7 +809,7 @@ def render_library(site: Site, *, theme: str = "light") -> str:
         'approved; the Article is a lesson awaiting peer review; the Newsletter re-cuts the week '
         'per reader; the Show records the process.</p></div>'
         '<figure class="diagram" style="margin-top:24px">'
-        '<div class="dh">How it fans out</div>' + _fanout_svg()
+        '<div class="dh">How it fans out</div>' + _fanout_svg(_fanout_box_links(site))
         + '<figcaption>One reviewed record, four surfaces — the Newsletter re-cuts per '
         'reader from their own private corpus.</figcaption></figure></div>'
     )
@@ -908,7 +950,7 @@ def _home_hero() -> str:
         "learning surface for teams that want to learn everywhere, all the time.</p>"
         '<div class="home-btns">'
         f'<a href="#newsletters" class="sg-btn">See it in action {_ICON_ARROW}</a>'
-        f'<a href="#developers" class="sg-btn ghost">{_ICON_GIT} View on GitHub</a>'
+        f'<a href="{_e(repo_url)}" class="sg-btn ghost">{_ICON_GIT} View on GitHub</a>'
         "</div>"
         '<p class="sg-mono home-mono-line">Open source &middot; MIT &middot; self-hostable &middot; '
         "human-in-the-loop by design</p></section>"
@@ -1022,10 +1064,25 @@ def _home_engine() -> str:
     )
 
 
-def _home_surfaces() -> str:
-    """§5 The four surfaces (#surfaces) — bordered rows with an "Enter →" affordance."""
+# §5 surface-row name → the destination it links to. "The Report" is outside the four-item
+# nav spine (N1), so it points at the Library board where the reports live.
+_HOME_SURFACE_TARGET: dict[str, str] = {
+    "The Show": "The Show",
+    "Newsletters": "Newsletters",
+    "The Articles": "Articles",
+}
+
+
+def _home_surfaces(site: Site) -> str:
+    """§5 The four surfaces (#surfaces) — bordered rows with a working "Enter →" link.
+
+    Each "Enter →" resolves to that surface-type's hub (the SITE-04 nav target); "The Report"
+    is outside the nav spine, so it enters the Library board (SITE-05 — no "#" placeholders)."""
+    targets = _nav_targets(site)
     rows = []
     for idx, name, tail, body, meta in _HOME_SURFACES:
+        nav_label = _HOME_SURFACE_TARGET.get(name)
+        href = targets.get(nav_label, "library.html") if nav_label else "library.html"
         rows.append(
             '<div class="nl-surface-row">'
             f'<span class="surface-idx">{_e(idx)}</span>'
@@ -1033,7 +1090,7 @@ def _home_surfaces() -> str:
             f'<p class="surface-body">{_e(body)}</p></div>'
             '<div class="surface-meta">'
             f'<div class="m">{_e(meta)}</div>'
-            f'<a href="#" class="surface-enter">Enter {_ICON_ARROW}</a></div></div>'
+            f'<a href="{_e(href)}" class="surface-enter">Enter {_ICON_ARROW}</a></div></div>'
         )
     return (
         '<section id="surfaces" class="home-sec">'
@@ -1074,8 +1131,8 @@ def _home_developers() -> str:
         '<section id="developers" class="home-sec">'
         + _section_divider("For developers · clone it, point it at your work", "accent")
         + '<div class="dev-grid"><div class="dev-copy">'
-        f'<div class="dev-lockup">{_ICON_GIT} <span class="org">nneibaue</span> / '
-        '<span class="repo">newsletters</span><span class="pub">public</span></div>'
+        f'<a class="dev-lockup" href="{_e(repo_url)}">{_ICON_GIT} <span class="org">nneibaue</span> / '
+        '<span class="repo">newsletters</span><span class="pub">public</span></a>'
         "<p>Everything is a typed, type-safe model so outputs stay consistent and auditable. Three "
         "core objects carry the whole system: a <strong>Source</strong> (what happened), a "
         "<strong>Distillation</strong> (the agent&rsquo;s synthesis, every claim traced), and a "
@@ -1083,8 +1140,8 @@ def _home_developers() -> str:
         '<p class="dim">Deploy modular MCP servers so private corpora stay local and encrypted. Every '
         "surface is a slot-marked template — fork it, repopulate with your specifics, ship.</p>"
         '<div class="home-btns">'
-        f'<a href="#" class="sg-btn">{_ICON_GIT} Clone the repo</a>'
-        '<a href="#" class="sg-btn ghost">Read the spec</a></div></div>'
+        f'<a href="{_e(repo_url)}" class="sg-btn">{_ICON_GIT} Clone the repo</a>'
+        f'<a href="{_e(spec_url)}" class="sg-btn ghost">Read the spec</a></div></div>'
         f'<div class="dev-prompts">{install}{synth}</div></div></section>'
     )
 
@@ -1096,7 +1153,7 @@ def _home_invitation() -> str:
         '<p class="home-invite-cta">Clone it, point it at your own work, and start publishing what '
         "you learn — for your team, your org, or the world.</p>"
         '<div class="home-invite-btns">'
-        f'<a href="#" class="sg-btn">{_ICON_GIT} Get started on GitHub</a>'
+        f'<a href="{_e(repo_url)}" class="sg-btn">{_ICON_GIT} Get started on GitHub</a>'
         '<a href="#newsletters" class="sg-btn ghost">Replay the demo</a></div></div></section>'
     )
 
@@ -1118,7 +1175,7 @@ def render_home(site: Site, *, theme: str = "light") -> str:
             _home_why(),
             _home_demo(),
             _home_engine(),
-            _home_surfaces(),
+            _home_surfaces(site),
             _home_thesis(),
             _home_developers(),
             _home_invitation(),
