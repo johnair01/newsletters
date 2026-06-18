@@ -314,7 +314,7 @@ Plans:
 
 **Wave 3** *(blocked on 11-03 + 11-01 — extends worksurface.py, reuses the font fix)*
 
-- [ ] 11-04-PLAN.md — Publish + provenance/lineage surfacing (L4): build_work_site renders content/work/site reusing the Phase 9/10 devices + emits self-hosted fonts; provenance/lineage-visible (L6d) + no-external-call + byte-stable tests — WORK-03
+- [x] 11-04-PLAN.md — Publish + provenance/lineage surfacing (L4): build_work_site renders content/work/site reusing the Phase 9/10 devices + emits self-hosted fonts; provenance/lineage-visible (L6d) + no-external-call + byte-stable tests — WORK-03
 
 **Wave 4** *(blocked on 11-04 — disjoint files: cli.py + docs)*
 
@@ -391,7 +391,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 8. Site Content Model & Stable IDs | 2/2 | Complete   | 2026-06-18 |
 | 9. Rev2 Site IA, Navigation & Source Links | 3/3 | Complete   | 2026-06-18 |
 | 10. Reviewer Surfacing & Merge-Block Gate | 3/3 | Complete   | 2026-06-18 |
-| 11. Work-Surface Installation | 3/5 | In Progress|  |
+| 11. Work-Surface Installation | 4/5 | In Progress|  |
 | 12. Learning & Onboarding Surface | 0/TBD | Not started | - |
 | 13. Problem Lifecycle Entity (A2) | 0/TBD | Not started | - |
 | 14. Problem Board Portfolio Surface (A2) | 0/TBD | Not started | - |

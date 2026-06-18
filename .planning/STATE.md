@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 11-03-PLAN.md
-last_updated: "2026-06-18T23:10:38.521Z"
+stopped_at: Completed 11-04-PLAN.md
+last_updated: "2026-06-18T23:21:44.725Z"
 last_activity: 2026-06-18 -- Phase 11 execution started
 progress:
   total_phases: 14
   completed_phases: 9
   total_plans: 36
-  completed_plans: 33
+  completed_plans: 34
   percent: 64
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 ## Current Position
 
 Phase: 11 (work-surface-installation) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-06-18 -- Phase 11 execution started
 
@@ -86,6 +86,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 11 P01 | 20min | 3 tasks | 23 files |
 | Phase 11 P02 | 4min | 3 tasks | 3 files |
 | Phase 11 P03 | 4min | 3 tasks | 3 files |
+| Phase 11 P04 | 5min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -145,6 +146,7 @@ Recent decisions affecting current work:
 - [Phase 11]: Phase 11-01: vendored the 3 SIL-OFL fonts as relative-URL @font-face woff2 (preferred path; in-env fetch worked with a real-browser UA); rendered Library now makes zero auto-loading external calls (WORK-01)
 - [Phase ?]: 11-02: New top-level worksurface.py (not dogfood/adapters) for the read-only work-corpus ingest — keeps sample-vs-real boundary honest
 - [Phase ?]: 11-02: capture_files edge policy — missing/non-utf8 raise (never skip), abs/rel normalized to repo-relative POSIX id; never hand-mint content_hash
+- [Phase 11]: 11-04: build_work_site publishes the work corpus to content/work/site reusing render.py (no new renderer); claim->repo-file link via locator=file-path id; work output self-hosts the Plan-11-01 fonts for zero external call; work-report stays Draft
 
 ### Pending Todos
 
@@ -173,6 +175,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-18T23:10:38.512Z
-Stopped at: Completed 11-03-PLAN.md
+Last session: 2026-06-18T23:21:44.715Z
+Stopped at: Completed 11-04-PLAN.md
 Resume file: None
