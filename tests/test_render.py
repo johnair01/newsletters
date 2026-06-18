@@ -10,7 +10,7 @@ from __future__ import annotations
 import pathlib
 
 from newsletters.dogfood import build_site, build_surfaces
-from newsletters.render import render_home, render_library
+from newsletters.render import _nav_targets, render_home, render_library, render_surface
 from newsletters.semantic import ReviewState
 from newsletters.site import Ledger, Site
 
@@ -245,3 +245,45 @@ def test_board_column_headers_count_their_pages() -> None:
     for col, state in zip(cols, ladder):
         # The header carries the bucket count for its state.
         assert f"({buckets[state]})" in col, f"{state} column header missing its count"
+
+
+# --------------------------------------------------------------------------- #
+# Wave 2 — Task 2: four resolved nav destinations + footer library link (SITE-04)
+# --------------------------------------------------------------------------- #
+
+
+def _first_href(site: Site, kind: str) -> str:
+    return next(p.href for p in site.pages() if p.kind == kind)
+
+
+def test_nav_targets_resolve_each_type_hub_to_a_real_first_page() -> None:
+    site = _full_site()
+    targets = _nav_targets(site)
+    assert targets["Start here"] == "index.html"
+    # Each surface-type hub resolves to the first Page.href of its Collection.
+    assert targets["Newsletters"] == _first_href(site, "newsletter")
+    assert targets["Articles"] == _first_href(site, "article")
+    assert targets["The Show"] == _first_href(site, "show")
+    # Never a None and never a bare index.html fallback when the collection has pages.
+    real = {p.href for p in site.pages()}
+    for label in ("Newsletters", "Articles", "The Show"):
+        assert targets[label] in real, f"{label} target is not a real page"
+        assert targets[label] != "index.html"
+
+
+def test_rendered_nav_has_four_working_destinations(tmp_path: pathlib.Path) -> None:
+    build_site(tmp_path)
+    html = (tmp_path / "show-ep01.html").read_text(encoding="utf-8")
+    # The four spine labels are present…
+    for label in ("Start here", "Newsletters", "Articles", "The Show"):
+        assert f">{label}</a>" in html, f"missing nav label {label}"
+    # …and no nav href is None or empty.
+    assert 'href="None"' not in html
+    assert 'href=""' not in html
+
+
+def test_footer_links_to_the_library_board(tmp_path: pathlib.Path) -> None:
+    build_site(tmp_path)
+    html = (tmp_path / "show-ep01.html").read_text(encoding="utf-8")
+    # The Library is reached via a footer link (it is outside the four-item nav spine, N1).
+    assert 'href="library.html"' in html
