@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
+status: executing
 stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-06-18T12:26:45.365Z"
-last_activity: 2026-06-18 -- Phase 09 marked complete
+last_updated: "2026-06-18T12:50:44.335Z"
+last_activity: 2026-06-18 -- Phase 10 execution started
 progress:
   total_phases: 14
   completed_phases: 8
-  total_plans: 28
-  completed_plans: 27
+  total_plans: 31
+  completed_plans: 28
   percent: 57
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-14)
 
 **Core value:** A deterministic, auditable pipeline that traces every published claim to evidence and never auto-publishes — AI is an optional accelerator, never an authority.
-**Current focus:** Phase 09 — rev2-site-ia-navigation-source-links
+**Current focus:** Phase 10 — reviewer-surfacing-merge-block
 
 ## Current Position
 
-Phase: 09 — COMPLETE
-Plan: 3 of 3
-Status: Phase 09 complete
-Last activity: 2026-06-18 -- Phase 09 marked complete
+Phase: 10 (reviewer-surfacing-merge-block) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-06-18 -- Phase 10 execution started
 
 Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-03 complete)
 
@@ -80,6 +80,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 09 P01 | 7min | 3 tasks | 14 files |
 | Phase 09 P02 | 9min | 3 tasks | 13 files |
 | Phase 09 P03 | 8min | 3 tasks | 14 files |
+| Phase 10 P01 | 5min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -131,6 +132,8 @@ Recent decisions affecting current work:
 - [Phase ?]: _nav_targets resolves the four nav destinations to real first-pages (index.html fallback only for empty collections); render_surface keeps optional site=/page= kwargs so context-free callers stay green
 - [Phase ?]: SITE-05: configurable source_base_url (GitHub blob default + relative fallback); link_for_source degrades to plain text, never a dead link
 - [Phase ?]: SITE-06: generated-by-render marker + byte-stable double-render proves content/rev1/site regenerates from render.py with zero dead links
+- [Phase ?]: Surface.missing is an additive, invariant-3-safe carrier — never touches the publish gate
+- [Phase ?]: Merge-block checker review.py is a top-level pure AI-free module reusing is_stale + entails; published-only scope
 
 ### Pending Todos
 
@@ -159,6 +162,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-18T12:10:11.674Z
+Last session: 2026-06-18T12:50:15.240Z
 Stopped at: Completed 09-02-PLAN.md
 Resume file: None

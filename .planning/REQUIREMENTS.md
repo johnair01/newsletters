@@ -38,7 +38,7 @@
 - [x] **PROV-01**: Every claim's `Trace` is content-addressed (hash + offset), not positional, so source edits cannot silently mis-attribute
 - [x] **PROV-02**: A faithfulness gate verifies each emitted claim is entailed by its traced evidence span; the no-AI mode uses deterministic span-containment
 - [ ] **PROV-03**: `missing[]` and `unextracted[]` are surfaced to the reviewer on every surface, never hidden
-- [ ] **PROV-04**: CI blocks merge of any surface containing a STALE, un-entailed, or open-`missing[]` claim
+- [x] **PROV-04**: CI blocks merge of any surface containing a STALE, un-entailed, or open-`missing[]` claim
 
 ### Rev2 Site & Renderer
 
@@ -129,7 +129,7 @@ Mapped during roadmap creation (2026-06-14). Every v1 requirement maps to exactl
 | SITE-05 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Complete |
 | SITE-06 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Complete |
 | PROV-03 | Phase 10 — Reviewer Surfacing & Merge-Block Gate | Pending |
-| PROV-04 | Phase 10 — Reviewer Surfacing & Merge-Block Gate | Pending |
+| PROV-04 | Phase 10 — Reviewer Surfacing & Merge-Block Gate | Complete |
 | WORK-01 | Phase 11 — Work-Surface Installation | Pending |
 | WORK-02 | Phase 11 — Work-Surface Installation | Pending |
 | WORK-03 | Phase 11 — Work-Surface Installation | Pending |

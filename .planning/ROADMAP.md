@@ -278,7 +278,7 @@ Plans:
 
 **Wave 1**
 
-- [ ] 10-01-PLAN.md — Surface.missing carrier (L1) + the pure AI-free merge-block checker review.py (Blocker + review_blockers, L2/L3) + the three gate-FIRES negative fixtures (STALE / un-entailed / open-missing) + no-AI guard (L7) — PROV-04 core
+- [x] 10-01-PLAN.md — Surface.missing carrier (L1) + the pure AI-free merge-block checker review.py (Blocker + review_blockers, L2/L3) + the three gate-FIRES negative fixtures (STALE / un-entailed / open-missing) + no-AI guard (L7) — PROV-04 core
 
 **Wave 2** *(blocked on Wave 1; 10-02 and 10-03 run in parallel — disjoint files)*
 
@@ -370,7 +370,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 7. Power BI Adapter | 4/4 | Complete   | 2026-06-18 |
 | 8. Site Content Model & Stable IDs | 2/2 | Complete   | 2026-06-18 |
 | 9. Rev2 Site IA, Navigation & Source Links | 3/3 | Complete   | 2026-06-18 |
-| 10. Reviewer Surfacing & Merge-Block Gate | 0/3 | In Progress | - |
+| 10. Reviewer Surfacing & Merge-Block Gate | 1/3 | In Progress|  |
 | 11. Work-Surface Installation | 0/TBD | Not started | - |
 | 12. Learning & Onboarding Surface | 0/TBD | Not started | - |
 | 13. Problem Lifecycle Entity (A2) | 0/TBD | Not started | - |
