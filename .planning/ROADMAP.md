@@ -282,7 +282,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1; 10-02 and 10-03 run in parallel — disjoint files)*
 
-- [ ] 10-02-PLAN.md — `newsletters check` Typer command (exit 0 clean / nonzero on any blocker, L4) + the third CI merge-block job on the bare .[test] install (L5) + exit-code e2e tests — PROV-04 enforcement
+- [x] 10-02-PLAN.md — `newsletters check` Typer command (exit 0 clean / nonzero on any blocker, L4) + the third CI merge-block job on the bare .[test] install (L5) + exit-code e2e tests — PROV-04 enforcement
 - [ ] 10-03-PLAN.md — Renderer surfacing (PROV-03): the per-surface amber "what's not here / not verified" panel (Surface.missing[] + Source unextracted[], L6) + the claim-beside-verbatim-trace view with inline STALE/unfaithful badge; regenerate content/rev1/site byte-stable (SITE-06) + surfaces.md spec update
 
 **UI hint**: yes
@@ -370,7 +370,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 7. Power BI Adapter | 4/4 | Complete   | 2026-06-18 |
 | 8. Site Content Model & Stable IDs | 2/2 | Complete   | 2026-06-18 |
 | 9. Rev2 Site IA, Navigation & Source Links | 3/3 | Complete   | 2026-06-18 |
-| 10. Reviewer Surfacing & Merge-Block Gate | 1/3 | In Progress|  |
+| 10. Reviewer Surfacing & Merge-Block Gate | 2/3 | In Progress|  |
 | 11. Work-Surface Installation | 0/TBD | Not started | - |
 | 12. Learning & Onboarding Surface | 0/TBD | Not started | - |
 | 13. Problem Lifecycle Entity (A2) | 0/TBD | Not started | - |

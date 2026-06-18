@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-06-18T12:50:44.335Z"
+last_updated: "2026-06-18T12:57:46.604Z"
 last_activity: 2026-06-18 -- Phase 10 execution started
 progress:
   total_phases: 14
   completed_phases: 8
   total_plans: 31
-  completed_plans: 28
+  completed_plans: 29
   percent: 57
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 ## Current Position
 
 Phase: 10 (reviewer-surfacing-merge-block) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-06-18 -- Phase 10 execution started
 
@@ -81,6 +81,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 09 P02 | 9min | 3 tasks | 13 files |
 | Phase 09 P03 | 8min | 3 tasks | 14 files |
 | Phase 10 P01 | 5min | 3 tasks | 3 files |
+| Phase 10 P02 | 6min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -134,6 +135,8 @@ Recent decisions affecting current work:
 - [Phase ?]: SITE-06: generated-by-render marker + byte-stable double-render proves content/rev1/site regenerates from render.py with zero dead links
 - [Phase ?]: Surface.missing is an additive, invariant-3-safe carrier — never touches the publish gate
 - [Phase ?]: Merge-block checker review.py is a top-level pure AI-free module reusing is_stale + entails; published-only scope
+- [Phase ?]: newsletters check exit code is the enforced PROV-04 merge contract; CLI + CI both reuse review_blockers
+- [Phase ?]: merge-block is a separate third CI job on the bare AI-free .[test] install for an independently-red merge signal (PROV-04)
 
 ### Pending Todos
 
@@ -162,6 +165,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-18T12:50:15.240Z
+Last session: 2026-06-18T12:57:11.369Z
 Stopped at: Completed 09-02-PLAN.md
 Resume file: None
