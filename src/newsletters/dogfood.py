@@ -39,6 +39,7 @@ from .semantic import (
     Surface,
     Trace,
 )
+from .site import Ledger, Site
 from .templates import NEWSLETTER, REPORT, SHOW
 
 AUTHOR = "Claude"
@@ -648,18 +649,32 @@ def build_surfaces() -> list[Surface]:
 
 
 def build_site(out_dir: str | Path = "content/rev1/site") -> list[Path]:
-    """Render every surface + the Library index to standalone HTML. Returns written paths."""
+    """Render every surface + the Library index to standalone HTML. Returns written paths.
+
+    Page-driven (SITE-01): identity comes from the append-only ledger
+    (``content/rev1/ids.json``) via the ``Site`` model, not from list position. Each
+    page is written to ``out / page.href`` (== ``{slug}.html`` == ``{surface.id}.html``
+    for the Rev1 corpus, L3 backward-compat — filenames stay byte-stable), and the
+    Library index is rendered from a ``Site`` so its row labels are the stable refs
+    (``R-001`` / ``EP01`` / ``A-001``), never a positional index.
+    """
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     surfaces = build_surfaces()
+    # The ledger is the source of truth for refs; load it, build the full Site, and
+    # persist any newly-assigned refs (append-only — existing entries are immutable).
+    ledger = Ledger.load("content/rev1/ids.json")
+    site = Site.from_surfaces(surfaces, ledger=ledger)
+    ledger.save()
     written: list[Path] = []
-    for s in surfaces:
-        p = out / f"{s.id}.html"
-        p.write_text(render_surface(s), encoding="utf-8")
+    for page in site.pages():
+        p = out / page.href
+        p.write_text(render_surface(page.surface), encoding="utf-8")
         written.append(p)
     # Library lists one representative newsletter (the rest are its per-reader re-cuts).
     listed = [s for s in surfaces if not (s.kind == "newsletter" and s.id != "newsletter-jj")]
+    library = Site.from_surfaces(listed, ledger=ledger)
     index = out / "index.html"
-    index.write_text(render_library(listed), encoding="utf-8")
+    index.write_text(render_library(library), encoding="utf-8")
     written.append(index)
     return written

@@ -11,7 +11,6 @@ Typed config drives the structure; only the prose lives in templated strings (De
 from __future__ import annotations
 
 import html
-from typing import Iterable
 
 from .diagrams import fanout as _fanout_svg
 from .semantic import (
@@ -28,6 +27,7 @@ from .semantic import (
     ReviewState,
     Surface,
 )
+from .site import Page, Site
 
 # --------------------------------------------------------------------------- #
 # Tokens — ported 1:1 from signals/tokens.css, plus chrome + layout + blocks
@@ -366,18 +366,42 @@ def render_surface(surface: Surface, *, theme: str = "light") -> str:
     )
 
 
-def render_library(surfaces: Iterable[Surface], *, theme: str = "light") -> str:
-    """Render the Library/Hub index — the durable archive of every surface."""
-    surfaces = list(surfaces)
+def _lib_ref_label(page: Page) -> str:
+    """The stable, content-derived label for a Library row's lead slot.
+
+    Replaces the old positional ``{i:02d}``. Returns the ledger-assigned ``ref``
+    (``R-001`` / ``EP01`` / ``A-001``) when present. Newsletters are cadenced —
+    their identity is issue+date, not a sequential ref — so when ``ref`` is empty
+    we fall back to ``#{issue}`` if known, else a short kind abbreviation. In every
+    case the label is a pure function of the Page's content identity, never its
+    position in the list — that positional index was the rot point (SITE-01).
+    """
+    if page.ref:
+        return page.ref
+    if page.issue is not None:
+        return f"#{page.issue:02d}"
+    # cadenced surface with no recorded issue (e.g. Rev1 newsletters) — abbreviate the kind.
+    return page.kind[:2].upper()
+
+
+def render_library(site: Site, *, theme: str = "light") -> str:
+    """Render the Library/Hub index — the durable archive of every surface.
+
+    Page-driven (SITE-01): each row's lead label is the Page's stable ref/identity
+    (via :func:`_lib_ref_label`), not a positional ``enumerate`` index, and the link
+    target is ``page.href`` (== ``{slug}.html``). Reordering the surfaces no longer
+    renumbers the Library or rots a link.
+    """
     rows = []
-    for i, s in enumerate(surfaces, 1):
+    for page in site.pages():
+        s = page.surface
         rows.append(
-            f'<a class="lib-surface" href="{_e(s.id)}.html" style="--signal:{s.template.signal_color.css_var}">'
-            f'<span class="lib-idx">{i:02d}</span>'
-            f'<span><span class="lib-title">{_e(s.title)}</span> '
+            f'<a class="lib-surface" href="{_e(page.href)}" style="--signal:{page.signal_color.css_var}">'
+            f'<span class="lib-idx">{_e(_lib_ref_label(page))}</span>'
+            f'<span><span class="lib-title">{_e(page.title)}</span> '
             f'<span class="lib-tail">— {_e(s.template.tagline)}</span></span>'
             f'<span class="lib-meta">{_e(s.template.display_name)}<br>{_e(s.template.cadence.label)}'
-            f'<br>{_e(s.gate.value)}</span></a>'
+            f'<br>{_e(page.gate.value)}</span></a>'
         )
     intro = (
         '<div class="masthead"><div class="sg-eyebrow">The Library &middot; working in the open</div>'
