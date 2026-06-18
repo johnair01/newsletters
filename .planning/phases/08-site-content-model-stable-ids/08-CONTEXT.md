@@ -54,6 +54,36 @@ position — so links and boards stop rotting when surfaces reorder/insert.
    generated from content, independent of list position.
 2. Inserting or reordering surfaces does not change any existing surface's ID or break its cross-links.
 
+## Research-locked choices (08-RESEARCH.md accepted 2026-06-18, HIGH confidence)
+
+- **L1 — ID conventions (locked now, BEFORE any ledger seeding; matches REQUIREMENTS `R-001`/`EP01`).**
+  Reports `R-NNN` (3-digit → `R-001`); Articles `A-NNN`; Shows/episodes `EPNN` (2-digit → `EP01`);
+  Newsletters keyed by `issue` (NN) + `date` (cadenced, not a sequential ref); Learning `L-NNN`. These
+  are a naming default consistent with the documented examples — chosen deliberately because changing
+  prefixes/widths AFTER the ledger is seeded would renumber (research A2). If the reviewer ever wants
+  different prefixes, that's a one-time ledger reset.
+- **L2 — Spec is the source of truth → FILL THE GAP.** `docs/surfaces.md`/`docs/architecture.md`
+  currently specify NO ID convention (verified: zero matches). The plan MUST add the L1 convention +
+  the Site/Collection/Page model to the spec **in the same change** (not a silent drift).
+- **L3 — Backward-compat:** for Rev1, `Page.slug` defaults to the existing `Surface.id`, so the 10
+  committed `content/rev1/site/*.html` hrefs do NOT rot (hrefs are already content-stable at
+  `render.py:375`; the rot point is only the positional VISIBLE number at `render.py:373`/`{i:02d}`).
+- **L4 — Slugify:** 4-line stdlib (`unicodedata` NFKD ASCII-fold → lower → `re.sub(r"[^a-z0-9]+","-")`
+  → strip). NO `python-slugify` dep.
+- **L5 — Ledger:** `content/rev1/ids.json`, `slug -> {ref, type, issue, date}`, written
+  `json.dumps(sort_keys=True, indent=2)` (byte-stable git diff). Append-only: existing slug keeps its
+  ref (immutable); new slug → `max(per-type ordinal)+1`. This append-only discipline IS the stability
+  mechanism. Deterministic: same content → same ledger.
+- **L6 — Scope boundary (resist Phase-9 pull-in):** `Collection` groups by surface TYPE only; `Page`
+  merely CARRIES `gate` (NO gate-state kanban — that's Phase 10). Build the `Site.by_slug` cross-link
+  RESOLVER here, but rendering real clickable fan-out anchors + nav + the real Home is **Phase 9**
+  (SITE-04/02). Wire the existing renderer to be Page-driven (replace the enumerate numbering); do not
+  build new IA.
+- **L7 — Stability test (success criterion 2):** `test_reorder_and_insert_preserve_ids` — build Site →
+  reverse the surface list + insert a new surface → rebuild against the same ledger → assert every
+  pre-existing `slug→ref` is byte-identical, every pre-existing `.html` target still resolves, and the
+  new surface got a fresh per-type ref.
+
 ## Hard rules in play
 - **Typed everything** — `Site/Collection/Page` are Pydantic, auditable, AI-free (core imports only
   stdlib + Pydantic; keep `lint-imports` green).
