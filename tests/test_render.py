@@ -447,3 +447,79 @@ def test_claims_block_links_file_path_chip_keeps_unresolvable_plain() -> None:
     assert "<a class=\"ev-chip\"" not in phtml
     # And in no case is a dead href emitted.
     assert 'href="None"' not in html and 'href="None"' not in phtml
+
+
+# --------------------------------------------------------------------------- #
+# Wave 3 — Task 2: FanoutLink.href + SVG fan-out anchors + Home/footer wiring
+# (SITE-05 part 2). FanoutBlock rows that name real sibling surfaces become <a>;
+# the fan-out SVG boxes become SVG <a> anchors (no JS); Home §5/§7/footer links
+# resolve to real URLs (no "#" placeholders).
+# --------------------------------------------------------------------------- #
+
+
+def test_fanout_block_links_real_sibling_keeps_descriptive_plain() -> None:
+    site = _full_site()
+    block = FanoutBlock(links=[
+        # Names a real sibling surface by its exact title → linked row.
+        FanoutLink(kind="report", title="Getting the data models right"),
+        # A descriptive, non-matching title → plain text, no dead link.
+        FanoutLink(kind="show", title="Episode 01 — Building in the open"),
+    ])
+    html = _block_html(block, site)
+    target = site.by_slug("report-datamodel")
+    assert target is not None
+    assert f'href="{target.href}"' in html
+    # The descriptive link is NOT rendered as an anchor and emits no dead href.
+    assert "Episode 01 — Building in the open" in html
+    assert 'href="None"' not in html
+
+
+def test_fanout_block_uses_links_own_href_when_present() -> None:
+    block = FanoutBlock(links=[FanoutLink(kind="article", title="Anything", href="custom.html")])
+    html = _block_html(block, None)
+    assert 'href="custom.html"' in html
+
+
+def test_diagrams_fanout_wraps_boxes_in_svg_anchors_only_with_links() -> None:
+    from newsletters.diagrams import fanout
+
+    static = fanout()
+    assert "<a " not in static  # default: no anchors, current static behavior
+    linked = fanout(links={
+        "The Show": "show-ep01.html",
+        "The Report": "report-kickoff.html",
+        "The Article": "article-semantic-spine.html",
+        "Newsletters": "newsletter-newcomer.html",
+    })
+    assert "<a " in linked
+    assert 'href="show-ep01.html"' in linked
+    assert "<svg" in linked and "</svg>" in linked
+
+
+def test_home_section5_enter_links_resolve_to_hub_targets() -> None:
+    site = _full_site()
+    html = render_home(site)
+    targets = _nav_targets(site)
+    # Each surface-type hub href appears as a working "Enter →" destination (not "#").
+    for label in ("Newsletters", "Articles", "The Show"):
+        assert f'href="{targets[label]}"' in html
+    # The §5 surface rows no longer carry a placeholder "#" Enter affordance.
+    assert 'class="surface-enter">Enter' in html
+
+
+def test_home_section7_repo_and_spec_links_are_real() -> None:
+    from newsletters.render import repo_url, spec_url
+
+    html = render_home(_full_site())
+    assert f'href="{repo_url}"' in html  # repo lockup / clone / GitHub buttons
+    assert f'href="{spec_url}"' in html  # "Read the spec"
+    # No "#" placeholder buttons remain on the Home.
+    assert 'href="#"' not in html
+
+
+def test_footer_links_resolve_to_real_urls() -> None:
+    html = render_home(_full_site())
+    body = html[html.index("</style>"):]
+    foot = body[body.index("nl-foot"):]
+    assert 'href="library.html"' in foot
+    assert 'href="None"' not in foot
