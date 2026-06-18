@@ -7,6 +7,20 @@
 
 ## Where we are right now
 
+**2026-06-18 — Phase 11 SHIPPED & VERIFIED (3/3): Work-Surface Installation (WORK-01/02/03).** The
+whole pipeline is now proven on a real codebase — by dogfooding on Newsletters' own source. New
+`worksurface.py`: `capture_files()` (a read-only, stdlib, no-network local-file → `Source` ingest;
+proven read-only by mtime+sha256), `build_work_report` (a hand-authored Report whose 7 claims
+content-address VERBATIM to real repo files — `CLAUDE.md`/`semantic.py`/`capture.py`/`architecture.md`
+— with a deliberate paraphrase honestly routed to `missing[]`, never fabricated; Draft, no auto-publish),
+and `build_work_site` → `content/work/site/` reusing the Phase 9/10 provenance/lineage devices
+(claim→repo-file links, verbatim trace-spans, honesty panel, masthead `derived from`/`captured via`,
+fan-out). `--corpus {rev1|work}` runs the SAME merge-block gate on the work corpus (clean→0, planted
+blocker→1). **No-external-call is now LITERAL:** the Google-Fonts `@import` is gone — the three SIL-OFL
+fonts (DM Serif Display / Instrument Sans / DM Mono) are vendored as self-hosted `@font-face` woff2 +
+`OFL.txt` across both sites (zero auto-loading external URLs; full fidelity kept). 537 tests pass;
+AI-optional + byte-stable + rev1-untouched held. **Next: Phase 12 — Learning & Onboarding Surface.**
+
 **2026-06-18 — Phase 10 SHIPPED & VERIFIED (3/3): Reviewer Surfacing & Merge-Block Gate (PROV-03/04).**
 The human review gate is now REAL, not a rubber stamp. (1) Every reader surface renders an amber
 "what's not here / not verified" honesty panel (`Surface.missing[]` + the Source `unextracted[]`) and
