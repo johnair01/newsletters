@@ -27,14 +27,20 @@ from pathlib import Path
 
 import pytest
 
+from typer.testing import CliRunner
+
 from newsletters.adapters._timestamps import EPOCH_ZERO
+from newsletters.cli import app
 from newsletters.render import repo_url
-from newsletters.semantic import ClaimsBlock, Trace
+from newsletters.semantic import Claim, ClaimsBlock, Source, Surface, Trace
+from newsletters.templates import REPORT
 from newsletters.worksurface import (
     build_work_site,
     build_work_surfaces,
     capture_files,
 )
+
+runner = CliRunner()
 
 
 def _snapshot(paths: list[Path]) -> dict[str, tuple[float, str]]:
@@ -350,4 +356,91 @@ def test_operator_flow_end_to_end(tmp_path: Path) -> None:
     html = (tmp_path / "work-report.html").read_text(encoding="utf-8")
     assert "derived from" in html and 'class="honesty"' in html
 
-    # 5. left for Plan 11-05 (the `newsletters check --corpus work` gate).
+    # 5. The clean work corpus passes the SAME merge-block gate (the operator-flow finale).
+    #    The hand-authored work-report is Draft → exempt from review_blockers (publication is
+    #    the trust boundary), so `check --corpus work` over the clean corpus exits 0.
+    result = runner.invoke(app, ["check", "--corpus", "work"])
+    assert result.exit_code == 0, result.output
+    assert "All published surfaces clean" in result.output
+
+
+# --------------------------------------------------------------------------- #
+# Plan 11-05 (WORK-03 gate wiring) — the `--corpus {rev1|work}` selector wires the
+# WORK corpus into the SAME corpus-agnostic merge-block gate (review_blockers).
+# --------------------------------------------------------------------------- #
+
+
+def _blocked_published_work_surface() -> Surface:
+    """One PUBLISHED Report with an un-entailed claim — a single deterministic work blocker.
+
+    Mirrors test_review_cli.py's UNENTAILED fixture, but stands in for a work-corpus surface:
+    an addressed trace over a transcript that does NOT contain the claim text. Not stale (the
+    hash matches), so the checker reports exactly one UNENTAILED blocker — enough to flip the
+    exit code and prove the work corpus runs the same gate (PROV-04 / T-11-13).
+    """
+    transcript = "the curated file list the work report cites"
+    src = Source(id="s-work-blocked", transcript=transcript)
+    trace = Trace.from_source(src, 0, len(transcript))  # addressed, but span omits the claim text
+    claim = Claim(text="the work corpus auto-published itself", evidence=[trace])
+    surface = Surface(
+        id="sfc-work-blocked",
+        template=REPORT,
+        title="Crafted blocked work surface",
+        blocks=[ClaimsBlock(claims=[claim])],
+        traces=[src],
+    )
+    surface.publish(reviewer="reviewer-w")
+    assert surface.is_published
+    return surface
+
+
+def test_check_gates_work_corpus(monkeypatch) -> None:
+    """`newsletters check --corpus work` runs the SAME merge-block gate over the work corpus.
+
+    Both exit directions, mirroring test_review_cli.py but against the work corpus builder:
+
+    * the clean work corpus (the Draft hand-authored work-report is exempt) -> **exit 0**; and
+    * a work corpus carrying ONE blocked PUBLISHED surface -> **exit nonzero**, the report
+      naming the offending surface. This proves the work corpus passes the IDENTICAL
+      corpus-agnostic ``review_blockers`` gate — the selector does not fork or skip it
+      (T-11-13: a corpus selector must not let an unsafe corpus bypass the gate).
+    """
+    # Clean direction: the real work corpus exits 0 (its only surface is Draft → exempt).
+    clean = runner.invoke(app, ["check", "--corpus", "work"])
+    assert clean.exit_code == 0, clean.output
+    assert "All published surfaces clean" in clean.output
+
+    # Blocked direction: inject one blocked published surface into the work corpus builder the
+    # command imports, and assert the gate FIRES (Phase-7 lesson: prove it blocks, not just passes).
+    import newsletters.worksurface as worksurface
+
+    monkeypatch.setattr(
+        worksurface,
+        "build_work_surfaces",
+        lambda *a, **k: [_blocked_published_work_surface()],
+    )
+
+    blocked = runner.invoke(app, ["check", "--corpus", "work"])
+    assert blocked.exit_code != 0, blocked.output
+    assert "sfc-work-blocked" in blocked.output
+    assert "BLOCK" in blocked.output
+    assert "merge blocked" in blocked.output
+
+
+def test_check_rev1_default_unchanged() -> None:
+    """`newsletters check` with no flag (default rev1) is unchanged — the clean corpus exits 0."""
+    result = runner.invoke(app, ["check"])
+    assert result.exit_code == 0, result.output
+    assert "All published surfaces clean" in result.output
+
+
+def test_build_corpus_work_smoke(tmp_path: Path) -> None:
+    """`newsletters build --corpus work` renders the work corpus to a chosen out dir.
+
+    Routes to ``build_work_site`` (the work Library + work-report page), not the rev1 sample.
+    """
+    out = tmp_path / "worksite"
+    result = runner.invoke(app, ["build", "--corpus", "work", "--out", str(out)])
+    assert result.exit_code == 0, result.output
+    assert (out / "work-report.html").exists()
+    assert (out / "library.html").exists()
