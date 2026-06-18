@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: Power BI Adapter** - PBIP/TMDL text extraction reporting row-cap and aggregation limits (completed 2026-06-18)
 - [x] **Phase 8: Site Content Model & Stable IDs** - `Site/Collection/Page` with position-independent per-surface IDs (completed 2026-06-18)
 - [x] **Phase 9: Rev2 Site IA, Navigation & Source Links** - Real Home, Library status-board, four-destination nav, working source links (completed 2026-06-18)
-- [ ] **Phase 10: Reviewer Surfacing & Merge-Block Gate** - `missing[]`/`unextracted[]` shown on every surface; CI blocks unsafe merges
+- [x] **Phase 10: Reviewer Surfacing & Merge-Block Gate** - `missing[]`/`unextracted[]` shown on every surface; CI blocks unsafe merges (completed 2026-06-18)
 - [ ] **Phase 11: Work-Surface Installation** - Install on a real codebase, author Reports by hand, Library shows how the work was done
 - [ ] **Phase 12: Learning & Onboarding Surface** - A first-class surface that re-cuts reviewed records for newcomers and training cohorts — digestible, traceable, sequenced
 - [ ] **Phase 13: Problem Lifecycle Entity (A2)** - A first-class `Problem` above `Source` with its own state ladder — legibility layer, not a tracker; solving stays external
@@ -283,7 +283,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1; 10-02 and 10-03 run in parallel — disjoint files)*
 
 - [x] 10-02-PLAN.md — `newsletters check` Typer command (exit 0 clean / nonzero on any blocker, L4) + the third CI merge-block job on the bare .[test] install (L5) + exit-code e2e tests — PROV-04 enforcement
-- [ ] 10-03-PLAN.md — Renderer surfacing (PROV-03): the per-surface amber "what's not here / not verified" panel (Surface.missing[] + Source unextracted[], L6) + the claim-beside-verbatim-trace view with inline STALE/unfaithful badge; regenerate content/rev1/site byte-stable (SITE-06) + surfaces.md spec update
+- [x] 10-03-PLAN.md — Renderer surfacing (PROV-03): the per-surface amber "what's not here / not verified" panel (Surface.missing[] + Source unextracted[], L6) + the claim-beside-verbatim-trace view with inline STALE/unfaithful badge; regenerate content/rev1/site byte-stable (SITE-06) + surfaces.md spec update
 
 **UI hint**: yes
 
@@ -370,7 +370,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 7. Power BI Adapter | 4/4 | Complete   | 2026-06-18 |
 | 8. Site Content Model & Stable IDs | 2/2 | Complete   | 2026-06-18 |
 | 9. Rev2 Site IA, Navigation & Source Links | 3/3 | Complete   | 2026-06-18 |
-| 10. Reviewer Surfacing & Merge-Block Gate | 2/3 | In Progress|  |
+| 10. Reviewer Surfacing & Merge-Block Gate | 3/3 | Complete   | 2026-06-18 |
 | 11. Work-Surface Installation | 0/TBD | Not started | - |
 | 12. Learning & Onboarding Surface | 0/TBD | Not started | - |
 | 13. Problem Lifecycle Entity (A2) | 0/TBD | Not started | - |
