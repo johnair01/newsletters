@@ -94,7 +94,10 @@ def _reasons(unextracted: object) -> list[str]:
 # --------------------------------------------------------------------------- #
 
 # Every one of the 21 walked transcript units is a content-addressed claim (zero normalize misses).
-EXPECTED_N_UNITS = 21
+# 26 = the prior 21 + the 5 model.tmdl units (Model.name/culture/defaultPowerBIDataSourceVersion +
+# two `ref table` references) that were SILENTLY DROPPED before the Phase-7 no-silent-drops hardening
+# (the `model` object type + `ref` extraction were added; see RETRO 2026-06-18).
+EXPECTED_N_UNITS = 26
 # The adapter-side disclosures, in emission order: the measure's absent value, the Top-N/Sum/maxRows
 # row-cap taxonomy, and the categorical whole-source no-data-rows truth (once).
 EXPECTED_TREE_REASONS = [
@@ -147,6 +150,33 @@ def test_zero_silent_drops() -> None:
         f"every authored unit must be a content-addressed claim; got {len(norm_misses)} misses: "
         f"{[u.locator.display for u in norm_misses]}"
     )
+
+
+def test_no_line_is_read_but_undisclosed() -> None:
+    """Guard the blind spot the unit-count identity structurally CANNOT see (RETRO 2026-06-18).
+
+    ``#claims + #misses == #units`` only accounts for lines that BECAME units; it cannot catch a line
+    the parser READS and then drops without emitting a unit OR a disclosure (the original ``model``/
+    ``ref table`` silent-drop bug lived precisely here, inside this proof corpus). So we anchor to the
+    source: every non-blank, non-``///`` line in each ``.tmdl`` must be accounted for as a unit, a
+    structural continuation (fenced/indented expression body), or an explicit ``unparsed:`` disclosure
+    — and the curated corpus must contain ZERO ``unparsed:`` (it is fully, faithfully handled).
+    """
+    from newsletters.adapters._tmdl import parse_tmdl
+
+    for tmdl in sorted(PBIP_TREE.rglob("*.tmdl")):
+        text = tmdl.read_text(encoding="utf-8")
+        units, signals = parse_tmdl(text)
+        unparsed = [s for s in signals if s.startswith("unparsed:")]
+        assert unparsed == [], (
+            f"{tmdl.name}: lines READ but neither extracted nor disclosed as a unit would silently "
+            f"leak; the parser disclosed {unparsed} — every line must be a unit or a known signal"
+        )
+        # The previously-leaked model metadata is now positively present (regression anchor).
+        if tmdl.name == "model.tmdl":
+            values = {v for _p, v in units}
+            assert "en-US" in values and "powerBI_V3" in values, "model culture/version leaked again"
+            assert "table Sales" in values, "model `ref table` membership leaked again"
 
 
 # --------------------------------------------------------------------------- #

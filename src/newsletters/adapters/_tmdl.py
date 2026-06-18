@@ -46,6 +46,7 @@ __all__ = ["parse_tmdl"]
 # this is a membership set used to classify the first token of a header line.
 _OBJECT_TYPES = frozenset(
     {
+        "model",
         "table",
         "column",
         "measure",
@@ -176,6 +177,10 @@ def parse_tmdl(text: str) -> tuple[list[tuple[str, str]], list[str]]:
                     signals.append("directQuery")
             elif owner_prefix is not None:
                 units.append((f"{owner_prefix}.{key}", value))
+            else:
+                # A property with no enclosing object is content we READ but cannot attribute — it
+                # must be DISCLOSED, never silently dropped (the no-silent-drops invariant).
+                signals.append(f"unparsed: {stripped}")
             i += 1
             continue
 
@@ -186,6 +191,19 @@ def parse_tmdl(text: str) -> tuple[list[tuple[str, str]], list[str]]:
             inline_expr = header.group("expr")
 
             kind = obj_type[0].upper() + obj_type[1:]
+
+            if obj_type == "model":
+                # The ``model`` header IS the implicit ``Model`` root: its properties attach directly
+                # (``Model.culture``), so push a sentinel frame (empty kind => no path segment) rather
+                # than a redundant ``Model[name]`` frame. Drain descriptions + emit the name verbatim.
+                for desc in pending_descriptions:
+                    units.append(("Model.description", desc))
+                pending_descriptions = []
+                units.append(("Model.name", name))
+                stack.append((width, "", name))
+                i += 1
+                continue
+
             prefix = _build_prefix(stack, obj_type, name)
 
             # Drain any pending /// descriptions onto this object (each line a verbatim unit).
@@ -231,7 +249,17 @@ def parse_tmdl(text: str) -> tuple[list[tuple[str, str]], list[str]]:
             i += 1
             continue
 
-        # Unknown / unrecognized line (e.g. ``ref table X``, comments) — skip, never crash.
+        if first_token == "ref":
+            # ``ref table Sales`` — a model's table-membership reference (a normal, ubiquitous TMDL
+            # construct). Extract the referenced object verbatim rather than disclose it as a skip.
+            owner = _current_prefix(stack) or "Model"
+            units.append((f"{owner}.ref", stripped[len(first_token):].strip()))
+            i += 1
+            continue
+
+        # Unknown / unrecognized line: content we READ but cannot classify. DISCLOSE it (never a
+        # silent drop) so a reviewer sees the extractor skipped something, then advance.
+        signals.append(f"unparsed: {stripped}")
         i += 1
 
     return units, signals
@@ -245,10 +273,16 @@ def _current_prefix(stack: list[tuple[int, str, str]]) -> str | None:
 
 
 def _prefix_from_stack(stack: list[tuple[int, str, str]]) -> str:
-    """Build ``Model/Table[Sales]/Measure[Sales Amount]`` from the full frame stack."""
+    """Build ``Model/Table[Sales]/Measure[Sales Amount]`` from the full frame stack.
+
+    A frame with an empty ``kind`` is the sentinel ``model`` root: it contributes the implicit
+    ``Model`` prefix but no ``Kind[name]`` segment, so a ``model`` file's properties attach directly
+    as ``Model.culture`` rather than ``Model/Model[..].culture``.
+    """
     parts = ["Model"]
     for _width, kind, name in stack:
-        parts.append(f"{kind}[{name}]")
+        if kind:
+            parts.append(f"{kind}[{name}]")
     return "/".join(parts)
 
 
@@ -257,7 +291,8 @@ def _build_prefix(stack: list[tuple[int, str, str]], obj_type: str, name: str) -
     kind = obj_type[0].upper() + obj_type[1:]
     parts = ["Model"]
     for _width, frame_kind, frame_name in stack:
-        parts.append(f"{frame_kind}[{frame_name}]")
+        if frame_kind:
+            parts.append(f"{frame_kind}[{frame_name}]")
     parts.append(f"{kind}[{name}]")
     return "/".join(parts)
 

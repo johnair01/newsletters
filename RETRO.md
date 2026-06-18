@@ -4,6 +4,39 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
+## 2026-06-18 — Session: autonomous Phases 5–7 (+ a 16h stall + a silent-drop bug)
+
+**Friction observed**
+
+1. **Background agents stalled silently for ~16h (container idle-reclaim).** Two parallel Phase-7
+   Wave-1 executors were dispatched; the remote container was idle-reclaimed while they were
+   mid-flight, killing them AND the completion notifications I was waiting on. 07-02 had committed its
+   RED test but not `_pbir.py`, so the suite was broken at collection. I sat waiting on notifications
+   that would never arrive until the user flagged "16 hours." **Root cause:** trusting the completion-
+   notification channel as liveness; it's only live while the container is.
+2. **A real silent-drop bug, authored INTO the proof corpus.** The Phase-7 verifier caught that
+   `_tmdl.py` didn't know the `model` object type (nor `ref table` lines), so `model.tmdl`'s header +
+   `culture`/`defaultPowerBIDataSourceVersion` + table refs were READ then dropped with no unit and no
+   `unextracted[]` disclosure — violating the #1 invariant. Worse, the golden test's identity
+   (`claims + misses == units`) structurally *couldn't* see it (the dropped lines never became units),
+   and `_author_fixtures.py` literally documented "ref lines, which the parser skips" — the corpus was
+   authored to match the bug.
+
+**Rules hardened**
+
+- *A completion notification is not a liveness check.* When a background agent has been quiet far
+  longer than its peers took, STOP waiting and diagnose the LIVE repo (git log timestamps, run the
+  suite) — don't trust silence. Commit+push after EVERY task so a reclaim can never lose work (now in
+  every executor brief). Recovered 07-02 inline from its committed RED test rather than re-dispatching.
+- *No-silent-drops must be anchored to LINES READ, not units emitted.* A coverage identity over
+  emitted units cannot catch a line that's read and dropped before becoming a unit. Parsers now
+  DISCLOSE any orphan/unrecognized line (`unparsed:` signal → `_R_TMDL_UNPARSED`), and golden suites
+  assert zero `unparsed:` over the corpus + positively anchor previously-leaked content
+  (`test_no_line_is_read_but_undisclosed`). Generalises the Phase-4 "verify the persisted object"
+  rule to "verify against the SOURCE lines, not just the parser's output."
+- *A proof corpus authored around a bug proves nothing.* Treat "the parser skips X" notes in fixtures
+  as a red flag, not a given.
+
 ## 2026-06-17 — Session: autonomous Phases 2–4
 
 **Friction observed**

@@ -89,6 +89,7 @@ _R_MEASURE_VALUE = (
     "measure: aggregate formula extracted; the computed value is not present (never fabricated)"
 )
 _R_DIRECTQUERY = "a DirectQuery partition stores no rows in the model — no data rows are extractable"
+_R_TMDL_UNPARSED = "a TMDL line was read but not faithfully extractable ({line!r}) — disclosed, not dropped"
 _R_ROWLIMIT = "a visual data-reduction/row limit is set — displayed data may be truncated"
 _R_NO_DATA_ROWS = (
     "PBIP/TMDL/PBIR is a definition format — it contains no data rows; "
@@ -183,6 +184,10 @@ def _serialize_tmdl_text(
     _emit(pairs, lines, units)
     if "directQuery" in signals:
         drops.append(_drop(file_prefix, _R_DIRECTQUERY))
+    # Any line the parser READ but could not extract is disclosed, never silently dropped.
+    for sig in signals:
+        if sig.startswith("unparsed:"):
+            drops.append(_drop(file_prefix, _R_TMDL_UNPARSED.format(line=sig[len("unparsed:"):].strip())))
     # A measure's DAX expression is an aggregate formula — disclose the absent value once per measure.
     for prefix, _value in pairs:
         if prefix.endswith(".expression") and "/Measure[" in prefix:
