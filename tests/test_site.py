@@ -229,3 +229,29 @@ def test_imports_are_ai_free():
         cwd=Path(__file__).resolve().parent.parent,
     )
     assert proc.returncode == 0, f"AI leaked into site.py import:\n{proc.stdout}{proc.stderr}"
+
+
+# --------------------------------------------------------------------------- #
+# L3 backward-compat — the committed site links must not rot (Pitfall 2 guard)
+# --------------------------------------------------------------------------- #
+
+
+def test_existing_links_do_not_rot():
+    """Every committed content/rev1/site/*.html target is still produced by the Site.
+
+    L3: ``Page.slug`` defaults to ``Surface.id`` for the Rev1 corpus, so the Page-driven
+    renderer (Plan 02) writes the same filenames / hrefs as the committed output. This
+    proves no cross-link rots structurally when the renderer switched from a positional
+    index to the Site model. Read-only: the committed ledger is loaded but never saved.
+    """
+    site_dir = Path(__file__).resolve().parent.parent / "content" / "rev1" / "site"
+    existing = sorted(p.name for p in site_dir.glob("*.html") if p.name != "index.html")
+
+    ledger_path = Path(__file__).resolve().parent.parent / "content" / "rev1" / "ids.json"
+    ledger = Ledger.load(str(ledger_path))
+    site = Site.from_surfaces(build_surfaces(), ledger=ledger)
+
+    hrefs = sorted(page.href for page in site.pages())
+    assert hrefs == existing, (hrefs, existing)
+    # and each href is the content-stable {slug}.html form, not a positional artifact.
+    assert all(page.href == f"{page.slug}.html" for page in site.pages())

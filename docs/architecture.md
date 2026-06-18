@@ -42,6 +42,34 @@ Source ──distill──▶ Distillation ──render(kind, Corpus)──▶ S
 - A `Corpus` is never serialized into a `Surface` or a `Source`. Personalization reads it at
   render time; the output carries emphasis, not the corpus.
 
+### The content model: `Site → Collection → Page` (the durable index)
+
+The semantic model above describes one artifact at a time. The **content model** is the index
+over all of them — the layer the Library and any cross-surface navigation read from. It *wraps*
+Surfaces; it never mutates them.
+
+- **Site** — the whole library: an ordered list of `Collection`s.
+- **Collection** — a grouping of Pages **by surface type** (Reports, Articles, Newsletters,
+  Shows, Learning), ordered by `template.distance` (show 0, report 1, article 2, newsletter 3).
+  This is the natural board grouping. *(Grouping by gate/review state — a kanban board — is a
+  later view, not this model.)*
+- **Page** — one published Surface within a Collection. It carries the **stable identity**
+  (`slug`, `ref`, and for cadenced surfaces `issue`/`date`) plus display metadata (`title`,
+  `kind`, `gate`, `signal_color`, `href`) and points at its `Surface`. `href == f"{slug}.html"`.
+
+**Order is data, never the source of identity.** A Page's `slug`/`ref` are a pure function of
+its content and the ledger (below) — reordering or inserting surfaces never renumbers an
+existing one or rots a link. This is the position-independence guarantee (it replaced an earlier
+positional `enumerate` index that renumbered on every reorder).
+
+**The ledger is the source of truth for refs.** An append-only, human-readable file
+(`content/rev1/ids.json`, `slug -> {ref, type, issue, date}`, written sorted with a trailing
+newline for byte-stable diffs) records each surface's `ref` **once**. Existing entries are
+immutable; a new surface gets the next free per-type ordinal (`max(ordinal)+1`, not `count+1`,
+so deletions never reuse a retired number). Same content → same ledger (deterministic). The
+ID-string convention (`R-NNN` / `EPNN` / `A-NNN` / cadenced newsletters / `L-NNN`) is documented
+in `docs/surfaces.md`.
+
 ---
 
 ## 2. The package API (developer surface)

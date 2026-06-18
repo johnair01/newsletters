@@ -126,6 +126,32 @@ published Articles and records) and as a model for cross-surface navigation
 (`.hub-body 248px 1fr`, sticky aside, `.hub-moment` and `.hub-surface` rows). Treat as the
 listing/archive surface in the build.
 
+### ID conventions (stable, content-derived — never positional)
+
+Every surface in the Library carries two stable identifiers, both independent of its position
+in any list. The Library renders the **`ref`** in each row's lead slot (it used to render a
+positional `01..NN`, which renumbered whenever surfaces were reordered — the rot point).
+
+| Surface type | `ref` format | Example | Notes |
+|--------------|--------------|---------|-------|
+| Report | `R-NNN` (3-digit) | `R-001` | sequential per type |
+| Article | `A-NNN` (3-digit) | `A-001` | sequential per type |
+| Show / episode | `EPNN` (2-digit) | `EP01` | sequential per type |
+| Newsletter | keyed by `issue` + `date` | issue 02 · 2026-06-18 | **cadenced** — no sequential ref |
+| Learning | `L-NNN` (3-digit) | `L-001` | sequential per type |
+
+- **`slug`** — the content-derived canonical link key (a deterministic `slugify` of the title;
+  for the Rev1 corpus it defaults to the existing `Surface.id` for backward-compatibility, so no
+  committed `*.html` link rots). It is the URL: `href == f"{slug}.html"`.
+- **`ref`** — the human, per-type identifier above, **assigned once from the append-only ledger**
+  (`content/rev1/ids.json`) and **never renumbered** when surfaces are reordered or inserted.
+  Newsletters are cadenced: their identity is `issue` + `date`, not a sequential ref.
+
+**Why content-stable, not positional:** identity must be deterministic and durable — a link,
+a citation, or a board reference to `R-002` must keep pointing at the same record no matter how
+many surfaces are added before it. The full `Site → Collection → Page` content model and the
+ledger mechanics are documented in `docs/architecture.md`.
+
 ## The Proposal (reference)
 
 **File:** `design-reference/Signals Proposal.html` (+ `signals/proposal.jsx`). The operating-
