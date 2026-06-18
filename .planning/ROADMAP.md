@@ -34,7 +34,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 8: Site Content Model & Stable IDs** - `Site/Collection/Page` with position-independent per-surface IDs (completed 2026-06-18)
 - [x] **Phase 9: Rev2 Site IA, Navigation & Source Links** - Real Home, Library status-board, four-destination nav, working source links (completed 2026-06-18)
 - [x] **Phase 10: Reviewer Surfacing & Merge-Block Gate** - `missing[]`/`unextracted[]` shown on every surface; CI blocks unsafe merges (completed 2026-06-18)
-- [ ] **Phase 11: Work-Surface Installation** - Install on a real codebase, author Reports by hand, Library shows how the work was done
+- [x] **Phase 11: Work-Surface Installation** - Install on a real codebase, author Reports by hand, Library shows how the work was done (completed 2026-06-18)
 - [ ] **Phase 12: Learning & Onboarding Surface** - A first-class surface that re-cuts reviewed records for newcomers and training cohorts — digestible, traceable, sequenced
 - [ ] **Phase 13: Problem Lifecycle Entity (A2)** - A first-class `Problem` above `Source` with its own state ladder — legibility layer, not a tracker; solving stays external
 - [ ] **Phase 14: Problem Board Portfolio Surface (A2)** - A queryable portfolio view — group/count/age problems by node, surface recurrence, every problem traced to its sources
@@ -318,7 +318,7 @@ Plans:
 
 **Wave 4** *(blocked on 11-04 — disjoint files: cli.py + docs)*
 
-- [ ] 11-05-PLAN.md — --corpus {rev1|work} selector on build/check (L5): work corpus runs the same corpus-agnostic review_blockers gate (exit 0 clean / nonzero on a blocker) + e2e check-gate test; document the install/work-surface flow + self-host-fonts note in the specs — WORK-03
+- [x] 11-05-PLAN.md — --corpus {rev1|work} selector on build/check (L5): work corpus runs the same corpus-agnostic review_blockers gate (exit 0 clean / nonzero on a blocker) + e2e check-gate test; document the install/work-surface flow + self-host-fonts note in the specs — WORK-03
 
 **UI hint**: yes
 
@@ -391,7 +391,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 8. Site Content Model & Stable IDs | 2/2 | Complete   | 2026-06-18 |
 | 9. Rev2 Site IA, Navigation & Source Links | 3/3 | Complete   | 2026-06-18 |
 | 10. Reviewer Surfacing & Merge-Block Gate | 3/3 | Complete   | 2026-06-18 |
-| 11. Work-Surface Installation | 4/5 | In Progress|  |
+| 11. Work-Surface Installation | 5/5 | Complete   | 2026-06-18 |
 | 12. Learning & Onboarding Surface | 0/TBD | Not started | - |
 | 13. Problem Lifecycle Entity (A2) | 0/TBD | Not started | - |
 | 14. Problem Board Portfolio Surface (A2) | 0/TBD | Not started | - |

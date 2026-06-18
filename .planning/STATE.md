@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
+status: verifying
 stopped_at: Completed 11-04-PLAN.md
-last_updated: "2026-06-18T23:21:44.725Z"
+last_updated: "2026-06-18T23:31:13.475Z"
 last_activity: 2026-06-18 -- Phase 11 execution started
 progress:
   total_phases: 14
-  completed_phases: 9
+  completed_phases: 10
   total_plans: 36
-  completed_plans: 34
-  percent: 64
+  completed_plans: 35
+  percent: 71
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 
 Phase: 11 (work-surface-installation) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-18 -- Phase 11 execution started
 
 Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-03 complete)
@@ -87,6 +87,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 11 P02 | 4min | 3 tasks | 3 files |
 | Phase 11 P03 | 4min | 3 tasks | 3 files |
 | Phase 11 P04 | 5min | 3 tasks | 5 files |
+| Phase 11 P05 | 18min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -147,6 +148,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 11-02: New top-level worksurface.py (not dogfood/adapters) for the read-only work-corpus ingest — keeps sample-vs-real boundary honest
 - [Phase ?]: 11-02: capture_files edge policy — missing/non-utf8 raise (never skip), abs/rel normalized to repo-relative POSIX id; never hand-mint content_hash
 - [Phase 11]: 11-04: build_work_site publishes the work corpus to content/work/site reusing render.py (no new renderer); claim->repo-file link via locator=file-path id; work output self-hosts the Plan-11-01 fonts for zero external call; work-report stays Draft
+- [Phase ?]: 11-05: --corpus {rev1|work} routes the builder, never forks the gate — the work corpus passes the SAME review_blockers (exit 0 clean / nonzero on a planted blocker)
 
 ### Pending Todos
 
@@ -175,6 +177,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-18T23:21:44.715Z
+Last session: 2026-06-18T23:31:07.088Z
 Stopped at: Completed 11-04-PLAN.md
 Resume file: None
