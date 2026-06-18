@@ -14,6 +14,7 @@ import html
 from typing import TypedDict
 
 from .diagrams import fanout as _fanout_svg
+from .distill.faithfulness import SpanContainmentFaithfulness
 from .semantic import (
     ChaptersBlock,
     ClaimsBlock,
@@ -26,6 +27,7 @@ from .semantic import (
     QuoteBlock,
     RationaleBlock,
     ReviewState,
+    Source,
     Surface,
     Trace,
 )
@@ -190,6 +192,9 @@ _CSS = """
 .claim-text{font-size:15.5px;line-height:1.55;color:var(--text)}
 .claim-ev{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
 .ev-chip{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.06em;color:var(--text-dim);background:var(--color-surface-low);padding:3px 7px}
+.claim-span{font-family:var(--font-mono);font-size:11.5px;line-height:1.5;color:var(--text);background:var(--color-surface-low);border-left:2px solid var(--line);padding:8px 12px;margin-top:8px;max-width:720px;white-space:pre-wrap}
+.claim-span::before{content:'\\201C'}.claim-span::after{content:'\\201D'}
+.claim-badge{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--color-amber);border:1px solid var(--color-amber);padding:2px 6px;margin-left:8px;line-height:1}
 .conf{font-family:var(--font-mono);font-size:9.5px;color:var(--text-dim)}
 .chapter{display:grid;grid-template-columns:64px 1fr;gap:18px;padding:14px 0;border-top:1px solid var(--line)}
 .chapter .t{font-family:var(--font-mono);font-size:11px;color:var(--signal)}
@@ -431,7 +436,41 @@ def _fanout_row(link, site: Site | None) -> str:
     return f'<div class="fan-row">{tag}{title}</div>'
 
 
-def _block_html(b, site: Site | None = None) -> str:
+# One shared, stateless faithfulness check (no AI — span-containment, stdlib only).
+_FAITHFULNESS = SpanContainmentFaithfulness()
+
+
+def _claim_badge(claim, sources: dict[str, Source] | None) -> str:
+    """The inline amber badge for a claim that has DRIFTED or fails span-containment.
+
+    STALE takes precedence (a drifted trace is the louder signal); otherwise an
+    un-entailed claim (its addressed span does not contain the claim text) gets the
+    "unfaithful" badge. A clean addressed+entailed+non-stale claim gets no badge. The
+    STALE check needs the live ``{source_id: Source}`` lookup; without it we never claim
+    a false STALE (Claim.is_stale skips sources it cannot see).
+    """
+    if sources and claim.is_stale(sources):
+        return '<span class="claim-badge" title="Drifted from its source">STALE</span>'
+    if not _FAITHFULNESS.entails(claim):
+        return '<span class="claim-badge" title="Span does not contain this claim">unfaithful</span>'
+    return ""
+
+
+def _claim_spans(claim) -> str:
+    """The verbatim addressed spans for a claim, rendered inline beside the chips by default.
+
+    Faithful, not suggestive (L6 / RESEARCH Q-B): only an ADDRESSED trace with a non-empty
+    span produces a span box — an un-addressed Rev1 trace (empty span) shows its chip alone,
+    never an empty box. Every span is ``_e``-escaped; span text never enters an href.
+    """
+    return "".join(
+        f'<div class="claim-span">{_e(t.span)}</div>'
+        for t in claim.evidence
+        if t.is_addressed and t.span
+    )
+
+
+def _block_html(b, site: Site | None = None, sources: dict[str, Source] | None = None) -> str:
     if isinstance(b, ProseBlock):
         paras = "".join(f"<p>{_e(p)}</p>" for p in b.text.split("\n\n") if p.strip())
         h = f'<h3 class="block-h">{_e(b.heading)}</h3>' if b.heading else ""
@@ -444,9 +483,14 @@ def _block_html(b, site: Site | None = None) -> str:
             ) or '<span class="ev-chip" style="color:var(--color-amber)">unsubstantiated &rarr; missing[]</span>'
             conf = f'<span class="conf">conf {c.confidence:.2f}</span>'
             cls = "claim" if c.is_traced else "claim untraced"
+            # PROV-03 / SC3: the verbatim addressed span(s) render inline by default (no click),
+            # and a STALE/un-entailed claim carries an inline amber badge so the unfaithful thing
+            # is visible WITHOUT a click. Un-addressed Rev1 traces show their chip alone.
+            badge = _claim_badge(c, sources)
+            spans = _claim_spans(c)
             rows.append(
-                f'<li class="{cls}"><div class="claim-text">{_e(c.text)}</div>'
-                f'<div class="claim-ev">{ev}{conf}</div></li>'
+                f'<li class="{cls}"><div class="claim-text">{_e(c.text)}{badge}</div>'
+                f'{spans}<div class="claim-ev">{ev}{conf}</div></li>'
             )
         h = f'<h3 class="block-h">{_e(b.heading)}</h3>' if b.heading else ""
         return f'<div class="block">{h}<ul>{"".join(rows)}</ul></div>'
@@ -700,7 +744,10 @@ def render_surface(
         if surface.audience_label
         else ""
     )
-    blocks = "".join(_block_html(b, site) for b in surface.blocks)
+    # Self-derive the {source_id: Source} lookup the inline STALE badge needs from the
+    # surface's own carried traces — no dogfood signature change (PROV-03 / Plan 03 Task 3).
+    sources = {s.id: s for s in surface.traces}
+    blocks = "".join(_block_html(b, site, sources) for b in surface.blocks)
     masthead = (
         f'<div class="masthead"><div class="sg-eyebrow">{_e(surface.eyebrow)}</div>'
         f'<div class="tags"><span class="sg-tag featured">{_e(t.display_name)}</span>'
