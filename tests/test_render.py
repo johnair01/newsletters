@@ -763,3 +763,55 @@ def test_dogfood_surfaces_carry_the_honesty_panel(tmp_path: pathlib.Path) -> Non
         assert 'class="honesty"' in text, f"honesty panel missing on {p.name}"
         seen += 1
     assert seen > 0, "expected at least one rendered dogfood surface"
+
+
+# --------------------------------------------------------------------------- #
+# Phase 11 — WORK-01 NO-EXTERNAL-CALL guarantee (L6a / A2).
+# The rendered HTML must auto-load ZERO external resources (no Google-Fonts
+# @import, no src="http", no CSS url(http, no <link href="http">). Clickable
+# <a href="https://..."> repo / source links are NAVIGATION (A2) — permitted,
+# never flagged. This locks the offline / self-hosted / no-phone-home promise.
+# --------------------------------------------------------------------------- #
+def test_no_external_resource_calls_in_rendered_html(tmp_path: pathlib.Path) -> None:
+    import re
+
+    build_site(tmp_path)
+    pages = sorted(tmp_path.glob("*.html"))
+    assert pages, "build_site produced no HTML to scan"
+
+    # Auto-loading resource URLs — these fetch on render and phone home. Forbidden.
+    forbidden = (
+        "fonts.googleapis.com",
+        "fonts.gstatic.com",
+        "@import url('http",
+        '@import url("http',
+        "@import url(http",
+        'src="http',
+        "src='http",
+    )
+    # CSS resource fetch: url(http...) inside a stylesheet (e.g. @font-face src).
+    css_url_fetch = re.compile(r"url\(\s*['\"]?https?://")
+    # <link rel=... href="http..."> auto-loads a stylesheet/preload. Forbidden.
+    link_href_http = re.compile(r"<link\b[^>]*\bhref\s*=\s*['\"]https?://", re.IGNORECASE)
+
+    for page in pages:
+        html = page.read_text(encoding="utf-8")
+        for needle in forbidden:
+            assert needle not in html, (
+                f"{page.name} bakes an auto-loading external resource: {needle!r} "
+                "(see render.py _CSS — the Google-Fonts @import must be gone)"
+            )
+        assert not css_url_fetch.search(html), (
+            f"{page.name} has a CSS url(http...) resource fetch — fonts must be self-hosted "
+            "via a relative url('fonts/...woff2')"
+        )
+        assert not link_href_http.search(html), (
+            f"{page.name} has a <link href=\"http...\"> auto-loaded resource"
+        )
+
+    # A2 lock: clickable navigation anchors stay ABSOLUTE and are NOT flagged.
+    home = (tmp_path / "index.html").read_text(encoding="utf-8")
+    assert 'href="https://github.com/johnair01/newsletters"' in home, (
+        "the no-external-call guard must still permit clickable repo links (A2 navigation, "
+        "not an auto-fetch)"
+    )
