@@ -310,7 +310,7 @@ Plans:
 
 **Wave 2** *(blocked on 11-02 — extends worksurface.py)*
 
-- [ ] 11-03-PLAN.md — Hand-authored work Report (L1): build_work_report/build_work_surfaces via capture.build_report (zero AI), claims content-address to ingested files or route to missing[]; traced-structure test (L6c); populate Surface.lineage (L4); content/work/ids.json ledger — WORK-02, WORK-03
+- [x] 11-03-PLAN.md — Hand-authored work Report (L1): build_work_report/build_work_surfaces via capture.build_report (zero AI), claims content-address to ingested files or route to missing[]; traced-structure test (L6c); populate Surface.lineage (L4); content/work/ids.json ledger — WORK-02, WORK-03
 
 **Wave 3** *(blocked on 11-03 + 11-01 — extends worksurface.py, reuses the font fix)*
 
@@ -391,7 +391,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 8. Site Content Model & Stable IDs | 2/2 | Complete   | 2026-06-18 |
 | 9. Rev2 Site IA, Navigation & Source Links | 3/3 | Complete   | 2026-06-18 |
 | 10. Reviewer Surfacing & Merge-Block Gate | 3/3 | Complete   | 2026-06-18 |
-| 11. Work-Surface Installation | 2/5 | In Progress|  |
+| 11. Work-Surface Installation | 3/5 | In Progress|  |
 | 12. Learning & Onboarding Surface | 0/TBD | Not started | - |
 | 13. Problem Lifecycle Entity (A2) | 0/TBD | Not started | - |
 | 14. Problem Board Portfolio Surface (A2) | 0/TBD | Not started | - |
