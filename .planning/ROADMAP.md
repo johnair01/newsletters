@@ -305,8 +305,8 @@ Plans:
 
 **Wave 1** *(disjoint files — run in parallel)*
 
-- [ ] 11-01-PLAN.md — Font fix (L3): remove the render.py:104 Google-Fonts @import, self-host the OFL woff2 via @font-face (or a DM-first fallback) + the no-external-call test (L6a); regenerate content/rev1/site byte-stable — WORK-01
-- [ ] 11-02-PLAN.md — Read-only local-file ingest capture_files (L2): stdlib, content-addressed POSIX-relpath Sources, EPOCH_ZERO; read-only + content-addressed test (L6b); AI-isolation gate extended; e2e operator-flow scaffold — WORK-01
+- [x] 11-01-PLAN.md — Font fix (L3): remove the render.py:104 Google-Fonts @import, self-host the OFL woff2 via @font-face (or a DM-first fallback) + the no-external-call test (L6a); regenerate content/rev1/site byte-stable — WORK-01
+- [x] 11-02-PLAN.md — Read-only local-file ingest capture_files (L2): stdlib, content-addressed POSIX-relpath Sources, EPOCH_ZERO; read-only + content-addressed test (L6b); AI-isolation gate extended; e2e operator-flow scaffold — WORK-01
 
 **Wave 2** *(blocked on 11-02 — extends worksurface.py)*
 
@@ -391,7 +391,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 8. Site Content Model & Stable IDs | 2/2 | Complete   | 2026-06-18 |
 | 9. Rev2 Site IA, Navigation & Source Links | 3/3 | Complete   | 2026-06-18 |
 | 10. Reviewer Surfacing & Merge-Block Gate | 3/3 | Complete   | 2026-06-18 |
-| 11. Work-Surface Installation | 0/TBD | Not started | - |
+| 11. Work-Surface Installation | 2/5 | In Progress|  |
 | 12. Learning & Onboarding Surface | 0/TBD | Not started | - |
 | 13. Problem Lifecycle Entity (A2) | 0/TBD | Not started | - |
 | 14. Problem Board Portfolio Surface (A2) | 0/TBD | Not started | - |

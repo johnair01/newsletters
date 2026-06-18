@@ -51,7 +51,7 @@
 
 ### Work-Surface Installation
 
-- [ ] **WORK-01**: An operator can `pip install` Newsletters and point read-only adapters at a work codebase with data staying local
+- [x] **WORK-01**: An operator can `pip install` Newsletters and point read-only adapters at a work codebase with data staying local
 - [ ] **WORK-02**: An operator can author a Report by hand (manual backend) and have it inherit the traced structure
 - [ ] **WORK-03**: The published Library shows how the work was done (process visible via Provenance/Lineage on each surface)
 
@@ -130,7 +130,7 @@ Mapped during roadmap creation (2026-06-14). Every v1 requirement maps to exactl
 | SITE-06 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Complete |
 | PROV-03 | Phase 10 — Reviewer Surfacing & Merge-Block Gate | Complete |
 | PROV-04 | Phase 10 — Reviewer Surfacing & Merge-Block Gate | Complete |
-| WORK-01 | Phase 11 — Work-Surface Installation | Pending |
+| WORK-01 | Phase 11 — Work-Surface Installation | Complete |
 | WORK-02 | Phase 11 — Work-Surface Installation | Pending |
 | WORK-03 | Phase 11 — Work-Surface Installation | Pending |
 | LEARN-01 | Phase 12 — Learning & Onboarding Surface | Pending |
