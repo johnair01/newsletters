@@ -250,7 +250,14 @@ Plans:
   4. The fan-out diagram and every cited source render as working links (e.g. `vision.md` → repo file)
   5. All site output regenerates from the renderer/templates with no hand-edited HTML
 
-**Plans**: TBD
+**Plans**: 3 plans (3 waves)
+
+Plans:
+
+- [ ] 09-01-PLAN.md — Wave 1: the 8-section marketing Home (`render_home` + section helpers + Home/board CSS + responsive `@media`); route split index.html=Home, library.html=archive (SITE-02)
+- [ ] 09-02-PLAN.md — Wave 2: the gate-state status board (`_board*`, CSS grid, no JS) + four resolved nav destinations + `_breadcrumb` + `_prevnext` (within surface type) + footer library link (SITE-03, SITE-04)
+- [ ] 09-03-PLAN.md — Wave 3: `source_base_url` + `link_for_source`, linked evidence chips + `FanoutLink.href` + SVG fan-out anchors + Home/footer links; generated marker + byte-stable regen + no-dead-link test (SITE-05, SITE-06)
+
 **UI hint**: yes
 
 ### Phase 10: Reviewer Surfacing & Merge-Block Gate
