@@ -72,6 +72,33 @@ jobs:
         run: |
           python -c "import sys, newsletters; bad=[m for m in ('logfire','pydantic_ai','openai','anthropic','langsmith','langchain','langgraph') if m in sys.modules]; assert not bad, bad; print('core ai-free on bare install')"
 
+  merge-block:
+    # PROV-04 (enforcement): an unsafe PUBLISHED surface cannot merge. A SEPARATE job from
+    # bare-install so it gives an independently-red merge-block signal (RESEARCH A2). It runs the
+    # `newsletters check` checker on the SAME bare `.[test]` install (stdlib + Pydantic + Typer,
+    # AI-free — keeping PKG-03/PKG-04 the source of truth, L5). The job's value is the EXIT CODE:
+    # any STALE / un-entailed / open-missing[] published claim fails the build.
+    name: merge-block gate (PROV-04)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install with NO AI extras (bare .[test] runtime)
+        # Same bare runtime as bare-install — `[test]` adds ONLY pytest, no AI dep. Do NOT add
+        # [ai]/[dev]/[panel]: the merge-block checker is stdlib + Pydantic + Typer only.
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[test]"
+
+      - name: Run the merge-block checker on the corpus (AI-free)
+        # `newsletters check` runs review_blockers across the corpus's PUBLISHED surfaces and exits
+        # nonzero on any blocker — so an unsafe surface fails the build and cannot merge.
+        run: newsletters check
+
   import-linter:
     # PKG-04 (static contract, standing every push): forbid any core->AI import edge.
     name: import-linter contract (PKG-04)
