@@ -7,6 +7,30 @@
 
 ## Where we are right now
 
+**2026-06-18 — Phase 7 BUILD COMPLETE (4/4 plans), awaiting verification: Power BI adapter (4th adapter).**
+All four 07 plans are executed and green. `PowerBiAdapter` (registered `"powerbi"`) is **stdlib-only —
+ZERO new dependency** (the headline difference from excel/pptx, which need openpyxl/python-pptx): a
+PBIP project (plain-text TMDL semantic model + PBIR JSON report) becomes a content-addressed
+`Distillation`. The Wave-1 stdlib `_tmdl` parser (indent-structured TMDL → verbatim units; a measure's
+DAX is extracted as **text, never evaluated**) and `_pbir` reader (page/visual text + the row-cap
+detection taxonomy) compose onto the shared `normalize()` spine. **Fail-loud is the headline behavior:**
+every row-cap/aggregation signal routes to a precise `_R_*` `unextracted[]` reason (`_R_TOPN` /
+`_R_FILTER` / `_R_AGGREGATED` / `_R_MEASURE_VALUE` / `_R_DIRECTQUERY` / `_R_ROWLIMIT`), and a
+categorical `_R_NO_DATA_ROWS` fires once per model export → `Coverage.complete=False` (PBIP is a
+*definition* format with no data rows; a value is **never fabricated**). A `.pbix` binary defers to
+`_R_PBIX_BINARY` (the ZIP is never decompressed; pbixray DEFERRED). **07-04 (this plan)** authored the
+golden corpus: a hand-authored, byte-reproducible PBIP/TMDL fixture tree written with stdlib
+`write_text` (**no authoring dependency** — the big win over the excel/pptx fixtures) + a `.pbix`
+deferral fixture, and a golden test that drives the LIVE adapter to PROVE zero silent drops (21 units →
+21 content-addressed verbatim claims), the exact row-cap taxonomy (pinned by driving, not guessing —
+A1), conformance, Source determinism (EPOCH_ZERO), and round-trip coverage parity. The golden has **no
+skip-mark** (stdlib-only → runs on a bare install). **447 tests pass, 1 xfailed**; mypy clean;
+AI-isolation `1 kept / 0 broken`; registry now includes `powerbi`. Next: run the Phase-7 verification
+gate, then ship.
+> 📌 The slide/cell/object locator still lives in the transcript prefix (recoverable via the
+> content-addressed offset), not a typed `Trace.locator` field — the consistent accepted pattern since
+> Phase 4; promote it to a typed field when the reviewer/site surfaces need rich locator display.
+
 **2026-06-17 (night) — Phase 6 SHIPPED: PowerPoint adapter (3rd adapter).**
 ✅ **Phase 6 — PowerPoint Adapter** (ADAPT-04/06, verified 4/4). `PptxAdapter` (registered `"pptx"`,
 `python-pptx` behind a lazy `[pptx]` extra) walks slides/shapes in order, **recurses grouped shapes**

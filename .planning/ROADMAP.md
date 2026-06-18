@@ -30,7 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 4: Shared Adapter Normalizer & Email Adapter** - One faithful-extraction rule; first stdlib adapter end-to-end
 - [x] **Phase 5: Excel Adapter** - openpyxl cell/sheet extraction with formula-cache gaps routed to `unextracted[]` (completed 2026-06-17)
 - [x] **Phase 6: PowerPoint Adapter** - python-pptx slide/shape extraction reporting unreadable shapes (completed 2026-06-17)
-- [ ] **Phase 7: Power BI Adapter** - PBIP/TMDL text extraction reporting row-cap and aggregation limits
+- [x] **Phase 7: Power BI Adapter** - PBIP/TMDL text extraction reporting row-cap and aggregation limits (completed 2026-06-18)
 - [ ] **Phase 8: Site Content Model & Stable IDs** - `Site/Collection/Page` with position-independent per-surface IDs
 - [ ] **Phase 9: Rev2 Site IA, Navigation & Source Links** - Real Home, Library status-board, four-destination nav, working source links
 - [ ] **Phase 10: Reviewer Surfacing & Merge-Block Gate** - `missing[]`/`unextracted[]` shown on every surface; CI blocks unsafe merges
@@ -214,7 +214,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 3** *(blocked on Wave 2 — drives the built adapter)*
 
-- [ ] 07-04-PLAN.md — Hand-authored byte-reproducible PBIP/TMDL golden corpus (ADAPT-06 criterion 3): TMDL model + relationship + plain + Top-N/summarized visuals + `.pbix` deferral; zero-silent-drops + verbatim/content-addressed claims + pinned `_R_TOPN`/`_R_AGGREGATED`/`_R_NO_DATA_ROWS`/`_R_PBIX_BINARY` + conformance + Source-determinism (L5) + round-trip coverage parity (ADAPT-05, ADAPT-06)
+- [x] 07-04-PLAN.md — Hand-authored byte-reproducible PBIP/TMDL golden corpus (ADAPT-06 criterion 3): TMDL model + relationship + plain + Top-N/summarized visuals + `.pbix` deferral; zero-silent-drops + verbatim/content-addressed claims + pinned `_R_TOPN`/`_R_AGGREGATED`/`_R_NO_DATA_ROWS`/`_R_PBIX_BINARY` + conformance + Source-determinism (L5) + round-trip coverage parity (ADAPT-05, ADAPT-06)
 
 ### Phase 8: Site Content Model & Stable IDs
 
@@ -342,7 +342,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 4. Shared Adapter Normalizer & Email Adapter | 2/3 | In Progress|  |
 | 5. Excel Adapter | 4/4 | Complete   | 2026-06-17 |
 | 6. PowerPoint Adapter | 4/4 | Complete   | 2026-06-17 |
-| 7. Power BI Adapter | 3/4 | In Progress|  |
+| 7. Power BI Adapter | 4/4 | Complete   | 2026-06-18 |
 | 8. Site Content Model & Stable IDs | 0/TBD | Not started | - |
 | 9. Rev2 Site IA, Navigation & Source Links | 0/TBD | Not started | - |
 | 10. Reviewer Surfacing & Merge-Block Gate | 0/TBD | Not started | - |

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
+status: verifying
 stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-06-18T10:11:18.050Z"
+last_updated: "2026-06-18T10:19:19.507Z"
 last_activity: 2026-06-17 -- Phase 07 execution started
 progress:
   total_phases: 14
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 23
-  completed_plans: 21
-  percent: 36
+  completed_plans: 22
+  percent: 43
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 
 Phase: 07 (power-bi-adapter) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-17 -- Phase 07 execution started
 
 Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-03 complete)
@@ -74,6 +74,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 06 P03 | 35min | 2 tasks | 3 files |
 | Phase 06 P04 | ~7min | 2 tasks | 13 files |
 | Phase 07 P03 | 25m | 3 tasks | 5 files |
+| Phase 07 P04 | 15m | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -115,6 +116,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 06-04: determinism asserted on the parsed Source (L5), not re-saved .pptx bytes — immune to python-pptx re-save drift
 - [Phase ?]: 06-04: _normalize_zip recurses into a chart's embedded openpyxl .xlsx to pin its core.xml -> the whole .pptx corpus is byte-reproducible cross-process
 - [Phase ?]: 07-03: PowerBiAdapter registered 'powerbi' — stdlib PBIP/TMDL+PBIR onto shared normalize(); timestamp always EPOCH_ZERO; _R_NO_DATA_ROWS forces fail-loud; zero new dependency
+- [Phase ?]: 07-04: Power BI golden corpus is hand-authored plain text via stdlib write_text (zero authoring dep)
+- [Phase ?]: 07-04: the golden has no skip-mark — the powerbi adapter is stdlib-only so the corpus runs on a bare install
 
 ### Pending Todos
 
@@ -143,6 +146,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-18T10:11:10.002Z
+Last session: 2026-06-18T10:18:51.167Z
 Stopped at: Completed 06-02-PLAN.md
 Resume file: None
