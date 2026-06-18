@@ -675,3 +675,70 @@ def test_claim_flags_stale_and_unfaithful_inline() -> None:
     unfaithful_html = _block_html(unfaithful_block, sources={src2.id: src2})
     assert "unfaithful" in unfaithful_html.lower()
     assert "claim-badge" in unfaithful_html
+
+
+# --------------------------------------------------------------------------- #
+# Phase 10 — Plan 03 / Task 2: the per-surface "What's not here / not verified"
+# amber honesty panel (PROV-03). Always rendered; lists Surface.missing[] +
+# every Source.extraction.unextracted[]; never collapsed; clean → positive note.
+# --------------------------------------------------------------------------- #
+
+
+def _bare_surface(**kw) -> Surface:
+    """A minimal published-or-draft Surface over the REPORT template for panel tests."""
+    base = dict(id="report-panel-fixture", template=_REPORT, title="Panel fixture",
+                eyebrow="Report · honesty panel test")
+    base.update(kw)
+    return Surface(**base)
+
+
+def test_honesty_panel_lists_missing_and_unextracted() -> None:
+    """A surface with missing[] + a Source carrying an ExtractionRecord lists both, amber, no JS."""
+    src = Source(
+        id="session-z", transcript="readable content",
+        extraction=ExtractionRecord(unextracted=[
+            ExtractedDrop(locator=FreeLocator(text="attachment.xlsx"),
+                          reason="binary attachment not parsed"),
+        ]),
+    )
+    surface = _bare_surface(
+        missing=["a claim we could not substantiate"],
+        traces=[src],
+    )
+    html = render_surface(surface)
+    # The unsubstantiated item is listed.
+    assert "a claim we could not substantiate" in html
+    # The unextracted drop's locator.display + reason are listed.
+    assert "attachment.xlsx" in html
+    assert "binary attachment not parsed" in html
+    # Amber honesty panel, mono uppercase header, present and never hidden.
+    assert 'class="honesty"' in html
+    assert "What's not here" in html
+    # No JS introduced by the panel (only the existing theme toggle remains).
+    assert html.count("<script>") == 1
+
+
+def test_honesty_panel_clean_surface_shows_positive_confirmation() -> None:
+    """A surface with empty missing[]/unextracted[] still shows the panel + positive line."""
+    surface = _bare_surface()  # no missing, no traces
+    html = render_surface(surface)
+    assert 'class="honesty"' in html
+    assert "Fully traced" in html
+
+
+def test_honesty_panel_has_no_script() -> None:
+    """The honesty panel is pure markup — it contributes no <script>."""
+    src = Source(
+        id="session-q", transcript="x",
+        extraction=ExtractionRecord(unextracted=[
+            ExtractedDrop(locator=FreeLocator(text="<script>alert(1)</script>"),
+                          reason="<b>not</b> parsed"),
+        ]),
+    )
+    surface = _bare_surface(missing=["<img src=x onerror=alert(1)>"], traces=[src])
+    html = render_surface(surface)
+    # The raw injection strings are escaped (T-10-07): no live <script>/<img> from source text.
+    assert "<script>alert(1)</script>" not in html
+    assert "<img src=x onerror=alert(1)>" not in html
+    assert "&lt;script&gt;" in html  # the dropped locator text is shown, escaped
+    assert html.count("<script>") == 1  # only the theme toggle
