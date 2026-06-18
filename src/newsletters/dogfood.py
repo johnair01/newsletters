@@ -669,7 +669,9 @@ def build_site(out_dir: str | Path = "content/rev1/site") -> list[Path]:
     written: list[Path] = []
     for page in site.pages():
         p = out / page.href
-        p.write_text(render_surface(page.surface), encoding="utf-8")
+        # Pass the resolved Site + this Page so the nav resolves to four real
+        # destinations and the breadcrumb/prev-next can find this page's neighbors.
+        p.write_text(render_surface(page.surface, site=site, page=page), encoding="utf-8")
         written.append(p)
     # Route split (SITE-02 / N4): the marketing Home owns index.html; the Library archive
     # moves to library.html. Per-surface {slug}.html filenames stay byte-stable (Phase-8 L3).

@@ -406,10 +406,36 @@ def _block_html(b) -> str:
     return ""
 
 
-def _nav(active: str, theme: str = "light") -> str:
+# The spine label → surface kind whose Collection hub each nav item resolves to.
+_NAV_KIND: dict[str, str] = {"Newsletters": "newsletter", "Articles": "article", "The Show": "show"}
+
+
+def _nav_targets(site: Site) -> dict[str, str]:
+    """Resolve each spine label to a real, existing destination (SITE-04).
+
+    ``Start here`` is always ``index.html``. Each surface-type hub resolves to the
+    first ``Page.href`` of its Collection (Newsletters→``newsletter``, Articles→
+    ``article``, The Show→``show``), falling back to ``index.html`` only when a
+    collection is empty — so the nav never carries a ``None``/dead href (T-09-05).
+    """
+    targets: dict[str, str] = {"Start here": "index.html"}
+    first_by_kind = {c.kind: (c.pages[0].href if c.pages else None) for c in site.collections}
+    for label, kind in _NAV_KIND.items():
+        targets[label] = first_by_kind.get(kind) or "index.html"
+    return targets
+
+
+def _nav(active: str, theme: str = "light", targets: dict[str, str] | None = None) -> str:
+    # When a resolved ``targets`` map is supplied (the build path), use it; otherwise fall
+    # back to the raw _NAV_ITEMS hrefs (single-surface callers without a Site, e.g. tests).
+    def href_for(label: str, raw: str | None) -> str:
+        if targets is not None:
+            return targets.get(label, raw or "index.html")
+        return raw or "index.html"
+
     links = "".join(
-        f'<a href="{href or "index.html"}" class="{"active" if label == active else ""}">{label}</a>'
-        for label, href in _NAV_ITEMS
+        f'<a href="{_e(href_for(label, raw))}" class="{"active" if label == active else ""}">{label}</a>'
+        for label, raw in _NAV_ITEMS
     )
     # Label reflects the CURRENT theme (sun = light, moon = dark); JS keeps it in sync on
     # toggle, and this static default is correct even with JavaScript disabled.
@@ -423,22 +449,33 @@ def _nav(active: str, theme: str = "light") -> str:
 
 
 def _footer() -> str:
+    # The Library board is reached via the footer (it is intentionally outside the
+    # four-item nav spine, N1 / SITE-04); the Report is reached via the board / Home §5.
     return (
         '<footer class="nl-foot"><div class="row">'
         '<div>Turn information into conversation. Conversation into action.</div>'
-        '<div>Open source &middot; MIT &middot; self-hostable &middot; human-in-the-loop by design</div>'
+        '<div><a href="library.html">The Library</a> &middot; '
+        'Open source &middot; MIT &middot; self-hostable &middot; human-in-the-loop by design</div>'
         '<div>Renders without JavaScript &middot; WCAG AA</div>'
         '</div></footer>'
     )
 
 
-def _page(*, title: str, signal_css: str, body: str, active: str, theme: str = "light") -> str:
+def _page(
+    *,
+    title: str,
+    signal_css: str,
+    body: str,
+    active: str,
+    theme: str = "light",
+    targets: dict[str, str] | None = None,
+) -> str:
     return (
         f"<!doctype html><html lang=en><head><meta charset=utf-8>"
         f'<meta name=viewport content="width=device-width,initial-scale=1">'
         f"<title>{_e(title)} — Newsletters</title><style>{_CSS}</style></head><body>"
         f'<div class="signals" id="root" data-theme="{theme}" style="--signal:{signal_css}">'
-        f"{_nav(active, theme)}{body}{_footer()}</div>{_TOGGLE_JS}</body></html>"
+        f"{_nav(active, theme, targets)}{body}{_footer()}</div>{_TOGGLE_JS}</body></html>"
     )
 
 
@@ -448,9 +485,23 @@ def _active_for(surface: Surface) -> str:
     )
 
 
-def render_surface(surface: Surface, *, theme: str = "light") -> str:
-    """Render one ``Surface`` to a complete, standalone HTML page."""
+def render_surface(
+    surface: Surface,
+    *,
+    theme: str = "light",
+    site: Site | None = None,
+    page: Page | None = None,
+) -> str:
+    """Render one ``Surface`` to a complete, standalone HTML page.
+
+    When the resolved ``site`` (and the surface's ``page``) are supplied — the
+    ``build_site`` path — the global nav resolves to four real destinations
+    (SITE-04). Existing single-surface callers may pass only a ``surface``; the nav
+    then falls back to the raw ``_NAV_ITEMS`` hrefs and breadcrumb/prev-next are
+    omitted (no neighbors to resolve).
+    """
     t = surface.template
+    targets = _nav_targets(site) if site is not None else None
     meta_bits = [
         f"{t.display_name} &middot; {t.cadence.label}",
         f"scope: {t.scope.value}",
@@ -488,6 +539,7 @@ def render_surface(surface: Surface, *, theme: str = "light") -> str:
         body=body,
         active=_active_for(surface),
         theme=theme,
+        targets=targets,
     )
 
 
@@ -586,7 +638,14 @@ def render_library(site: Site, *, theme: str = "light") -> str:
         'reader from their own private corpus.</figcaption></figure></div>'
     )
     body = f'<main class="wrap">{intro}{_board(site)}</main>'
-    return _page(title="The Library", signal_css="var(--color-brand-primary)", body=body, active="Start here", theme=theme)
+    return _page(
+        title="The Library",
+        signal_css="var(--color-brand-primary)",
+        body=body,
+        active="Start here",
+        theme=theme,
+        targets=_nav_targets(site),
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -937,4 +996,5 @@ def render_home(site: Site, *, theme: str = "light") -> str:
         body=body,
         active="Start here",
         theme=theme,
+        targets=_nav_targets(site),
     )
