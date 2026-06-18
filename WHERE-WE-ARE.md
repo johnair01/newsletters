@@ -7,6 +7,21 @@
 
 ## Where we are right now
 
+**2026-06-18 — Phase 10 SHIPPED & VERIFIED (3/3): Reviewer Surfacing & Merge-Block Gate (PROV-03/04).**
+The human review gate is now REAL, not a rubber stamp. (1) Every reader surface renders an amber
+"what's not here / not verified" honesty panel (`Surface.missing[]` + the Source `unextracted[]`) and
+shows each claim **next to its verbatim `Trace.span` by default** (no click, no JS) with an inline
+STALE/unfaithful badge — the unfaithful thing is visible without a click. (2) A new pure AI-free
+`review.py` (`review_blockers` → `Blocker{stale|unentailed|open_missing}`, published-only scope, reusing
+`Claim.is_stale` + `SpanContainmentFaithfulness.entails`) backs a `newsletters check` CLI that exits
+nonzero on any blocked published surface, wired as a **third CI job** (`merge-block`, bare `.[test]`,
+AI-free) so an unsafe surface cannot merge. Proven to BLOCK on a live crafted corpus (STALE / un-entailed
+/ open-missing → exit 1; clean → 0; Draft/In-Review exempt) — a gate that only sees clean input proves
+nothing. 524 tests pass; no-auto-publish gate unchanged (only the additive `Surface.missing` field);
+AI-optional + byte-stable build held. CI jobs: `[bare-install, merge-block, import-linter]`.
+> 📌 Forward note: `newsletters check` enumerates the in-code dogfood corpus; wire an on-disk/work
+> corpus into the gate in **Phase 11** (carried, not a Phase-10 gap). **Next: Phase 11 — Work-Surface Installation.**
+
 **2026-06-18 — Phase 9 SHIPPED & VERIFIED (5/5): Rev2 Site IA, Navigation & Source Links
 (SITE-02..06).** The deployed site now has a real **8-section marketing Home** at `index.html`
 (recreated from the approved `design-reference` prototype, design-system tokens matched), a separate
