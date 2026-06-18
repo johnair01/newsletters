@@ -36,15 +36,31 @@ modules; importable on a bare, no-extras install (policed by ``tests/test_ai_opt
 
 from __future__ import annotations
 
+import shutil
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 
 from . import capture
 from .adapters._timestamps import EPOCH_ZERO
 from .capture import Decision, WorkSession
-from .semantic import ClaimsBlock, Source, Surface, Trace
+from .locators import FreeLocator
+from .render import render_library, render_surface
+from .semantic import (
+    ClaimsBlock,
+    FanoutBlock,
+    FanoutLink,
+    Source,
+    Surface,
+    Trace,
+)
+from .site import Ledger, Site
 
-__all__ = ["capture_files", "build_work_report", "build_work_surfaces"]
+__all__ = [
+    "capture_files",
+    "build_work_report",
+    "build_work_surfaces",
+    "build_work_site",
+]
 
 
 def capture_files(paths: Iterable[str | Path], *, root: Path | None = None) -> list[Source]:
@@ -191,8 +207,12 @@ def build_work_report(
             start = src.transcript.find(claim.text) if src is not None else -1
             if src is not None and start >= 0:
                 # Verbatim: pin via the SOLE content-address constructor. Span = file slice.
+                # The locator carries the file-path id so render.link_for_source recognizes it
+                # as a file-path locator and turns the claim into a WORKING repo-file link
+                # (the L4 "claim->repo-file link" device, surfaced for free) — the source_id is
+                # already the POSIX relpath, so the link points at the real, openable file.
                 claim.evidence[0] = Trace.from_source(
-                    src, start, start + len(claim.text), locator=trace.locator
+                    src, start, start + len(claim.text), locator=FreeLocator(text=src.id)
                 )
                 kept.append(claim)
             else:
@@ -302,4 +322,115 @@ def build_work_surfaces(*, root: Path | None = None, author: str = "Claude") -> 
             "are shown honestly as missing, never fabricated."
         ),
     )
+
+    # WORK-03 (the fan-out half): the same reviewed record fans out per audience. These are
+    # the audience surfaces this one traced record produces (the fan-out chain shown on the
+    # surface via _fanout_row). They are descriptive labels — no sibling Page exists yet — so
+    # render.py renders them as plain text rows (faithful: never a dead link). `lineage.produced`
+    # records what this record produces, the structural complement to `derived_from` (which is
+    # already the ingested file ids cited). Kept thin: a fan-out block + the produced ids, no
+    # new renderer code (the _fanout_row + masthead devices are reused as-is).
+    fanout = FanoutBlock(
+        heading="How this one record fans out",
+        links=[
+            FanoutLink(kind="article", title="How this build stays honest — the trust spine"),
+            FanoutLink(kind="newsletter", title="This week in the build — re-cut per reader"),
+            FanoutLink(kind="learning", title="Onboarding: read the build before the code"),
+        ],
+    )
+    report.blocks.append(fanout)
+    report.lineage.produced = [link.title for link in fanout.links]
     return [report]
+
+
+# --------------------------------------------------------------------------- #
+# WORK-03 — PUBLISH the work site: render the corpus reusing the Phase 9/10
+# provenance/lineage devices, self-contained (self-hosted fonts), zero external call.
+# --------------------------------------------------------------------------- #
+
+# The vendored, self-hosted fonts (Plan 11-01) the rendered @font-face urls reference with a
+# RELATIVE `fonts/...woff2` path. They live committed under content/rev1/site/fonts/; the work
+# output gets its OWN copy so content/work/site/ is self-contained (zero external call) too.
+_REV1_FONTS_DIR = Path("content/rev1/site/fonts")
+
+
+def _emit_fonts(out: Path) -> None:
+    """Copy the self-hosted woff2 fonts (+ their OFL licenses) into ``out / fonts``.
+
+    The renderer's ``@font-face`` blocks reference ``fonts/<name>.woff2`` with a RELATIVE url
+    (render.py:_CSS), so a self-contained Library needs that ``fonts/`` dir beside the HTML.
+    Plan 11-01 vendored these under ``content/rev1/site/fonts/``; we copy the SAME assets into
+    the work output (rather than re-vendor) so the work Library makes zero external call too
+    (T-11-10). Deterministic: shutil.copy2 preserves bytes; the set is the committed font set.
+    If the vendored dir is absent (the DM-first fallback path of Plan 11-01), the relative urls
+    simply do not resolve to a local file and the font-stack fallback applies — still no
+    external call — so we skip silently rather than fail.
+    """
+    if not _REV1_FONTS_DIR.is_dir():
+        return
+    fonts_out = out / "fonts"
+    fonts_out.mkdir(parents=True, exist_ok=True)
+    for asset in sorted(_REV1_FONTS_DIR.iterdir()):
+        if asset.is_file():
+            shutil.copy2(asset, fonts_out / asset.name)
+
+
+def build_work_site(
+    out_dir: str | Path = "content/work/site",
+    *,
+    root: Path | None = None,
+) -> list[Path]:
+    """Render the WORK corpus to standalone HTML at ``out_dir`` — the published process (WORK-03).
+
+    Mirrors :func:`newsletters.dogfood.build_site`, but over the REAL work corpus and its OWN
+    append-only ledger (``content/work/ids.json``), kept SEPARATE from the rev1 sample:
+
+      * ``Ledger.load("content/work/ids.json")`` → ``Site.from_surfaces(build_work_surfaces(),
+        ledger=ledger)`` → ``ledger.save()`` (refs append-only / immutable);
+      * each page is written to ``out / page.href`` via ``render_surface(page.surface, site=site,
+        page=page)`` — REUSING the Phase 9/10 devices with NO new renderer: ``link_for_source``
+        turns each claim's file-path locator into a working repo-file link, ``_claim_spans``
+        shows the verbatim trace span, ``_honesty_panel`` shows the gap(s), the masthead emits
+        ``captured via`` + ``derived from`` (real because Plan 11-03 populated ``Surface.lineage``),
+        and ``_fanout_row`` renders the fan-out chain;
+      * a Library index (``library.html``) is rendered from the Site;
+      * the self-hosted fonts (Plan 11-01) are emitted into ``out / fonts`` so the work Library
+        is self-contained — ZERO auto-loading external call (T-11-10).
+
+    Deterministic / byte-stable (SITE-06): sorted inputs, ``EPOCH_ZERO`` sources, append-only
+    ledger, no ``datetime.now()``. Zero AI, zero new runtime dependency. The work-report stays
+    Draft — there is NO auto-publish path; the board reflects its real review state.
+
+    Args:
+        out_dir: where to write the work Library (default ``content/work/site``).
+        root: the repo root the ingest's relpath ids resolve against (default cwd).
+
+    Returns:
+        The written paths (every ``{slug}.html`` + ``library.html``), in write order.
+    """
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    surfaces = build_work_surfaces(root=root)
+
+    # The work corpus has its OWN ledger (R-001 starts fresh) — the sample/real boundary is
+    # preserved at the ledger layer. Load → build the Site → persist any newly-assigned refs.
+    ledger = Ledger.load("content/work/ids.json")
+    site = Site.from_surfaces(surfaces, ledger=ledger)
+    ledger.save()
+
+    written: list[Path] = []
+    for page in site.pages():
+        p = out / page.href
+        # Pass the resolved Site + this Page so the nav/breadcrumb/prev-next resolve neighbors.
+        p.write_text(render_surface(page.surface, site=site, page=page), encoding="utf-8")
+        written.append(p)
+
+    # The Library index (the gate-state board) — the work corpus's own archive view.
+    library = out / "library.html"
+    library.write_text(render_library(site), encoding="utf-8")
+    written.append(library)
+
+    # Self-host the fonts beside the HTML so the work Library is zero-external-call (T-11-10).
+    _emit_fonts(out)
+
+    return written
