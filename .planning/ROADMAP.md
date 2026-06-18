@@ -227,7 +227,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. The `Site/Collection/Page` content model carries stable per-surface IDs (`EP01`, `R-001`, slug, issue/date) generated from content, independent of list position
   2. Inserting or reordering surfaces does not change any existing surface's ID or break its cross-links
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 08-01-PLAN.md — Identity core (TDD): `site.py` slugify + append-only `Ledger` + `Site/Collection/Page` + `from_surfaces`/`by_slug`, the reorder/insert stability test (L7), seeded `content/rev1/ids.json`, package exports
+- [ ] 08-02-PLAN.md — Page-driven renderer: rewrite `render_library` to use `Page.ref` (drop the positional index) + `build_site` builds the Site, plus the spec update (L2) and the no-rot regression test
+
 **UI hint**: yes
 
 ### Phase 9: Rev2 Site IA, Navigation & Source Links
