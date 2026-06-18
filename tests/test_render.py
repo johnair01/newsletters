@@ -10,9 +10,16 @@ from __future__ import annotations
 import pathlib
 
 from newsletters.dogfood import build_site, build_surfaces
-from newsletters.render import _nav_targets, render_home, render_library, render_surface
+from newsletters.render import (
+    _breadcrumb,
+    _nav_targets,
+    _prevnext,
+    render_home,
+    render_library,
+    render_surface,
+)
 from newsletters.semantic import ReviewState
-from newsletters.site import Ledger, Site
+from newsletters.site import Collection, Ledger, Page, Site
 
 
 def _site() -> Site:
@@ -287,3 +294,79 @@ def test_footer_links_to_the_library_board(tmp_path: pathlib.Path) -> None:
     html = (tmp_path / "show-ep01.html").read_text(encoding="utf-8")
     # The Library is reached via a footer link (it is outside the four-item nav spine, N1).
     assert 'href="library.html"' in html
+
+
+# --------------------------------------------------------------------------- #
+# Wave 2 — Task 3: breadcrumb + prev/next within a surface type (SITE-04 nav model)
+# --------------------------------------------------------------------------- #
+
+
+def _newsletter_collection(site: Site) -> Collection:
+    """The newsletter collection (3 pages in the dogfood corpus — good for bounds)."""
+    return next(c for c in site.collections if c.kind == "newsletter")
+
+
+def test_breadcrumb_renders_home_collection_page_segments() -> None:
+    site = _full_site()
+    col = _newsletter_collection(site)
+    page = col.pages[0]
+    crumb = _breadcrumb(site, page)
+    # Home + Collection are <a> links; the Page segment is plain text (no link).
+    assert 'href="index.html"' in crumb
+    hub = _nav_targets(site)["Newsletters"]
+    assert f'href="{hub}"' in crumb
+    assert col.display_name in crumb
+    assert page.title in crumb
+    # The current page is NOT a link — it appears in a non-anchor "here" span.
+    assert f'<a href="{page.href}"' not in crumb
+
+
+def test_prevnext_middle_page_has_both_neighbors_within_its_type() -> None:
+    site = _full_site()
+    col = _newsletter_collection(site)
+    assert len(col.pages) >= 3, "need a 3-page collection to test a middle page"
+    prev, cur, nxt = col.pages[0], col.pages[1], col.pages[2]
+    out = _prevnext(site, cur)
+    assert f'href="{prev.href}"' in out and prev.title in out
+    assert f'href="{nxt.href}"' in out and nxt.title in out
+    # Neighbors never cross surface type — only same-collection hrefs appear.
+    other_kinds = [p for p in site.pages() if p.kind != "newsletter"]
+    for p in other_kinds:
+        assert f'href="{p.href}"' not in out
+
+
+def test_prevnext_first_page_has_no_prev_last_has_no_next() -> None:
+    site = _full_site()
+    col = _newsletter_collection(site)
+    first, last = col.pages[0], col.pages[-1]
+    first_out = _prevnext(site, first)
+    last_out = _prevnext(site, last)
+    # First page: a next, no prev.
+    assert f'href="{col.pages[1].href}"' in first_out
+    assert "&larr;" not in first_out and "prev" not in first_out.lower()
+    # Last page: a prev, no next.
+    assert f'href="{col.pages[-2].href}"' in last_out
+    assert "&rarr;" not in last_out and "next" not in last_out.lower()
+
+
+def test_prevnext_single_page_collection_renders_neither() -> None:
+    # A lone article → its collection has one page → no prev and no next.
+    surfaces = build_surfaces()
+    one_article = [s for s in surfaces if s.kind == "article"][:1]
+    assert one_article
+    site = Site.from_surfaces(one_article, ledger=Ledger.load("/nonexistent.json"))
+    page = site.pages()[0]
+    out = _prevnext(site, page)
+    assert f'href="{page.href}"' not in out
+    # No neighbor links at all.
+    assert "href=" not in out
+
+
+def test_rendered_surface_has_breadcrumb_above_and_prevnext_below(tmp_path: pathlib.Path) -> None:
+    build_site(tmp_path)
+    html = (tmp_path / "show-ep01.html").read_text(encoding="utf-8")
+    assert "nl-crumb" in html
+    assert "nl-prevnext" in html
+    # The breadcrumb sits above the masthead; prev/next sits below the blocks.
+    assert html.index("nl-crumb") < html.index("masthead")
+    assert html.index("nl-prevnext") > html.index("masthead")
