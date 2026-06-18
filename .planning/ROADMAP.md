@@ -299,7 +299,27 @@ Plans:
   2. An operator can author a Report by hand via the manual backend and have it inherit the traced structure
   3. The published Library shows how the work was done, with process visible via Provenance/Lineage on each surface
 
-**Plans**: TBD
+**Plans**: 5 plans (4 waves)
+
+Plans:
+
+**Wave 1** *(disjoint files — run in parallel)*
+
+- [ ] 11-01-PLAN.md — Font fix (L3): remove the render.py:104 Google-Fonts @import, self-host the OFL woff2 via @font-face (or a DM-first fallback) + the no-external-call test (L6a); regenerate content/rev1/site byte-stable — WORK-01
+- [ ] 11-02-PLAN.md — Read-only local-file ingest capture_files (L2): stdlib, content-addressed POSIX-relpath Sources, EPOCH_ZERO; read-only + content-addressed test (L6b); AI-isolation gate extended; e2e operator-flow scaffold — WORK-01
+
+**Wave 2** *(blocked on 11-02 — extends worksurface.py)*
+
+- [ ] 11-03-PLAN.md — Hand-authored work Report (L1): build_work_report/build_work_surfaces via capture.build_report (zero AI), claims content-address to ingested files or route to missing[]; traced-structure test (L6c); populate Surface.lineage (L4); content/work/ids.json ledger — WORK-02, WORK-03
+
+**Wave 3** *(blocked on 11-03 + 11-01 — extends worksurface.py, reuses the font fix)*
+
+- [ ] 11-04-PLAN.md — Publish + provenance/lineage surfacing (L4): build_work_site renders content/work/site reusing the Phase 9/10 devices + emits self-hosted fonts; provenance/lineage-visible (L6d) + no-external-call + byte-stable tests — WORK-03
+
+**Wave 4** *(blocked on 11-04 — disjoint files: cli.py + docs)*
+
+- [ ] 11-05-PLAN.md — --corpus {rev1|work} selector on build/check (L5): work corpus runs the same corpus-agnostic review_blockers gate (exit 0 clean / nonzero on a blocker) + e2e check-gate test; document the install/work-surface flow + self-host-fonts note in the specs — WORK-03
+
 **UI hint**: yes
 
 ### Phase 12: Learning & Onboarding Surface
