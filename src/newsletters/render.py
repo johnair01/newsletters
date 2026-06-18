@@ -205,6 +205,12 @@ _CSS = """
 .item .bo{font-size:15px;line-height:1.6;color:var(--text);max-width:700px}
 .rationale{background:var(--color-brand-light);border-left:3px solid var(--signal);padding:18px 22px;max-width:760px}
 .rationale .h{font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--signal);margin-bottom:8px}
+.honesty{background:var(--color-surface-low);border-left:3px solid var(--color-amber);padding:18px 22px;max-width:760px;margin:30px 0}
+.honesty .h{font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--color-amber);margin-bottom:10px}
+.honesty ul{margin:0}.honesty li{font-size:14px;line-height:1.55;color:var(--text);padding:5px 0;border-top:1px solid var(--line)}
+.honesty li:first-child{border-top:0}
+.honesty .kind{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--color-amber);margin-right:8px}
+.honesty .clean{font-size:13.5px;color:var(--text-dim);font-style:italic}
 .diagram{border:1px solid var(--line);border-left:3px solid var(--signal);background:var(--card);padding:24px 26px}
 .diagram svg{width:100%;height:auto;display:block;overflow:visible}
 .diagram .dh{font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--signal);margin-bottom:16px}
@@ -707,6 +713,43 @@ def _prevnext(site: Site, page: Page) -> str:
     return f'<div class="nl-prevnext">{left}{right}</div>'
 
 
+def _honesty_panel(surface: Surface) -> str:
+    """The per-surface "What's not here / not verified" amber honesty panel (PROV-03).
+
+    Rendered ONCE on EVERY surface (its presence is the proof, T-10-08). Lists, never
+    collapsed-by-default (CONTEXT decision 1 / L6):
+
+      * every ``surface.missing[]`` entry — the unsubstantiated/un-entailed material; and
+      * for every ``s in surface.traces`` with ``s.extraction``, each ``unextracted[]``
+        drop as ``locator.display`` + ``reason`` — the coverage gaps the adapter dropped.
+
+    When BOTH are empty the same panel shell renders a positive "Fully traced — nothing
+    outstanding" confirmation, so a clean surface still carries the panel. Every
+    interpolation is ``_e``-escaped (T-10-07 / SITE-05); no JS, pure render from typed
+    data so SITE-06 (byte-stable) holds.
+    """
+    items: list[str] = []
+    for entry in surface.missing:
+        items.append(
+            f'<li><span class="kind">unsubstantiated</span>{_e(entry)}</li>'
+        )
+    for s in surface.traces:
+        if s.extraction is None:
+            continue
+        for drop in s.extraction.unextracted:
+            reason = f" &mdash; {_e(drop.reason)}" if drop.reason else ""
+            items.append(
+                f'<li><span class="kind">not extracted</span>'
+                f"{_e(drop.locator.display)}{reason}</li>"
+            )
+    header = "<div class=\"h\">What's not here / not verified</div>"
+    if items:
+        body = f'<ul>{"".join(items)}</ul>'
+    else:
+        body = '<div class="clean">Fully traced &mdash; nothing outstanding.</div>'
+    return f'<div class="honesty">{header}{body}</div>'
+
+
 def render_surface(
     surface: Surface,
     *,
@@ -761,7 +804,10 @@ def render_surface(
     # from the Site; only emitted on the build path where both are supplied (SITE-04).
     crumb = _breadcrumb(site, page) if site is not None and page is not None else ""
     prevnext = _prevnext(site, page) if site is not None and page is not None else ""
-    body = f'{crumb}<main class="wrap">{masthead}{blocks}{prevnext}</main>'
+    # PROV-03: the honesty panel renders on EVERY surface, after the blocks — never hidden,
+    # never collapsed; a clean surface shows the positive confirmation (T-10-08).
+    honesty = _honesty_panel(surface)
+    body = f'{crumb}<main class="wrap">{masthead}{blocks}{honesty}{prevnext}</main>'
     return _page(
         title=surface.title,
         signal_css=t.signal_color.css_var,
