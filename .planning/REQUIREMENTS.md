@@ -43,7 +43,7 @@
 ### Rev2 Site & Renderer
 
 - [x] **SITE-01**: A `Site/Collection/Page` content model carries stable per-surface IDs (`EP01`, `R-001`, slug, issue/date) independent of list position
-- [ ] **SITE-02**: The front door is the real marketing Home (8-section spec); the archive is a separate Library page
+- [x] **SITE-02**: The front door is the real marketing Home (8-section spec); the archive is a separate Library page
 - [ ] **SITE-03**: The Library renders as a status board (columns by gate state: Draft / In Review / Published)
 - [ ] **SITE-04**: Global navigation resolves to four real destinations with breadcrumbs and prev/next within a surface type
 - [ ] **SITE-05**: The fan-out diagram and every cited source render as working links (e.g. `vision.md` → repo file)
@@ -123,7 +123,7 @@ Mapped during roadmap creation (2026-06-14). Every v1 requirement maps to exactl
 | ADAPT-04 | Phase 6 — PowerPoint Adapter | Complete |
 | ADAPT-05 | Phase 7 — Power BI Adapter | Complete |
 | SITE-01 | Phase 8 — Site Content Model & Stable IDs | Complete |
-| SITE-02 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Pending |
+| SITE-02 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Complete |
 | SITE-03 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Pending |
 | SITE-04 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Pending |
 | SITE-05 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Pending |

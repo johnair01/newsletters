@@ -254,7 +254,7 @@ Plans:
 
 Plans:
 
-- [ ] 09-01-PLAN.md — Wave 1: the 8-section marketing Home (`render_home` + section helpers + Home/board CSS + responsive `@media`); route split index.html=Home, library.html=archive (SITE-02)
+- [x] 09-01-PLAN.md — Wave 1: the 8-section marketing Home (`render_home` + section helpers + Home/board CSS + responsive `@media`); route split index.html=Home, library.html=archive (SITE-02)
 - [ ] 09-02-PLAN.md — Wave 2: the gate-state status board (`_board*`, CSS grid, no JS) + four resolved nav destinations + `_breadcrumb` + `_prevnext` (within surface type) + footer library link (SITE-03, SITE-04)
 - [ ] 09-03-PLAN.md — Wave 3: `source_base_url` + `link_for_source`, linked evidence chips + `FanoutLink.href` + SVG fan-out anchors + Home/footer links; generated marker + byte-stable regen + no-dead-link test (SITE-05, SITE-06)
 
@@ -357,7 +357,7 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 6. PowerPoint Adapter | 4/4 | Complete   | 2026-06-17 |
 | 7. Power BI Adapter | 4/4 | Complete   | 2026-06-18 |
 | 8. Site Content Model & Stable IDs | 2/2 | Complete   | 2026-06-18 |
-| 9. Rev2 Site IA, Navigation & Source Links | 0/TBD | Not started | - |
+| 9. Rev2 Site IA, Navigation & Source Links | 1/3 | In Progress|  |
 | 10. Reviewer Surfacing & Merge-Block Gate | 0/TBD | Not started | - |
 | 11. Work-Surface Installation | 0/TBD | Not started | - |
 | 12. Learning & Onboarding Surface | 0/TBD | Not started | - |

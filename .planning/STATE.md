@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
+status: executing
 stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-06-18T11:13:51.894Z"
-last_activity: 2026-06-18 -- Phase 08 marked complete
+last_updated: "2026-06-18T11:40:39.830Z"
+last_activity: 2026-06-18 -- Phase 09 execution started
 progress:
   total_phases: 14
   completed_phases: 7
-  total_plans: 25
-  completed_plans: 24
+  total_plans: 28
+  completed_plans: 25
   percent: 50
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-14)
 
 **Core value:** A deterministic, auditable pipeline that traces every published claim to evidence and never auto-publishes — AI is an optional accelerator, never an authority.
-**Current focus:** Phase 08 — site-content-model-stable-ids
+**Current focus:** Phase 09 — rev2-site-ia-navigation-source-links
 
 ## Current Position
 
-Phase: 08 — COMPLETE
-Plan: 2 of 2
-Status: Phase 08 complete
-Last activity: 2026-06-18 -- Phase 08 marked complete
+Phase: 09 (rev2-site-ia-navigation-source-links) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-06-18 -- Phase 09 execution started
 
 Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-03 complete)
 
@@ -77,6 +77,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 07 P04 | 15m | 2 tasks | 4 files |
 | Phase 08 P01 | 30min | 2 tasks | 5 files |
 | Phase 08 P02 | 25min | 2 tasks | 7 files |
+| Phase 09 P01 | 7min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -122,6 +123,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 07-04: the golden has no skip-mark — the powerbi adapter is stdlib-only so the corpus runs on a bare install
 - [Phase 08]: 08-01: identity moved out of presentation into a deterministic core (site.py); stable IDs = pure function of content + an append-only ledger (content/rev1/ids.json); existing slug->ref IMMUTABLE, new = max(per-type ordinal)+1; slug defaults to Surface.id for Rev1 backward-compat; reorder/insert stability proven by test_reorder_and_insert_preserve_ids (L7)
 - [Phase ?]: 08-02: Library is Page-driven — renders page.ref (R-001/EP01/A-001) from the Site/ledger, not a positional enumerate index; filenames byte-stable (L3); spec documents the ID convention + content model (L2)
+- [Phase ?]: Home (SITE-02): default inline persona = maintainer (matches home.jsx useState); canonical copy from home.jsx LETTERS/NL_*, not dogfood READERS
+- [Phase ?]: Route split: index.html=Home, library.html=archive; per-surface {slug}.html stays byte-stable
 
 ### Pending Todos
 
@@ -150,6 +153,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-18T11:11:11.362Z
+Last session: 2026-06-18T11:40:15.084Z
 Stopped at: Completed 06-02-PLAN.md
 Resume file: None
