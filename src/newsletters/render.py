@@ -104,7 +104,7 @@ _CSS = """
 /* Self-hosted fonts (no external call). The three SIL-OFL families are vendored as
    woff2 under content/rev1/site/fonts/ (OFL-*.txt travels with them); src is a
    RELATIVE url so the rendered Library is offline / self-contained (WORK-01, L3).
-   Instrument Sans is a variable font: one file covers weights 400-600. */
+   Instrument Sans is a variable font: one file spans the 400-600 range. */
 @font-face{font-family:'DM Serif Display';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/dm-serif-display-400.woff2') format('woff2')}
 @font-face{font-family:'DM Serif Display';font-style:italic;font-weight:400;font-display:swap;src:url('fonts/dm-serif-display-400-italic.woff2') format('woff2')}
 @font-face{font-family:'DM Mono';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/dm-mono-400.woff2') format('woff2')}
