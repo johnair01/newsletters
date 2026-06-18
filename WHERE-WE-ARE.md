@@ -7,7 +7,20 @@
 
 ## Where we are right now
 
-**2026-06-18 — Phase 7 BUILD COMPLETE (4/4 plans), awaiting verification: Power BI adapter (4th adapter).**
+**2026-06-18 — Phase 7 SHIPPED & VERIFIED (3/3): Power BI adapter. ALL FOUR ADAPTERS DONE (Phases 4–7).**
+Registry = `['email','excel','powerbi','pptx']`; 448 tests pass. Two events worth remembering (RETRO
+2026-06-18): (1) the Phase-7 Wave-1 background agents **stalled ~16h** when the remote container
+idle-reclaimed mid-flight — recovered by rebuilding the missing `_pbir.py` inline from its committed
+test; rule hardened: a completion notification ≠ liveness, commit/push every task, diagnose the live
+repo on long silence. (2) The verifier caught a **real silent-drop bug** — `_tmdl.py` read `model`/
+`ref table` lines then dropped them (the golden's `claims+misses==units` identity couldn't see it; the
+fixture was authored *around* the bug). Fixed: recognize `model` (props → `Model.*`), extract `ref`
+references, DISCLOSE any orphan/unknown line (`_R_TMDL_UNPARSED`), and anchor the golden to LINES READ
+(`test_no_line_is_read_but_undisclosed`). The no-silent-drops invariant now holds against the source,
+not just the parser's output. **Next: Phase 8 — Site Content Model & Stable IDs** (pivot from
+extraction to the site/reviewer surfaces).
+
+**(superseded) 2026-06-18 — Phase 7 BUILD COMPLETE (4/4 plans), awaiting verification.**
 All four 07 plans are executed and green. `PowerBiAdapter` (registered `"powerbi"`) is **stdlib-only —
 ZERO new dependency** (the headline difference from excel/pptx, which need openpyxl/python-pptx): a
 PBIP project (plain-text TMDL semantic model + PBIR JSON report) becomes a content-addressed
