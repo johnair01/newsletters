@@ -27,8 +27,70 @@ from .semantic import (
     RationaleBlock,
     ReviewState,
     Surface,
+    Trace,
 )
-from .site import Collection, Page, Site
+from .site import Collection, Page, Site, slugify
+
+# --------------------------------------------------------------------------- #
+# Source links (SITE-05) — the single configurable repo base + the resolution rule
+# --------------------------------------------------------------------------- #
+#
+# A cited source becomes a WORKING link via one rule (SITE-05 / 09-UI-SPEC §SITE-05):
+#   1. a file-path locator (docs/vision.md, CLAUDE.md, semantic.py, src/…/render.py)
+#      → ``{source_base_url}{path}`` (the repo blob URL); ``base_url=None`` → a relative
+#        ``../path`` so a fully-offline / self-hosted export still resolves.
+#   2. a session/transcript locator (a SessionLocator, or a session-*/doc-* source_id with
+#      no file path) → an IN-SITE anchor (``{slug}.html``) to the surface that records it,
+#      resolved via ``Site.by_slug``. No in-site target → ``None``.
+#   3. neither → ``None`` — the caller renders PLAIN TEXT, never a dead/``href="None"`` link.
+# The default base matches the Home §7 repo lockup (``nneibaue / newsletters``, surfaces.md
+# L68), keeping the renderer host-agnostic (open-by-default, self-hostable — CLAUDE.md).
+
+repo_url = "https://github.com/nneibaue/newsletters"
+source_base_url = f"{repo_url}/blob/main/"
+spec_url = f"{source_base_url}docs/architecture.md"
+
+# A locator "looks like a repo path" when it carries a path separator or ends in a known
+# source extension. Detection is deterministic + stdlib-only (no new dependency, no AI).
+_SOURCE_EXTS = (".md", ".py", ".txt", ".json", ".toml", ".cfg", ".ini", ".yml", ".yaml", ".rst")
+
+
+def _is_file_path_locator(text: str) -> bool:
+    """True iff ``text`` reads as a repo file path (a `/` segment or a source extension)."""
+    t = (text or "").strip()
+    if not t or " " in t:
+        return False
+    return ("/" in t) or t.endswith(_SOURCE_EXTS)
+
+
+def link_for_source(
+    source_or_trace: Trace,
+    *,
+    base_url: str | None = source_base_url,
+    site: Site | None = None,
+) -> str | None:
+    """Resolve a cited :class:`~newsletters.semantic.Trace` to a WORKING URL, or ``None``.
+
+    The three-branch SITE-05 rule (file path → repo blob / ``../path``; session/transcript →
+    in-site ``{slug}.html`` via ``site.by_slug`` or ``None``; neither → ``None``). Returns
+    ``None`` whenever no real target exists so the caller renders PLAIN TEXT — never a dead
+    link. The URL is built ONLY from the path/slug-safe locator value; free text never enters
+    an ``href`` (T-09-08).
+    """
+    trace = source_or_trace
+    locator = trace.locator
+    text = getattr(locator, "text", "") or ""
+    # 1. File-path locator → repo blob URL (or a relative path when offline).
+    if _is_file_path_locator(text):
+        path = text.strip().lstrip("/")
+        return f"{base_url}{path}" if base_url is not None else f"../{path}"
+    # 2/3. Session/transcript or non-path → an in-site anchor if the source maps to a
+    # recording surface in the Site, otherwise plain text (None).
+    if site is not None:
+        page = site.by_slug(trace.source_id)
+        if page is not None:
+            return page.href
+    return None
 
 # --------------------------------------------------------------------------- #
 # Tokens — ported 1:1 from signals/tokens.css, plus chrome + layout + blocks
@@ -328,7 +390,21 @@ def _chip(name: str) -> str:
     )
 
 
-def _block_html(b) -> str:
+def _ev_chip(t: Trace, site: Site | None) -> str:
+    """One evidence chip: a linked ``<a class="ev-chip">`` when :func:`link_for_source`
+    yields a URL, else the plain ``<span class="ev-chip">`` (faithful — never a dead link).
+
+    The visible token styling is unchanged (mono 9.5px ``.ev-chip``); only the element
+    becomes ``<a>`` when there is a real target. Every interpolation is ``_e``-escaped.
+    """
+    label = _e(t.source_id) + ((":" + _e(t.locator.display)) if t.locator.display else "")
+    url = link_for_source(t, site=site)
+    if url:
+        return f'<a class="ev-chip" href="{_e(url)}">{label}</a>'
+    return f'<span class="ev-chip">{label}</span>'
+
+
+def _block_html(b, site: Site | None = None) -> str:
     if isinstance(b, ProseBlock):
         paras = "".join(f"<p>{_e(p)}</p>" for p in b.text.split("\n\n") if p.strip())
         h = f'<h3 class="block-h">{_e(b.heading)}</h3>' if b.heading else ""
@@ -337,8 +413,7 @@ def _block_html(b) -> str:
         rows = []
         for c in b.claims:
             ev = "".join(
-                f'<span class="ev-chip">{_e(t.source_id)}{(":" + _e(t.locator.display)) if t.locator.display else ""}</span>'
-                for t in c.evidence
+                _ev_chip(t, site) for t in c.evidence
             ) or '<span class="ev-chip" style="color:var(--color-amber)">unsubstantiated &rarr; missing[]</span>'
             conf = f'<span class="conf">conf {c.confidence:.2f}</span>'
             cls = "claim" if c.is_traced else "claim untraced"
@@ -577,7 +652,7 @@ def render_surface(
         if surface.audience_label
         else ""
     )
-    blocks = "".join(_block_html(b) for b in surface.blocks)
+    blocks = "".join(_block_html(b, site) for b in surface.blocks)
     masthead = (
         f'<div class="masthead"><div class="sg-eyebrow">{_e(surface.eyebrow)}</div>'
         f'<div class="tags"><span class="sg-tag featured">{_e(t.display_name)}</span>'
