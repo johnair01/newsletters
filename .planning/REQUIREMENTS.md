@@ -46,8 +46,8 @@
 - [x] **SITE-02**: The front door is the real marketing Home (8-section spec); the archive is a separate Library page
 - [x] **SITE-03**: The Library renders as a status board (columns by gate state: Draft / In Review / Published)
 - [x] **SITE-04**: Global navigation resolves to four real destinations with breadcrumbs and prev/next within a surface type
-- [ ] **SITE-05**: The fan-out diagram and every cited source render as working links (e.g. `vision.md` → repo file)
-- [ ] **SITE-06**: All site output regenerates from the renderer/templates (no hand-edited HTML)
+- [x] **SITE-05**: The fan-out diagram and every cited source render as working links (e.g. `vision.md` → repo file)
+- [x] **SITE-06**: All site output regenerates from the renderer/templates (no hand-edited HTML)
 
 ### Work-Surface Installation
 
@@ -126,8 +126,8 @@ Mapped during roadmap creation (2026-06-14). Every v1 requirement maps to exactl
 | SITE-02 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Complete |
 | SITE-03 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Complete |
 | SITE-04 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Complete |
-| SITE-05 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Pending |
-| SITE-06 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Pending |
+| SITE-05 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Complete |
+| SITE-06 | Phase 9 — Rev2 Site IA, Navigation & Source Links | Complete |
 | PROV-03 | Phase 10 — Reviewer Surfacing & Merge-Block Gate | Pending |
 | PROV-04 | Phase 10 — Reviewer Surfacing & Merge-Block Gate | Pending |
 | WORK-01 | Phase 11 — Work-Surface Installation | Pending |

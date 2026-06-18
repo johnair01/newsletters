@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
+status: verifying
 stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-06-18T11:56:23.684Z"
+last_updated: "2026-06-18T12:10:18.221Z"
 last_activity: 2026-06-18 -- Phase 09 execution started
 progress:
   total_phases: 14
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 28
-  completed_plans: 26
-  percent: 50
+  completed_plans: 27
+  percent: 57
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 
 Phase: 09 (rev2-site-ia-navigation-source-links) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-18 -- Phase 09 execution started
 
 Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-03 complete)
@@ -79,6 +79,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 08 P02 | 25min | 2 tasks | 7 files |
 | Phase 09 P01 | 7min | 3 tasks | 14 files |
 | Phase 09 P02 | 9min | 3 tasks | 13 files |
+| Phase 09 P03 | 8min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -128,6 +129,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Route split: index.html=Home, library.html=archive; per-surface {slug}.html stays byte-stable
 - [Phase ?]: Library is a fixed three-column gate-state board (Draft/In Review/Published) keyed off Page.gate; empty columns keep a muted placeholder so the board shape never collapses
 - [Phase ?]: _nav_targets resolves the four nav destinations to real first-pages (index.html fallback only for empty collections); render_surface keeps optional site=/page= kwargs so context-free callers stay green
+- [Phase ?]: SITE-05: configurable source_base_url (GitHub blob default + relative fallback); link_for_source degrades to plain text, never a dead link
+- [Phase ?]: SITE-06: generated-by-render marker + byte-stable double-render proves content/rev1/site regenerates from render.py with zero dead links
 
 ### Pending Todos
 
@@ -156,6 +159,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-18T11:56:23.676Z
+Last session: 2026-06-18T12:10:11.674Z
 Stopped at: Completed 09-02-PLAN.md
 Resume file: None
