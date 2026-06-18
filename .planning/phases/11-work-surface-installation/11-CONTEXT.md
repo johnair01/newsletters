@@ -48,6 +48,46 @@ stdlib), Phases 8–10 (Site model, renderer, provenance surfacing + honesty pan
    the AI backend (v2) or a full code-analysis adapter. Read-only on the target (never writes to the
    work codebase). AI-optional + all prior contracts stay green.
 
+## Research-locked choices (11-RESEARCH.md accepted 2026-06-18, HIGH confidence)
+
+- **L1 — WORK-02 (hand-authored work Report):** reuse `capture.build_report` (capture.py:81) + the
+  `dogfood._address_report` content-addressing pattern (locate each claim verbatim in its file, pin via
+  `Trace.from_source`). New module `src/newsletters/worksurface.py` (NOT dogfood.py — that's the sample
+  corpus). New corpus at `content/work/` with its own append-only ledger. Claims that paraphrase (don't
+  content-address) route to `missing[]` (honesty panel shows them) — NEVER fabricate an offset.
+- **L2 — WORK-01 (read-only local ingest):** `capture_files(paths) -> list[Source]` — stdlib,
+  `Source(id=posix_relpath, transcript=Path(p).read_text())`, `sorted()` + `EPOCH_ZERO` timestamp
+  (reuse `adapters/_timestamps.py`) for determinism. Read-only BY CONSTRUCTION (no write to target, no
+  network). The relpath `id` is already recognized by `_is_file_path_locator` (render.py:62) → claims
+  link to working repo files for free. Ingest a CURATED file list (the files the claims cite), not a
+  broad glob (no orphan sources).
+- **L3 — Font fix (the no-external-call correctness fix):** REMOVE the external Google-Fonts `@import`
+  (render.py:104) — that kills the baked-in external call regardless of what replaces it. Preferred
+  replacement: VENDOR the three OFL woff2 (DM Serif Display, DM Mono, Instrument Sans — all SIL OFL,
+  well-established) under e.g. `content/rev1/site/fonts/` + `@font-face`, INCLUDING the `OFL.txt`
+  license file. If the in-env fetch of the woff2 is unavailable/blocked, FALL BACK to a system-font
+  stack with the DM families named first (graceful degradation) + a documented "vendor the OFL woff2 in
+  production" note + the `@font-face` scaffold ready. EITHER path → zero external calls. No reviewer
+  checkpoint: OFL for these three is established public fact and the license file travels with the
+  fonts; if vendoring, the executor confirms `OFL.txt` is present. `design-system.md:65` already
+  mandates self-hosting in production.
+- **L4 — WORK-03 (provenance/lineage):** REUSE the Phase 9/10 devices (claim→file links via
+  `link_for_source`, `_claim_spans` verbatim trace, `_honesty_panel`, the fan-out chain + masthead
+  `captured via`/`derived from`). The ONE minimal addition: populate `Surface.lineage`
+  (`derived_from` = ingested file ids, `produced` = fan-out ids) so the EXISTING masthead line becomes
+  a real provenance/lineage summary — no new renderer code (verify `Surface.lineage` exists or add the
+  field minimally).
+- **L5 — `check`/`build` corpus selector:** add `--corpus {rev1|work}` to the CLI; `review_blockers`
+  is already corpus-agnostic (review.py:58). The work corpus runs through the SAME merge-block gate.
+- **L6 — Tests:** (a) NO-EXTERNAL-CALL — generated HTML contains no auto-loading resource URL
+  (`fonts.googleapis.com`, `@import url('http`, `src="http`, `<link ... href="http`) — scoped to
+  AUTO-LOADED resources, NOT clickable `repo_url`/source links (A2); (b) read-only ingest produces
+  content-addressed Sources + writes nothing to the target; (c) WORK-02 the hand-authored Report
+  inherits the traced structure (claims content-address to the ingested files; un-locatable → missing[]);
+  (d) WORK-03 provenance + lineage are visible on the work surface.
+- **A2 lock:** the no-external-call assertion targets auto-fetched resources only; `repo_url` and
+  `link_for_source` anchors are navigation (correct) and stay absolute.
+
 ## Hard rules in play
 - **Open by default / self-hostable / NO external calls baked in** — WORK-01's "data stays local" makes
   this literal; resolve the font `@import`. No analytics, no phone-home, no calls on content.
