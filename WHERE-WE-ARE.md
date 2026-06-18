@@ -7,6 +7,19 @@
 
 ## Where we are right now
 
+**2026-06-18 — Phase 8 SHIPPED & VERIFIED (2/2): Site Content Model & Stable IDs (SITE-01).** The
+pivot from extraction to surfaces. New typed `Site → Collection → Page` model (`src/newsletters/site.py`,
+stdlib+Pydantic, AI-free) + a stdlib `slugify` + an **append-only ID ledger** (`content/rev1/ids.json`,
+`slug → {ref,type,issue,date}`, sort_keys). Stable per-type refs (`R-001`..`R-004`, `EP01`, `A-001`;
+newsletters cadenced) are **content-derived / ledger-assigned, never positional** — the Library no
+longer numbers by `enumerate` (`{i:02d}` rot removed); it renders `Page.ref`. Proven: reorder + insert
+→ every existing `slug→ref` byte-identical, links resolve, new surface gets a fresh ref
+(`test_reorder_and_insert_preserve_ids` + `test_existing_links_do_not_rot`). Filenames + ledger stay
+byte-stable on rebuild. Spec gap FILLED (hard rule): the ID convention is now in `docs/surfaces.md` +
+the Site/Collection/Page model in `docs/architecture.md`. 458 tests pass; contracts green. Scope held —
+NO Home/nav/gate-board yet (that's Phase 9/10); `Collection` groups by type, `Page.gate` merely carried.
+**Next: Phase 9 — Rev2 Site IA, Navigation & Source Links.**
+
 **2026-06-18 — Phase 7 SHIPPED & VERIFIED (3/3): Power BI adapter. ALL FOUR ADAPTERS DONE (Phases 4–7).**
 Registry = `['email','excel','powerbi','pptx']`; 448 tests pass. Two events worth remembering (RETRO
 2026-06-18): (1) the Phase-7 Wave-1 background agents **stalled ~16h** when the remote container
