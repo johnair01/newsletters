@@ -222,6 +222,42 @@ def test_bare_pipeline_runs_ai_free() -> None:
     )
 
 
+# --- WORK-01 / PKG-03 (carried): the work-surface ingest is on the policed bare surface ---- #
+#
+# Phase 11 adds src/newsletters/worksurface.py — the read-only local-file `Source` ingest. It is a
+# core module (stdlib pathlib + semantic + _timestamps only), so the SAME AI-isolation guarantee
+# that covers `import newsletters` / the dogfood pipeline must cover `import newsletters.worksurface`:
+# importing it on the bare no-extras path must pull in ZERO AI/LLM module. This extends the policed
+# surface to the new module without changing the AI-module set or the contract.
+
+
+def test_worksurface_import_loads_no_ai_module() -> None:
+    """A fresh subprocess `import newsletters.worksurface` loads no AI module (WORK-01 / PKG-03).
+
+    Runs with PYDANTIC_DISABLE_PLUGINS=true so we measure OUR import graph, not ambient plugins
+    the dev .venv may have installed (the leak-note false-positive caveat). Also exercises
+    `capture_files` directly to prove the call path stays AI-free, not just the import.
+    """
+    code = (
+        "import sys, tempfile, os; "
+        "from newsletters.worksurface import capture_files; "
+        "d = tempfile.mkdtemp(prefix='nl-work-ai-'); "
+        "p = os.path.join(d, 'note.md'); "
+        "open(p, 'w', encoding='utf-8').write('# note\\nread-only ingest\\n'); "
+        "srcs = capture_files(['note.md'], root=__import__('pathlib').Path(d)); "
+        "assert srcs and srcs[0].id == 'note.md', srcs; "
+        f"bad=[m for m in {AI_MODULES!r} if m in sys.modules]; "
+        "assert not bad, bad; print('worksurface ai-free')"
+    )
+    env = {**os.environ, "PYDANTIC_DISABLE_PLUGINS": "true"}
+    proc = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, env=env, cwd=REPO_ROOT
+    )
+    assert proc.returncode == 0, (
+        f"AI leaked into newsletters.worksurface import/call:\n{proc.stdout}{proc.stderr}"
+    )
+
+
 # --- ADAPT-03 / T-05-04 / T-05-05: the optional [excel] (openpyxl) lazy boundary --------- #
 #
 # openpyxl is NOT AI — the forbid-ai contract is unaffected — but the SAME minimal-core / lazy
