@@ -10,7 +10,7 @@ from __future__ import annotations
 import pathlib
 
 from newsletters.dogfood import build_site, build_surfaces
-from newsletters.render import render_home
+from newsletters.render import render_home, render_library
 from newsletters.semantic import ReviewState
 from newsletters.site import Ledger, Site
 
@@ -153,3 +153,95 @@ def test_build_site_keeps_per_surface_filenames_stable(tmp_path: pathlib.Path) -
     names = {p.name for p in written}
     # A representative per-surface filename stays stable (Phase-8 L3).
     assert "show-ep01.html" in names
+
+
+# --------------------------------------------------------------------------- #
+# Wave 2 — Task 1: the gate-state status board (SITE-03)
+# --------------------------------------------------------------------------- #
+
+
+def _full_site() -> Site:
+    """The full Site (all surfaces, all three newsletters) for board tests."""
+    return _site()
+
+
+def _board_section(html: str) -> str:
+    """Return only the board markup (everything from `lib-board` onward)."""
+    i = html.index("lib-board")
+    return html[i:]
+
+
+def test_board_groups_pages_into_three_gate_columns_in_ladder_order() -> None:
+    html = render_library(_full_site())
+    board = _board_section(html)
+    # Three columns, headers in the Draft → In Review → Published ladder order.
+    draft_at = board.index("Draft")
+    review_at = board.index("In Review")
+    published_at = board.index("Published")
+    assert draft_at < review_at < published_at, "columns not in ReviewState ladder order"
+    assert board.count('class="lib-col"') == 3, "board must always show exactly three columns"
+
+
+def test_board_places_a_published_page_only_in_the_published_column() -> None:
+    site = _full_site()
+    html = render_library(site)
+    # Find a published page and assert its card is in the Published column, not elsewhere.
+    published = [p for p in site.pages() if p.gate is ReviewState.PUBLISHED]
+    assert published, "fixture must contain at least one Published surface"
+    # Each gate column is a <div class="lib-col">…</div>; split on the column boundaries.
+    cols = html.split('class="lib-col"')
+    # cols[0] is preamble; cols[1..3] are Draft / In Review / Published in order.
+    assert len(cols) == 4
+    published_col = cols[3]
+    earlier_cols = cols[1] + cols[2]
+    for p in published:
+        assert f'href="{p.href}"' in published_col, f"{p.href} not in Published column"
+        assert f'href="{p.href}"' not in earlier_cols, f"{p.href} leaked into a non-Published column"
+
+
+def test_board_empty_column_still_renders_header_and_placeholder() -> None:
+    # A Site with only a single PUBLISHED page → Draft + In Review columns are empty.
+    surfaces = build_surfaces()
+    published_only = [s for s in surfaces if s.gate is ReviewState.PUBLISHED][:1]
+    assert published_only, "need at least one published surface for the fixture"
+    site = Site.from_surfaces(published_only, ledger=Ledger.load("/nonexistent.json"))
+    html = render_library(site)
+    board = _board_section(html)
+    assert board.count('class="lib-col"') == 3, "empty columns must not collapse"
+    # The empty-state placeholder is shown for the empty columns.
+    assert "No surfaces in this state." in board
+
+
+def test_board_is_pure_css_grid_with_no_new_script() -> None:
+    html = render_library(_full_site())
+    assert "lib-board" in html
+    assert "grid-template-columns:repeat(3,1fr)" in html  # CSS grid, three columns
+    # The only <script> is the existing theme toggle — the board adds none.
+    assert html.count("<script>") == 1
+
+
+def test_board_cards_lead_with_stable_ref_and_carry_status_tag() -> None:
+    site = _full_site()
+    html = render_library(site)
+    board = _board_section(html)
+    # Cards are anchors to page.href; a representative stable ref leads (never enumerate).
+    show = next(p for p in site.pages() if p.kind == "show")
+    assert f'href="{show.href}"' in board
+    assert show.ref in board  # EP01 — the stable ledger ref, not a position
+    assert "lib-card" in board
+    # Each card carries a gate status pill (sg-tag).
+    assert "sg-tag" in board
+
+
+def test_board_column_headers_count_their_pages() -> None:
+    site = _full_site()
+    html = render_library(site)
+    cols = html.split('class="lib-col"')[1:]
+    assert len(cols) == 3
+    buckets = {ReviewState.DRAFT: 0, ReviewState.IN_REVIEW: 0, ReviewState.PUBLISHED: 0}
+    for p in site.pages():
+        buckets[p.gate] += 1
+    ladder = [ReviewState.DRAFT, ReviewState.IN_REVIEW, ReviewState.PUBLISHED]
+    for col, state in zip(cols, ladder):
+        # The header carries the bucket count for its state.
+        assert f"({buckets[state]})" in col, f"{state} column header missing its count"
