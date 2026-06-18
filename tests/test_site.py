@@ -202,11 +202,30 @@ def test_reorder_and_insert_preserve_ids(tmp_path):
 
 
 def test_imports_are_ai_free():
-    """site.py must not pull in any AI/distill module (belt-and-braces alongside lint-imports)."""
+    """`import newsletters.site` loads no AI module (belt-and-braces alongside lint-imports).
+
+    Measured in a FRESH subprocess with ``PYDANTIC_DISABLE_PLUGINS=true`` — the same technique
+    the canonical AI-optional gates use (``tests/test_ai_optional.py``) — so it measures
+    site.py's OWN import graph and is not a false positive from the dev .venv's ambient
+    logfire pydantic-plugin (which auto-activates on any pydantic import with no import edge;
+    see ``.planning/notes/ai-optional-pydantic-plugin-leak.md``).
+    """
+    import os
+    import subprocess
     import sys
 
-    import newsletters.site  # noqa: F401
-
-    forbidden = ("pydantic_ai", "langchain", "langgraph", "openai", "anthropic", "logfire")
-    leaked = [m for m in sys.modules if m.startswith(forbidden)]
-    assert leaked == [], f"AI modules reachable from site.py: {leaked}"
+    forbidden = ("pydantic_ai", "langchain", "langgraph", "langsmith", "logfire", "openai", "anthropic")
+    code = (
+        "import sys, newsletters.site; "
+        f"bad=[m for m in sys.modules if m.startswith({forbidden!r})]; "
+        "assert not bad, bad; print('site ai-free')"
+    )
+    env = {**os.environ, "PYDANTIC_DISABLE_PLUGINS": "true"}
+    proc = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=Path(__file__).resolve().parent.parent,
+    )
+    assert proc.returncode == 0, f"AI leaked into site.py import:\n{proc.stdout}{proc.stderr}"
