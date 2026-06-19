@@ -35,7 +35,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 9: Rev2 Site IA, Navigation & Source Links** - Real Home, Library status-board, four-destination nav, working source links (completed 2026-06-18)
 - [x] **Phase 10: Reviewer Surfacing & Merge-Block Gate** - `missing[]`/`unextracted[]` shown on every surface; CI blocks unsafe merges (completed 2026-06-18)
 - [x] **Phase 11: Work-Surface Installation** - Install on a real codebase, author Reports by hand, Library shows how the work was done (completed 2026-06-18)
-- [ ] **Phase 12: Learning & Onboarding Surface** - A first-class surface that re-cuts reviewed records for newcomers and training cohorts — digestible, traceable, sequenced
+- [x] **Phase 12: Learning & Onboarding Surface** - A first-class surface that re-cuts reviewed records for newcomers and training cohorts — digestible, traceable, sequenced (completed 2026-06-19)
 - [ ] **Phase 13: Problem Lifecycle Entity (A2)** - A first-class `Problem` above `Source` with its own state ladder — legibility layer, not a tracker; solving stays external
 - [ ] **Phase 14: Problem Board Portfolio Surface (A2)** - A queryable portfolio view — group/count/age problems by node, surface recurrence, every problem traced to its sources
 
@@ -342,7 +342,7 @@ Plans:
 - [x] 12-02-PLAN.md — docs/surfaces.md Learning + OnboardingPath spec section
 - [x] 12-03-PLAN.md — learning_surface() faithful re-cut + OnboardingPath model (learning.py)
 - [x] 12-04-PLAN.md — render: GlossaryBlock + ordered learning sections + render_path() (no JS, no external call, faithful)
-- [ ] 12-05-PLAN.md — dogfood re-cut of report-datamodel + onboarding path + content/rev1/site regen (byte-stable, L-001, end-to-end)
+- [x] 12-05-PLAN.md — dogfood re-cut of report-datamodel + onboarding path + content/rev1/site regen (byte-stable, L-001, end-to-end)
 
 **UI hint**: yes
 
@@ -401,6 +401,6 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 9. Rev2 Site IA, Navigation & Source Links | 3/3 | Complete   | 2026-06-18 |
 | 10. Reviewer Surfacing & Merge-Block Gate | 3/3 | Complete   | 2026-06-18 |
 | 11. Work-Surface Installation | 5/5 | Complete   | 2026-06-18 |
-| 12. Learning & Onboarding Surface | 4/5 | In Progress|  |
+| 12. Learning & Onboarding Surface | 5/5 | Complete   | 2026-06-19 |
 | 13. Problem Lifecycle Entity (A2) | 0/TBD | Not started | - |
 | 14. Problem Board Portfolio Surface (A2) | 0/TBD | Not started | - |

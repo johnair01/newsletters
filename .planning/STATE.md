@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
+status: verifying
 stopped_at: Completed 12-03-PLAN.md
-last_updated: "2026-06-19T05:37:14.383Z"
+last_updated: "2026-06-19T05:55:51.234Z"
 last_activity: 2026-06-19 -- Phase 12 execution started
 progress:
   total_phases: 14
-  completed_phases: 10
+  completed_phases: 11
   total_plans: 41
-  completed_plans: 39
-  percent: 71
+  completed_plans: 40
+  percent: 79
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 
 Phase: 12 (learning-onboarding-surface) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-19 -- Phase 12 execution started
 
 Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-03 complete)
@@ -92,6 +92,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 12 P02 | 2min | 1 tasks | 1 files |
 | Phase 12 P03 | 5min | 2 tasks | 2 files |
 | Phase 12 P04 | 5min | 2 tasks | 2 files |
+| Phase 12 P05 | 18min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -158,6 +159,7 @@ Recent decisions affecting current work:
 - [Phase 12]: OnboardingPath is navigation over already-gated surfaces — NOT a Surface, no own review gate (12-02 spec, L4/A5).
 - [Phase ?]: 12-03: learning_surface() re-cuts a reviewed record into 3 deterministic layers from existing traced claims only — faithfulness proven by set-membership + no-ProseBlock; un-glossable terms route to missing[]; OnboardingPath is navigation (not a Surface, no gate)
 - [Phase 12]: 12-04: GlossaryBlock renders each definition through the shared _claim_row provenance devices (LEARN-02 on the HTML); render_path replicates _prevnext boundary semantics over track steps, unresolved step -> plain text
+- [Phase ?]: 12-05: the dogfood learning surface stays Draft — un-glossable terms route to the honesty panel; a Published open-missing surface trips the merge gate, so honest gaps ship Draft (gate-exempt).
 
 ### Pending Todos
 
@@ -186,6 +188,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-19T05:36:36.650Z
+Last session: 2026-06-19T05:55:27.770Z
 Stopped at: Completed 12-03-PLAN.md
 Resume file: None
