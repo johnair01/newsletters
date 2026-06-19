@@ -321,58 +321,37 @@ import re as _re  # noqa: E402  (grouped with the render-side imports below)
 from newsletters.render import render_path, render_surface  # noqa: E402
 
 
-def _file_traced_claim(
-    text: str, *, locator: str, confidence: float, topics: list[str]
-) -> Claim:
-    """A traced claim whose evidence locator IS a repo FILE PATH.
-
-    ``link_for_source`` resolves a file-path locator to the repo blob URL, so the
-    rendered evidence chip becomes an ``<a class="ev-chip" href=...>`` — that is what
-    makes LEARN-02 ("every concept links to its source") literal on the HTML. The
-    fixtures in the Plan-01/03 logic tests use a FreeLocator() (empty text), which
-    resolves to plain text; here we need a working link, so we set a file-path locator.
-    """
-    from newsletters.locators import FreeLocator
-
-    src = Source(id="docs-record", transcript=text)
-    trace = Trace.from_source(src, 0, len(text), locator=FreeLocator(text=locator))
-    return Claim(text=text, evidence=[trace], confidence=confidence, topics=topics)
-
-
 def _render_record() -> Distillation:
     """A small reviewed record whose claims carry FILE-PATH locators (so they link).
 
+    ``link_for_source`` resolves a file-path locator to the repo blob URL, so each
+    rendered evidence chip becomes an ``<a class="ev-chip" href=...>`` — that is what
+    makes LEARN-02 ("every concept links to its source") literal on the HTML (the Plan
+    01/03 logic fixtures used a FreeLocator() with empty text, which renders plain text).
+
+    Each claim's Trace is content-addressed against the SAME ``Source`` object that the
+    Distillation carries in ``traces[]`` (one source per claim), so the rendered claim is
+    NOT spuriously STALE (the live source hash matches the hash the Trace pinned).
+
     ``CI`` has a defining claim (glossable, traced to a file) → its glossary definition
-    renders with a working source link. ``Flux`` is mentioned but never defined → it
-    routes to ``missing[]`` and surfaces in the honesty panel, never on the page body.
+    renders with a working source link. ``Flux`` is mentioned but never DEFINED → it routes
+    to ``missing[]`` and surfaces in the honesty panel, never as a glossary definition.
     """
-    claims = [
-        _file_traced_claim(
-            "You must understand the review gate before contributing.",
-            locator="docs/product-spec.md",
-            confidence=0.9,
-            topics=["onboarding"],
-        ),
-        _file_traced_claim(
-            "Every published claim traces to evidence.",
-            locator="docs/architecture.md",
-            confidence=0.95,
-            topics=["foundations"],
-        ),
-        _file_traced_claim(
-            "CI is the continuous integration pipeline that runs every test.",
-            locator="docs/architecture.md",
-            confidence=0.8,
-            topics=["glossary", "ci"],
-        ),
-        _file_traced_claim(
-            "We later migrated Flux jobs onto the shared runner.",
-            locator="docs/architecture.md",
-            confidence=0.4,
-            topics=["deep"],
-        ),
+    from newsletters.locators import FreeLocator
+
+    specs = [
+        ("You must understand the review gate before contributing.", "docs/product-spec.md", 0.9, ["onboarding"]),
+        ("Every published claim traces to evidence.", "docs/architecture.md", 0.95, ["foundations"]),
+        ("CI is the continuous integration pipeline that runs every test.", "docs/architecture.md", 0.8, ["glossary", "ci"]),
+        ("We later migrated Flux jobs onto the shared runner.", "docs/architecture.md", 0.4, ["deep"]),
     ]
-    srcs = [Source(id="docs-record", transcript=" ".join(c.text for c in claims))]
+    claims: list[Claim] = []
+    srcs: list[Source] = []
+    for i, (text, locator, confidence, topics) in enumerate(specs):
+        src = Source(id=f"docs-record-{i}", transcript=text)
+        trace = Trace.from_source(src, 0, len(text), locator=FreeLocator(text=locator))
+        claims.append(Claim(text=text, evidence=[trace], confidence=confidence, topics=topics))
+        srcs.append(src)
     return Distillation(narrative="A reviewed record.", claims=claims, traces=srcs)
 
 
@@ -436,9 +415,15 @@ def test_rendered_learning_surface_is_faithful_no_invented_prose() -> None:
         assert _e(s) in body, f"a selected claim is missing from the rendered body: {s!r}"
         assert s in source_texts, f"a non-source string slipped into the surface: {s!r}"
 
-    # The un-glossed term's NON-defining claim text never appears as a glossary definition.
-    # "Flux" is not glossed — it is only in missing[] (honesty panel), excluded from body.
-    assert "Flux" not in body
+    # Faithful is also NEGATIVE: no STALE / unfaithful badge on a clean surface (the trace
+    # source hash matches the carried source — nothing drifted, nothing invented).
+    assert "STALE" not in body
+    assert "unfaithful" not in body
+
+    # "Flux" is NOT glossed (it is only mentioned, never defined) — it must not appear as a
+    # glossary DEFINITION, only inside its own (legitimate, traced) Going-deeper claim.
+    surface_gloss = next(b for b in surface.blocks if isinstance(b, GlossaryBlock))
+    assert all("Flux" not in t.term for t in surface_gloss.terms)
 
 
 def test_every_concept_traces_to_source_on_the_rendered_surface() -> None:
