@@ -418,6 +418,34 @@ class DiagramBlock(BaseModel):
     caption: Optional[str] = None
 
 
+class GlossaryTerm(BaseModel):
+    """A glossary entry: a term mapped to its DEFINING reviewed, traced ``Claim``.
+
+    Faithfulness enforced *by the type*: ``definition`` is a ``Claim`` (carrying
+    ``evidence: list[Trace]``), never a bare ``str``. The defining claim's evidence IS the
+    definition — a term cannot be glossed with invented prose, only with a reviewed claim
+    that points back to its source. A term with no traceable defining claim is NOT glossed
+    here; the learning preset routes it to ``surface.missing[]`` (the honesty panel), never
+    a fabricated string. This is the LEARN-01 faithfulness crux, locked at construction time.
+    """
+
+    term: str
+    definition: Claim
+
+
+class GlossaryBlock(BaseModel):
+    """An in-context glossary block — each term traced to its defining ``Claim``.
+
+    A valid Surface block (its ``kind`` discriminator is ``"glossary"``), so it round-trips
+    through the typed ``Block`` union. Holds only ``GlossaryTerm``s, so every definition is a
+    traced claim by construction. The render branch is deliberately NOT here (that is Plan 04).
+    """
+
+    kind: Literal["glossary"] = "glossary"
+    heading: Optional[str] = "Glossary — every term traced to its definition"
+    terms: list[GlossaryTerm] = Field(default_factory=list)
+
+
 Block = Annotated[
     Union[
         ProseBlock,
@@ -430,6 +458,7 @@ Block = Annotated[
         FanoutBlock,
         RationaleBlock,
         DiagramBlock,
+        GlossaryBlock,
     ],
     Field(discriminator="kind"),
 ]
