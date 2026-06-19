@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Completed 11-04-PLAN.md
-last_updated: "2026-06-18T23:39:37.729Z"
-last_activity: 2026-06-18 -- Phase 11 marked complete
+status: executing
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-06-19T05:14:42.096Z"
+last_activity: 2026-06-19 -- Phase 12 execution started
 progress:
   total_phases: 14
   completed_phases: 10
-  total_plans: 36
-  completed_plans: 35
+  total_plans: 41
+  completed_plans: 37
   percent: 71
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-14)
 
 **Core value:** A deterministic, auditable pipeline that traces every published claim to evidence and never auto-publishes — AI is an optional accelerator, never an authority.
-**Current focus:** Phase 11 — work-surface-installation
+**Current focus:** Phase 12 — learning-onboarding-surface
 
 ## Current Position
 
-Phase: 11 — COMPLETE
-Plan: 5 of 5
-Status: Phase 11 complete
-Last activity: 2026-06-18 -- Phase 11 marked complete
+Phase: 12 (learning-onboarding-surface) — EXECUTING
+Plan: 3 of 5
+Status: Ready to execute
+Last activity: 2026-06-19 -- Phase 12 execution started
 
 Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-03 complete)
 
@@ -88,6 +88,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 11 P03 | 4min | 3 tasks | 3 files |
 | Phase 11 P04 | 5min | 3 tasks | 5 files |
 | Phase 11 P05 | 18min | 3 tasks | 5 files |
+| Phase 12 P01 | 3min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -149,6 +150,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 11-02: capture_files edge policy — missing/non-utf8 raise (never skip), abs/rel normalized to repo-relative POSIX id; never hand-mint content_hash
 - [Phase 11]: 11-04: build_work_site publishes the work corpus to content/work/site reusing render.py (no new renderer); claim->repo-file link via locator=file-path id; work output self-hosts the Plan-11-01 fonts for zero external call; work-report stays Draft
 - [Phase ?]: 11-05: --corpus {rev1|work} routes the builder, never forks the gate — the work corpus passes the SAME review_blockers (exit 0 clean / nonzero on a planted blocker)
+- [Phase ?]: Phase 12: glossary faithfulness enforced by type — GlossaryTerm.definition is a Claim, not a str
 
 ### Pending Todos
 
@@ -177,6 +179,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-18T23:31:07.088Z
-Stopped at: Completed 11-04-PLAN.md
+Last session: 2026-06-19T05:14:18.533Z
+Stopped at: Completed 12-01-PLAN.md
 Resume file: None

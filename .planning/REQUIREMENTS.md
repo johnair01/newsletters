@@ -57,7 +57,7 @@
 
 ### Learning & Onboarding
 
-- [ ] **LEARN-01**: A Learning/Onboarding surface preset re-cuts a reviewed record for a newcomer/learner audience — progressive disclosure, prerequisite context, and an in-context glossary of terms
+- [x] **LEARN-01**: A Learning/Onboarding surface preset re-cuts a reviewed record for a newcomer/learner audience — progressive disclosure, prerequisite context, and an in-context glossary of terms
 - [ ] **LEARN-02**: Every concept on a learning surface links back to its source record/claim, so a learner can trace explanation → evidence (teaching by traceability)
 - [ ] **LEARN-03**: An onboarding path sequences multiple records into an ordered learning track for a new team member / training-program participant
 
@@ -133,7 +133,7 @@ Mapped during roadmap creation (2026-06-14). Every v1 requirement maps to exactl
 | WORK-01 | Phase 11 — Work-Surface Installation | Complete |
 | WORK-02 | Phase 11 — Work-Surface Installation | Complete |
 | WORK-03 | Phase 11 — Work-Surface Installation | Complete |
-| LEARN-01 | Phase 12 — Learning & Onboarding Surface | Pending |
+| LEARN-01 | Phase 12 — Learning & Onboarding Surface | Complete |
 | LEARN-02 | Phase 12 — Learning & Onboarding Surface | Pending |
 | LEARN-03 | Phase 12 — Learning & Onboarding Surface | Pending |
 | PROB-01 | Phase 13 — Problem Lifecycle Entity | Pending |
