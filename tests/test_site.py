@@ -133,9 +133,9 @@ def test_page_ids_are_content_derived(tmp_path):
         assert page.surface is surface
 
     # Collections group by surface kind, ordered by template.distance (show 0, report 1,
-    # article 2, newsletter 3).
+    # article 2, newsletter 3, learning 4 — the Phase-12 newcomer re-cut is the 5th type).
     kinds = [c.kind for c in site.collections]
-    assert kinds == ["show", "report", "article", "newsletter"]
+    assert kinds == ["show", "report", "article", "newsletter", "learning"]
 
 
 def test_by_slug_resolves(tmp_path):
@@ -246,9 +246,11 @@ def test_existing_links_do_not_rot():
     """
     site_dir = Path(__file__).resolve().parent.parent / "content" / "rev1" / "site"
     # index.html (the Home) and library.html (the archive board) are site CHROME pages produced by the
-    # renderer, not per-surface Pages — exclude both; every OTHER file must be a Page href (Phase-9
+    # renderer, not per-surface Pages — exclude them; every OTHER file must be a Page href (Phase-9
     # route split, SITE-02: Home moved to index.html, the board to library.html).
-    _chrome = {"index.html", "library.html"}
+    # onboarding-newcomer.html (Phase-12 LEARN-03) is a TRACK page rendered via render_path — it
+    # is navigation over already-gated surfaces, NOT a per-surface Page, so it is chrome here too.
+    _chrome = {"index.html", "library.html", "onboarding-newcomer.html"}
     existing = sorted(p.name for p in site_dir.glob("*.html") if p.name not in _chrome)
 
     ledger_path = Path(__file__).resolve().parent.parent / "content" / "rev1" / "ids.json"

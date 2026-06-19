@@ -563,7 +563,10 @@ def test_rendered_set_matches_pages_and_chrome(tmp_path: pathlib.Path) -> None:
     build_site(tmp_path)
     rendered = {p.name for p in tmp_path.glob("*.html")}
     site = _full_site()
-    expected = {"index.html", "library.html"} | {page.href for page in site.pages()}
+    # Chrome = the Home + the Library board + the Phase-12 onboarding TRACK page (LEARN-03),
+    # which is rendered via render_path (navigation over already-gated surfaces), not a Page.
+    chrome = {"index.html", "library.html", "onboarding-newcomer.html"}
+    expected = chrome | {page.href for page in site.pages()}
     assert rendered == expected
 
 

@@ -678,8 +678,20 @@ def _datamodel_distillation(datamodel_report: Surface) -> Distillation:
 
 
 def _learning_recut(datamodel_report: Surface) -> Surface:
-    """Re-cut report-datamodel into the newcomer learning surface (Draft → published gate)."""
-    surface = learning_surface(
+    """Re-cut report-datamodel into the newcomer learning surface — left a Draft (faithful).
+
+    The re-cut honestly carries un-glossable terms in ``missing[]`` (the honesty panel):
+    "Distillation", "Surface" and "the review gate" are concepts the datamodel decisions USE
+    but never DEFINE, so they are SHOWN to the reviewer as gaps. A surface with open gaps must
+    NOT be published — the merge gate (PROV-04 / ``review_blockers``) treats an open
+    ``missing[]`` on a PUBLISHED surface as a blocker, and CLAUDE.md forbids publishing
+    unsubstantiated material silently. So we deliberately leave it a **Draft** (it lands in
+    the Library's Draft column, exempt from the gate). This is the load-bearing, faithful
+    outcome: the teaching surface ships its honest gaps visibly, and waits for a human to
+    glossary-define those terms (with traced claims) before it is ever published. NO
+    auto-publish — there is no ``publish()`` call here.
+    """
+    return learning_surface(
         _datamodel_distillation(datamodel_report),
         surface_id="learning-datamodel",
         title="How the data model works — a newcomer's guide",
@@ -691,11 +703,6 @@ def _learning_recut(datamodel_report: Surface) -> Surface:
         prerequisites=["show-ep01", "report-datamodel"],
         author=AUTHOR,
     )
-    # No auto-publish: the learning surface passes the SAME gate as every surface. Its
-    # template carries a light review policy (self-approve), so the author can approve — but
-    # it goes through publish() explicitly, exactly like the dogfood reports (CLAUDE.md).
-    surface.publish(reviewer=AUTHOR)
-    return surface
 
 
 def _onboarding_path() -> OnboardingPath:
