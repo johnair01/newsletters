@@ -174,7 +174,6 @@ def _record() -> Distillation:
             topics=["deep"],
         ),
     ]
-    sources = [t.evidence[0] for c in claims for t in c.evidence]
     # rebuild Source objects for traces[] (one per claim)
     srcs = [Source(id=c.evidence[0].source_id, transcript=c.text) for c in claims]
     return Distillation(narrative="A reviewed record.", claims=claims, traces=srcs)
