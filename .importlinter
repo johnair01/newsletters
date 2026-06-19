@@ -33,3 +33,30 @@ forbidden_modules =
     logfire
     openai
     anthropic
+
+# import-linter config (PROB-03) — the STATIC half of the no-write-back boundary.
+#
+# This `forbidden` contract fails `lint-imports` on ANY static `import` edge from the
+# `newsletters.problem` lifecycle module to a network / external-system / subprocess package.
+# CLAUDE.md hard rule + Phase-13 PROB-03 hard constraint: the Problem entity is a LEGIBILITY
+# LAYER, NOT an execution tracker — problem-solving stays external/operator-owned, so `problem.py`
+# must never write back to Jira/ADO or reach any network/external surface.
+#
+# TWO-LAYER PLAYBOOK (mirrors the AI-optional core): this contract catches static import EDGES
+# only. Its runtime complement is the `sys.modules` subprocess guard
+# `tests/test_problem_boundary.py::test_problem_loads_no_external_module`, which proves none of
+# these modules is reachable on a real `import newsletters.problem`. Necessary-but-not-sufficient
+# alone — the pair is the durable proof.
+[importlinter:contract:forbid-external-write-in-problem]
+name = problem.py must not import any network/external-system package
+type = forbidden
+source_modules =
+    newsletters.problem
+forbidden_modules =
+    socket
+    http
+    urllib
+    ftplib
+    smtplib
+    subprocess
+    requests
