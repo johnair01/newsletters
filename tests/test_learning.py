@@ -533,3 +533,125 @@ def test_learning_surface_and_path_make_no_external_call() -> None:
         assert html.count("<script>") == 1
     # Self-hosted fonts: the woff2 src is a RELATIVE url (no scheme).
     assert "url('fonts/" in surface_html
+
+
+# --------------------------------------------------------------------------- #
+# L5/L6 — Plan 05: the REAL dogfood learning surface + onboarding path, END-TO-END
+#
+# These assert the SHIPPED dogfood: build_site() authors a real learning re-cut of
+# report-datamodel for the newcomer Corpus + the ordered onboarding track, regenerated
+# into content/rev1/site byte-stable, with the learning ref L-001 and zero external calls
+# across the WHOLE site (both corpora views). They use tmp_path; the committed ids.json is
+# already populated with L-001, so build_site's ledger save is an idempotent no-op (it never
+# mutates the committed ledger here).
+# --------------------------------------------------------------------------- #
+
+import pathlib  # noqa: E402
+
+from newsletters.dogfood import (  # noqa: E402
+    _datamodel_distillation,
+    _learning_recut,
+    _onboarding_path,
+    _sources_and_reports,
+    build_site,
+    build_surfaces,
+)
+
+
+def _datamodel_report() -> Surface:
+    return next(s for s in _sources_and_reports() if s.id == "report-datamodel")
+
+
+def test_dogfood_builds_a_learning_surface_with_ref_l001(tmp_path: pathlib.Path) -> None:
+    # build the full Site through an ISOLATED tmp ledger (the committed ids.json is untouched);
+    # the learning surface is present, lands in a learning Collection, and gets ref L-001.
+    ledger = Ledger(tmp_path / "ids.json", {})
+    site = Site.from_surfaces(build_surfaces(), ledger=ledger)
+    learning_cols = [c for c in site.collections if c.kind == "learning"]
+    assert len(learning_cols) == 1, "the learning surface must form its own (5th) collection"
+    pages = learning_cols[0].pages
+    assert [p.slug for p in pages] == ["learning-datamodel"]
+    assert pages[0].ref == "L-001"
+    # FAITHFUL: every claim/glossary-definition on the re-cut is a traced claim of the SOURCE
+    # record — no invented prose. (The re-cut SELECTS existing claims, never authors new ones.)
+    recut = _learning_recut(_datamodel_report())
+    source_texts = {c.text for c in _datamodel_distillation(_datamodel_report()).claims}
+    rendered_claim_texts: set[str] = set()
+    for block in recut.blocks:
+        if isinstance(block, ClaimsBlock):
+            rendered_claim_texts |= {c.text for c in block.claims}
+        if isinstance(block, GlossaryBlock):
+            rendered_claim_texts |= {t.definition.text for t in block.terms}
+    assert rendered_claim_texts <= source_texts, "the re-cut introduced non-source prose"
+    assert not any(isinstance(b, ProseBlock) for b in recut.blocks), "no free prose on the guide"
+
+
+def test_learning_surface_is_in_the_site_and_board(tmp_path: pathlib.Path) -> None:
+    written = build_site(tmp_path)
+    names = {p.name for p in written}
+    assert "learning-datamodel.html" in names
+    # The learning surface is a Page like any surface — it appears in site.pages() and on the
+    # Library board (it has a gate state). The board lists its stable ref L-001.
+    ledger = Ledger(tmp_path / "ids2.json", {})
+    site = Site.from_surfaces(build_surfaces(), ledger=ledger)
+    assert any(p.slug == "learning-datamodel" for p in site.pages())
+    library_html = (tmp_path / "library.html").read_text(encoding="utf-8")
+    assert "L-001" in library_html, "the learning ref must label its Library board card"
+    # The OnboardingPath is reachable from the Library as a TRACK (a link to its page), NOT a
+    # board column of its own (a path has no review state, so it is not a gate-state column).
+    assert 'href="onboarding-newcomer.html"' in library_html
+    assert library_html.count('class="lib-board"') == 1  # still exactly the 3-state board
+
+
+def test_dogfood_onboarding_path_builds_and_renders_ordered(tmp_path: pathlib.Path) -> None:
+    written = build_site(tmp_path)
+    assert "onboarding-newcomer.html" in {p.name for p in written}
+    html = (tmp_path / "onboarding-newcomer.html").read_text(encoding="utf-8")
+    # The three steps appear in ORDER, each as its own numbered .track-step row, each linking
+    # to its real {slug}.html. We split on the row marker so each block holds exactly one step.
+    rows = html.split('<div class="track-step">')[1:]
+    assert len(rows) == 3, "the track must render exactly the three ordered steps"
+    assert 'href="show-ep01.html"' in rows[0]
+    assert 'href="report-datamodel.html"' in rows[1]
+    assert 'href="learning-datamodel.html"' in rows[2]
+    # prev/next WITHIN the track (per-row): the FIRST step has no Previous, the LAST no Next.
+    assert "Previous" not in rows[0], "the first step must have no Previous"
+    assert "Next &rarr;" in rows[0], "the first step must have a Next"
+    assert "Next" not in rows[2], "the last step must have no Next"
+    assert "Previous" in rows[2], "the last step must have a Previous"
+    # No dead links anywhere on the track page.
+    assert 'href="None"' not in html and 'href=""' not in html
+
+
+def test_site_with_learning_is_byte_stable(tmp_path: pathlib.Path) -> None:
+    a, b = tmp_path / "a", tmp_path / "b"
+    wa = build_site(a)
+    wb = build_site(b)
+    names_a = sorted(p.name for p in wa)
+    names_b = sorted(p.name for p in wb)
+    assert names_a == names_b
+    # The new pages are part of the byte-stable set.
+    assert "learning-datamodel.html" in names_a
+    assert "onboarding-newcomer.html" in names_a
+    for name in names_a:
+        assert (a / name).read_bytes() == (b / name).read_bytes(), (
+            f"{name} is not byte-identical across renders (nondeterminism)"
+        )
+
+
+def test_whole_site_makes_no_external_call(tmp_path: pathlib.Path) -> None:
+    # Across EVERY rendered page — the per-reader newsletter re-cuts, the reports, the article,
+    # the show, the Home, the Library, AND the new learning surface + onboarding track — no
+    # auto-loading external URL appears. Only self-hosted relative woff2 fonts + the one
+    # theme-toggle <script> are allowed (Phase 11 WORK-01, extended to the learning pages).
+    build_site(tmp_path)
+    pages = sorted(tmp_path.glob("*.html"))
+    assert {p.name for p in pages} >= {"learning-datamodel.html", "onboarding-newcomer.html"}
+    for page in pages:
+        html = page.read_text(encoding="utf-8")
+        assert _re.search(r"@font-face[^}]*src:url\('https?://", html) is None, page.name
+        assert _re.search(r"<script[^>]+src=", html) is None, page.name
+        assert _re.search(r'<link[^>]+href="https?://', html) is None, page.name
+        assert _re.search(r'<img[^>]+src="https?://', html) is None, page.name
+        assert "fonts.googleapis" not in html, page.name
+        assert html.count("<script>") == 1, page.name  # only the theme toggle
