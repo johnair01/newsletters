@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 12-01-PLAN.md
-last_updated: "2026-06-19T05:14:42.096Z"
+stopped_at: Completed 12-02-PLAN.md (Learning + OnboardingPath spec)
+last_updated: "2026-06-19T05:15:56.225Z"
 last_activity: 2026-06-19 -- Phase 12 execution started
 progress:
   total_phases: 14
@@ -89,6 +89,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 11 P04 | 5min | 3 tasks | 5 files |
 | Phase 11 P05 | 18min | 3 tasks | 5 files |
 | Phase 12 P01 | 3min | 2 tasks | 3 files |
+| Phase 12 P02 | 2min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -151,6 +152,8 @@ Recent decisions affecting current work:
 - [Phase 11]: 11-04: build_work_site publishes the work corpus to content/work/site reusing render.py (no new renderer); claim->repo-file link via locator=file-path id; work output self-hosts the Plan-11-01 fonts for zero external call; work-report stays Draft
 - [Phase ?]: 11-05: --corpus {rev1|work} routes the builder, never forks the gate — the work corpus passes the SAME review_blockers (exit 0 clean / nonzero on a planted blocker)
 - [Phase ?]: Phase 12: glossary faithfulness enforced by type — GlossaryTerm.definition is a Claim, not a str
+- [Phase 12]: Learning re-cut SELECTS/ORDERS/LINKS already-reviewed traced claims; never invents prose (12-02 spec, faithfulness crux L2).
+- [Phase 12]: OnboardingPath is navigation over already-gated surfaces — NOT a Surface, no own review gate (12-02 spec, L4/A5).
 
 ### Pending Todos
 
@@ -179,6 +182,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-19T05:14:18.533Z
-Stopped at: Completed 12-01-PLAN.md
+Last session: 2026-06-19T05:15:56.216Z
+Stopped at: Completed 12-02-PLAN.md (Learning + OnboardingPath spec)
 Resume file: None
