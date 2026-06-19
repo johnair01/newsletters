@@ -334,7 +334,15 @@ Plans:
   2. Every concept on the surface links back to its source record/claim, so a learner can trace explanation → evidence
   3. An onboarding path sequences multiple records into an ordered learning track for a new team member / training cohort
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 12-01-PLAN.md — LEARNING SurfaceTemplate + typed GlossaryBlock (the typed foundation)
+- [ ] 12-02-PLAN.md — docs/surfaces.md Learning + OnboardingPath spec section
+- [ ] 12-03-PLAN.md — learning_surface() faithful re-cut + OnboardingPath model (learning.py)
+- [ ] 12-04-PLAN.md — render: GlossaryBlock + ordered learning sections + render_path() (no JS, no external call, faithful)
+- [ ] 12-05-PLAN.md — dogfood re-cut of report-datamodel + onboarding path + content/rev1/site regen (byte-stable, L-001, end-to-end)
+
 **UI hint**: yes
 
 ### Phase 13: Problem Lifecycle Entity (A2)
