@@ -157,12 +157,27 @@ NEWSLETTER = SurfaceTemplate(
     distance=3,
 )
 
+LEARNING = SurfaceTemplate(
+    name="learning",
+    display_name="Learning",
+    tagline="the newcomer re-cut — every concept traced to its record",
+    cadence=Cadence.ON_DEMAND,
+    personalized=True,
+    signal_color=SignalColor.GREEN,
+    scope=AudienceScope.INDIVIDUAL,
+    review_policy=ReviewPolicy.light(),
+    slots=["start_here", "prerequisites", "glossary", "going_deeper"],
+    distance=4,
+)
+
 
 # --------------------------------------------------------------------------- #
 # Registry — built-in presets plus operator-registered templates
 # --------------------------------------------------------------------------- #
 
-_REGISTRY: dict[str, SurfaceTemplate] = {t.name: t for t in (SHOW, REPORT, ARTICLE, NEWSLETTER)}
+_REGISTRY: dict[str, SurfaceTemplate] = {
+    t.name: t for t in (SHOW, REPORT, ARTICLE, NEWSLETTER, LEARNING)
+}
 
 
 def register(template: SurfaceTemplate) -> SurfaceTemplate:
