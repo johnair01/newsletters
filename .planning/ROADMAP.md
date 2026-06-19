@@ -340,7 +340,7 @@ Plans:
 
 - [x] 12-01-PLAN.md — LEARNING SurfaceTemplate + typed GlossaryBlock (the typed foundation)
 - [x] 12-02-PLAN.md — docs/surfaces.md Learning + OnboardingPath spec section
-- [ ] 12-03-PLAN.md — learning_surface() faithful re-cut + OnboardingPath model (learning.py)
+- [x] 12-03-PLAN.md — learning_surface() faithful re-cut + OnboardingPath model (learning.py)
 - [ ] 12-04-PLAN.md — render: GlossaryBlock + ordered learning sections + render_path() (no JS, no external call, faithful)
 - [ ] 12-05-PLAN.md — dogfood re-cut of report-datamodel + onboarding path + content/rev1/site regen (byte-stable, L-001, end-to-end)
 
@@ -401,6 +401,6 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 9. Rev2 Site IA, Navigation & Source Links | 3/3 | Complete   | 2026-06-18 |
 | 10. Reviewer Surfacing & Merge-Block Gate | 3/3 | Complete   | 2026-06-18 |
 | 11. Work-Surface Installation | 5/5 | Complete   | 2026-06-18 |
-| 12. Learning & Onboarding Surface | 2/5 | In Progress|  |
+| 12. Learning & Onboarding Surface | 3/5 | In Progress|  |
 | 13. Problem Lifecycle Entity (A2) | 0/TBD | Not started | - |
 | 14. Problem Board Portfolio Surface (A2) | 0/TBD | Not started | - |

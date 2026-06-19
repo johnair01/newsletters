@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 12-02-PLAN.md (Learning + OnboardingPath spec)
-last_updated: "2026-06-19T05:15:56.225Z"
+stopped_at: Completed 12-03-PLAN.md
+last_updated: "2026-06-19T05:25:41.298Z"
 last_activity: 2026-06-19 -- Phase 12 execution started
 progress:
   total_phases: 14
   completed_phases: 10
   total_plans: 41
-  completed_plans: 37
+  completed_plans: 38
   percent: 71
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 ## Current Position
 
 Phase: 12 (learning-onboarding-surface) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-06-19 -- Phase 12 execution started
 
@@ -90,6 +90,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 11 P05 | 18min | 3 tasks | 5 files |
 | Phase 12 P01 | 3min | 2 tasks | 3 files |
 | Phase 12 P02 | 2min | 1 tasks | 1 files |
+| Phase 12 P03 | 5min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -154,6 +155,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 12: glossary faithfulness enforced by type — GlossaryTerm.definition is a Claim, not a str
 - [Phase 12]: Learning re-cut SELECTS/ORDERS/LINKS already-reviewed traced claims; never invents prose (12-02 spec, faithfulness crux L2).
 - [Phase 12]: OnboardingPath is navigation over already-gated surfaces — NOT a Surface, no own review gate (12-02 spec, L4/A5).
+- [Phase ?]: 12-03: learning_surface() re-cuts a reviewed record into 3 deterministic layers from existing traced claims only — faithfulness proven by set-membership + no-ProseBlock; un-glossable terms route to missing[]; OnboardingPath is navigation (not a Surface, no gate)
 
 ### Pending Todos
 
@@ -182,6 +184,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-19T05:15:56.216Z
-Stopped at: Completed 12-02-PLAN.md (Learning + OnboardingPath spec)
+Last session: 2026-06-19T05:25:41.289Z
+Stopped at: Completed 12-03-PLAN.md
 Resume file: None
