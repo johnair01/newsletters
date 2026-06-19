@@ -104,6 +104,20 @@
 .claim-span::before{content:'\201C'}.claim-span::after{content:'\201D'}
 .claim-badge{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--color-amber);border:1px solid var(--color-amber);padding:2px 6px;margin-left:8px;line-height:1}
 .conf{font-family:var(--font-mono);font-size:9.5px;color:var(--text-dim)}
+/* glossary (LEARN-01) — each term name leads its DEFINING traced claim row (no JS) */
+.gloss-term{margin:0 0 14px;border-left:3px solid var(--signal);padding-left:16px}
+.gloss-name{font-family:var(--font-display);font-size:19px;line-height:1.15;color:var(--text);margin-bottom:2px}
+.gloss-term ul{margin:0}.gloss-term .claim{border-left:0;padding-left:0}
+/* onboarding track (LEARN-03) — ordered steps with in-track prev/next, no JS */
+.track{border-top:1px solid var(--line)}
+.track-step{display:grid;grid-template-columns:56px 1fr;gap:18px;padding:20px 0;border-bottom:1px solid var(--line);align-items:baseline}
+.track-num{font-family:var(--font-display);font-size:30px;color:var(--signal)}
+.track-link{font-family:var(--font-display);font-size:22px;color:var(--text);border-bottom:1px solid transparent}
+a.track-link:hover{border-bottom-color:var(--line)}
+.track-kind{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-dim);margin-left:10px}
+.track-nav{display:flex;gap:18px;margin-top:8px}
+.track-nav a{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-dim)}
+.track-nav a:hover{color:var(--text)}
 .chapter{display:grid;grid-template-columns:64px 1fr;gap:18px;padding:14px 0;border-top:1px solid var(--line)}
 .chapter .t{font-family:var(--font-mono);font-size:11px;color:var(--signal)}
 .chapter .ti{font-family:var(--font-display);font-size:18px;color:var(--text)}

@@ -5,6 +5,12 @@
     "ref": "A-001",
     "type": "article"
   },
+  "learning-datamodel": {
+    "date": null,
+    "issue": null,
+    "ref": "L-001",
+    "type": "learning"
+  },
   "newsletter-jj": {
     "date": null,
     "issue": null,

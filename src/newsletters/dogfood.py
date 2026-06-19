@@ -16,13 +16,15 @@ from pathlib import Path
 
 from .capture import Decision, WorkSession, build_report
 from .diagrams import personalization, two_layer
+from .learning import OnboardingPath, OnboardingStep, learning_surface
 from .promote import promote_report_to_article
-from .render import render_home, render_library, render_surface
+from .render import render_home, render_library, render_path, render_surface
 from .semantic import (
     Claim,
     ClaimsBlock,
     Corpus,
     DiagramBlock,
+    Distillation,
     FanoutBlock,
     FanoutLink,
     ItemsBlock,
@@ -635,6 +637,87 @@ def _article(datamodel_report: Surface) -> Surface:
 
 
 # --------------------------------------------------------------------------- #
+# Learning re-cut + onboarding path (LEARN-01/02/03) — the newcomer surface
+# --------------------------------------------------------------------------- #
+#
+# This is the END-TO-END dogfood of Phase 12: we re-cut the richest reviewed record
+# (report-datamodel) into a newcomer-shaped learning surface, and sequence it into an
+# ordered onboarding track. FAITHFUL, not suggestive: the re-cut SELECTS / ORDERS / LINKS
+# the report's EXISTING traced claims (and their content-addressed traces) — it authors NO
+# new factual prose. A glossary term with no genuine DEFINING claim in the record routes to
+# the honesty panel (missing[]) instead of being fabricated. Here, the record's claims
+# define "Report", "Article" and "capture" ("X is/are …"), so those gloss; "Distillation",
+# "Surface" and "the review gate" are concepts the datamodel decisions USE but never DEFINE,
+# so they are shown to the reader as gaps, never invented.
+
+# The glossary terms a newcomer most wants to look up while reading the data-model guide.
+# Mix of glossable + un-glossable on purpose — the un-glossable ones prove the honesty panel.
+_LEARNING_GLOSSARY = ["Report", "Article", "capture", "Distillation", "Surface", "the review gate"]
+
+
+def _datamodel_distillation(datamodel_report: Surface) -> Distillation:
+    """Recover the reviewed Distillation behind report-datamodel, to re-cut FAITHFULLY.
+
+    We do NOT hand-author new claims: we lift the report's existing traced ``Claim``s
+    straight off its ``ClaimsBlock``s (they carry the content-addressed traces minted by
+    ``_address_report``), and carry the report's ``Source`` traces through. The result is the
+    SAME reviewed truth — so the learning re-cut's glossary definitions render with the exact
+    working provenance links the report shows. (We rebuild a Distillation rather than thread
+    one out of ``build_report`` because ``build_report`` returns the Surface, not its
+    Distillation; the claims it carries ARE that Distillation's claims.)
+    """
+    claims: list[Claim] = []
+    for block in datamodel_report.blocks:
+        if isinstance(block, ClaimsBlock):
+            claims.extend(block.claims)
+    return Distillation(
+        narrative="",
+        claims=claims,
+        traces=list(datamodel_report.traces),
+    )
+
+
+def _learning_recut(datamodel_report: Surface) -> Surface:
+    """Re-cut report-datamodel into the newcomer learning surface (Draft → published gate)."""
+    surface = learning_surface(
+        _datamodel_distillation(datamodel_report),
+        surface_id="learning-datamodel",
+        title="How the data model works — a newcomer's guide",
+        eyebrow="Learning · for your first week",
+        audience=READERS["newcomer"],
+        glossary_terms=_LEARNING_GLOSSARY,
+        # Prerequisite context = LINKS to the records this builds on (resolved via
+        # Site.by_slug at render time), NOT new exposition.
+        prerequisites=["show-ep01", "report-datamodel"],
+        author=AUTHOR,
+    )
+    # No auto-publish: the learning surface passes the SAME gate as every surface. Its
+    # template carries a light review policy (self-approve), so the author can approve — but
+    # it goes through publish() explicitly, exactly like the dogfood reports (CLAUDE.md).
+    surface.publish(reviewer=AUTHOR)
+    return surface
+
+
+def _onboarding_path() -> OnboardingPath:
+    """The newcomer track: watch the build → read the decisions → read the newcomer guide.
+
+    An ORDERED sequence of slug refs over surfaces that ALREADY passed the review gate
+    (show-ep01, report-datamodel, learning-datamodel). It is navigation, not a Surface — it
+    publishes nothing new (A5). ``render_path`` resolves each step via ``Site.by_slug``.
+    """
+    return OnboardingPath(
+        id="onboarding-newcomer",
+        title="Start here — a new contributor's first week",
+        audience_label="A new contributor",
+        steps=[
+            OnboardingStep(slug="show-ep01", label="Watch the build (Episode 01)"),
+            OnboardingStep(slug="report-datamodel", label="Read the decisions (the data model)"),
+            OnboardingStep(slug="learning-datamodel", label="Read the newcomer's guide"),
+        ],
+    )
+
+
+# --------------------------------------------------------------------------- #
 # Assemble + render
 # --------------------------------------------------------------------------- #
 
@@ -645,7 +728,10 @@ def build_surfaces() -> list[Surface]:
     article = _article(datamodel)
     show = _show()
     newsletters = [_newsletter_for(k) for k in ("jj", "nate", "newcomer")]
-    return [show, kickoff, datamodel, rev1, plan, article, *newsletters]
+    # The learning surface re-cuts report-datamodel for newcomers — it joins the Site as the
+    # 5th surface type and the ledger assigns it L-001 (do NOT hardcode the ref).
+    learning = _learning_recut(datamodel)
+    return [show, kickoff, datamodel, rev1, plan, article, *newsletters, learning]
 
 
 def build_site(out_dir: str | Path = "content/rev1/site") -> list[Path]:
@@ -678,10 +764,56 @@ def build_site(out_dir: str | Path = "content/rev1/site") -> list[Path]:
     index = out / "index.html"
     index.write_text(render_home(site), encoding="utf-8")
     written.append(index)
+    # The onboarding path (LEARN-03) renders to its OWN page — an ordered track over
+    # already-gated surfaces (show-ep01 → report-datamodel → learning-datamodel), resolved
+    # against the full Site so each step links to its real {slug}.html with in-track prev/next.
+    path = _onboarding_path()
+    path_page = out / "onboarding-newcomer.html"
+    path_page.write_text(render_path(path, site=site), encoding="utf-8")
+    written.append(path_page)
+
     # Library lists one representative newsletter (the rest are its per-reader re-cuts).
     listed = [s for s in surfaces if not (s.kind == "newsletter" and s.id != "newsletter-jj")]
     library = Site.from_surfaces(listed, ledger=ledger)
     library_page = out / "library.html"
-    library_page.write_text(render_library(library), encoding="utf-8")
+    # Surface the onboarding track from the Library (per RESEARCH Open-Q2: a track is NOT a
+    # gate-state board column — it has no review state — so it is offered as a callout link
+    # above the board, NOT mixed into Draft/In Review/Published). We add this here, in the
+    # build (which owns content/rev1/), rather than in render.py: it is a deterministic,
+    # render-output-derived injection at a STABLE anchor (the end of the Library masthead),
+    # so the regen stays byte-stable and render.py keeps its disjoint ownership.
+    library_html = render_library(library)
+    library_html = library_html.replace(
+        _LIBRARY_MAST_ANCHOR,
+        _LIBRARY_MAST_ANCHOR + _onboarding_callout(path),
+        1,
+    )
+    library_page.write_text(library_html, encoding="utf-8")
     written.append(library_page)
     return written
+
+
+# The stable anchor that closes the Library masthead in render.render_library's output. The
+# onboarding-track callout is injected immediately AFTER it (deterministic → byte-stable).
+_LIBRARY_MAST_ANCHOR = (
+    "One reviewed record, four surfaces — the Newsletter re-cuts per "
+    "reader from their own private corpus.</figcaption></figure></div>"
+)
+
+
+def _onboarding_callout(path: OnboardingPath) -> str:
+    """A small, no-JS Library callout linking to the onboarding track page.
+
+    Honest navigation only: it reuses the existing masthead/prose styling, adds no external
+    asset and no script, and points at the rendered ``onboarding-newcomer.html``. The track
+    is a learning path (no review state), so it lives ABOVE the gate-state board, not in it.
+    """
+    return (
+        '<div class="masthead" style="margin-top:8px">'
+        '<div class="sg-eyebrow">New here? &middot; an ordered track</div>'
+        '<div class="prose"><p>'
+        f'<a href="onboarding-newcomer.html">{path.title}</a> — '
+        f'{len(path.steps)} steps, in order: watch the build, read the decisions, '
+        'then read the newcomer&rsquo;s guide. Every step links to its already-reviewed surface.'
+        '</p></div></div>'
+    )
