@@ -7,6 +7,20 @@
 
 ## Where we are right now
 
+**2026-06-18 — Phase 12 SHIPPED & VERIFIED (3/3): Learning & Onboarding Surface (LEARN-01/02/03).** The
+**5th surface type**. A `learning` SurfaceTemplate (distance 4, GREEN) + a typed `GlossaryBlock` whose
+`GlossaryTerm.definition` IS a traced `Claim` (a `str`/invented definition raises `ValidationError` —
+faithfulness enforced by the type, not discipline). The `learning_surface()` preset re-cuts a reviewed
+record for a newcomer: ordered no-JS progressive-disclosure sections (Start here / Prerequisites / Going
+deeper), an in-context glossary (each term defined by its traced claim), prerequisite links — it
+SELECTS/ORDERS/LINKS existing traced claims and **never invents prose** (verifier proved *VIOLATIONS:
+NONE*; un-glossable terms → `missing[]`/honesty panel). `OnboardingPath` sequences records into an
+ordered track (NOT a Surface, no review gate). Dogfood: `report-datamodel` re-cut → **L-001** (Draft) +
+the `show-ep01 → report-datamodel → learning-datamodel` track, both built into the site. Notably, an
+executor tried to *publish* the learning surface and the **merge-block gate caught it** (open `missing[]`
+→ blocker) → reverted to Draft: the system enforced its own rule. 559 tests pass; AI-optional +
+byte-stable + zero-external-calls held. **Next: Phase 13 — Problem Lifecycle Entity (the final phase).**
+
 **2026-06-18 — Phase 11 SHIPPED & VERIFIED (3/3): Work-Surface Installation (WORK-01/02/03).** The
 whole pipeline is now proven on a real codebase — by dogfooding on Newsletters' own source. New
 `worksurface.py`: `capture_files()` (a read-only, stdlib, no-network local-file → `Source` ingest;
