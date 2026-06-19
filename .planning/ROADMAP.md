@@ -36,7 +36,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 10: Reviewer Surfacing & Merge-Block Gate** - `missing[]`/`unextracted[]` shown on every surface; CI blocks unsafe merges (completed 2026-06-18)
 - [x] **Phase 11: Work-Surface Installation** - Install on a real codebase, author Reports by hand, Library shows how the work was done (completed 2026-06-18)
 - [x] **Phase 12: Learning & Onboarding Surface** - A first-class surface that re-cuts reviewed records for newcomers and training cohorts — digestible, traceable, sequenced (completed 2026-06-19)
-- [ ] **Phase 13: Problem Lifecycle Entity (A2)** - A first-class `Problem` above `Source` with its own state ladder — legibility layer, not a tracker; solving stays external
+- [x] **Phase 13: Problem Lifecycle Entity (A2)** - A first-class `Problem` above `Source` with its own state ladder — legibility layer, not a tracker; solving stays external
 - [ ] **Phase 14: Problem Board Portfolio Surface (A2)** - A queryable portfolio view — group/count/age problems by node, surface recurrence, every problem traced to its sources
 
 ## Phase Details
@@ -363,7 +363,7 @@ Plans:
 Plans:
 
 - [x] 13-01-PLAN.md — Problem entity + ProblemState ladder + human-gated transition() + __init__ export + dogfood (PROB-01)
-- [ ] 13-02-PLAN.md — no-write-back proof (import-linter contract + runtime + API allow-list) + spine-unchanged + terminology-distinctness (PROB-03)
+- [x] 13-02-PLAN.md — no-write-back proof (import-linter contract + runtime + API allow-list) + spine-unchanged + terminology-distinctness (PROB-03)
 
 **UI hint**: no
 
@@ -408,5 +408,5 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 10. Reviewer Surfacing & Merge-Block Gate | 3/3 | Complete   | 2026-06-18 |
 | 11. Work-Surface Installation | 5/5 | Complete   | 2026-06-18 |
 | 12. Learning & Onboarding Surface | 5/5 | Complete   | 2026-06-19 |
-| 13. Problem Lifecycle Entity (A2) | 1/2 | In Progress|  |
+| 13. Problem Lifecycle Entity (A2) | 2/2 | Complete | All success criteria met; PROB-01 + PROB-03 proven by test |
 | 14. Problem Board Portfolio Surface (A2) | 0/TBD | Not started | - |
