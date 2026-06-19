@@ -1,0 +1,119 @@
+<!doctype html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>The Library — Newsletters</title><style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+*,*::before,*::after{box-sizing:border-box}
+.signals{
+  --color-ink:#0a0a0f;--color-paper:#f5f3ee;--color-white:#fff;
+  --color-brand-primary:#0068b5;--color-brand-mid:#005a9e;--color-brand-light:#e8f2fb;--color-brand-dark:#003d6b;
+  --color-accent:#d4622a;--color-amber:#c8860a;--color-green:#2f7d4f;
+  --color-rule:#c8c4bb;--color-muted:#6b6860;--color-surface-low:#f0ede8;--color-surface-mid:#e8e4de;
+  --bg:var(--color-paper);--card:var(--color-white);--text:var(--color-ink);--text-dim:var(--color-muted);--line:var(--color-rule);
+  --chrome-bg:#0a0a0f;--chrome-fg:#f5f3ee;--chrome-dim:rgba(245,243,238,.62);--chrome-line:rgba(255,255,255,.12);
+  --font-display:'DM Serif Display',Georgia,serif;--font-body:'Instrument Sans',system-ui,sans-serif;--font-mono:'DM Mono','Courier New',monospace;
+  --radius:0px;--dur-base:200ms;--dur-slow:380ms;--ease-out:cubic-bezier(0,0,.2,1);--signal:var(--color-brand-primary);
+  background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  min-height:100vh;
+}
+.signals[data-theme=dark]{
+  --color-ink:#f0ede8;--color-paper:#0f0f14;--color-white:#1a1a22;
+  --color-brand-primary:#3f9ae0;--color-brand-mid:#5aa9e6;--color-brand-light:#15293a;--color-brand-dark:#0c1b29;
+  --color-accent:#e07a45;--color-amber:#d99a2a;--color-green:#4fa873;
+  --color-rule:rgba(240,237,232,.16);--color-muted:rgba(240,237,232,.55);--color-surface-low:#16161d;--color-surface-mid:#20202a;
+  --chrome-bg:#07070b;--chrome-line:rgba(255,255,255,.10);
+}
+.signals h1,.signals h2,.signals h3,.signals h4,.signals p,.signals ul,.signals figure{margin:0}
+.signals ul{padding:0;list-style:none}.signals a{color:inherit;text-decoration:none}.signals em{font-style:italic}
+.signals ::selection{background:var(--color-brand-primary);color:#fff}
+.sg-display{font-family:var(--font-display);font-weight:400;line-height:1.08;letter-spacing:-.02em;color:var(--text)}
+.sg-eyebrow{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.20em;color:var(--signal);display:inline-flex;align-items:center;gap:10px}
+.sg-mono{font-family:var(--font-mono);font-size:11px;letter-spacing:.02em;color:var(--text-dim)}
+.sg-rule{height:1px;background:var(--line);border:0;flex:1}
+.sg-divider{display:flex;align-items:center;gap:16px;margin:8px 0 22px}
+.sg-tag{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.12em;padding:4px 8px;line-height:1;display:inline-flex;align-items:center;gap:6px;border:1px solid transparent;white-space:nowrap}
+.sg-tag.cat{background:var(--color-surface-low);color:var(--text-dim)}
+.sg-tag.live{background:var(--color-accent);color:#fff}
+.sg-tag.published{background:var(--color-brand-primary);color:#fff}
+.sg-tag.draft{background:transparent;color:var(--text-dim);border-color:var(--line)}
+.sg-tag.review{background:transparent;color:var(--color-amber);border-color:var(--color-amber)}
+.sg-tag.peer{background:var(--color-brand-light);color:var(--color-brand-primary)}
+.sg-tag.featured{background:var(--color-ink);color:var(--color-paper)}
+.sg-dot{width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block}
+.sg-gate{display:inline-flex;align-items:center;font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.14em}
+.sg-gate-step{padding:4px 10px;color:var(--text-dim);opacity:.4}
+.sg-gate-step.done{opacity:1;color:var(--text)}
+.sg-gate-step.current{opacity:1;font-weight:500}
+.sg-gate-step.current.s-in_review{color:var(--color-amber)}
+.sg-gate-step.current.s-published{color:var(--color-brand-primary)}
+.sg-gate-step.current.s-draft{color:var(--text)}
+.sg-gate-sep{color:var(--line);padding:0 2px}
+.sg-btn{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.10em;padding:11px 18px;border:1px solid var(--color-brand-primary);background:var(--color-brand-primary);color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.sg-btn.ghost{background:transparent;color:var(--text);border-color:var(--line)}
+.sg-chip{display:inline-flex;align-items:center;gap:10px}
+.sg-avatar{width:32px;height:32px;border-radius:50%;background:var(--color-brand-dark);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;flex:0 0 auto}
+.sg-chip-name{font-weight:600;font-size:13px;line-height:1.2;color:var(--text)}
+.sg-chip-role{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);letter-spacing:.04em}
+.sg-card{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--signal);padding:20px}
+.sg-kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));background:var(--color-surface-low);border-left:3px solid var(--signal)}
+.sg-kpi-cell{padding:16px 20px;border-right:1px solid var(--line)}
+.sg-kpi-cell:last-child{border-right:0}
+.sg-kpi-label{font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-dim);margin-bottom:8px}
+.sg-kpi-value{font-family:var(--font-display);font-size:34px;line-height:1;color:var(--text)}
+.sg-kpi-delta{font-family:var(--font-mono);font-size:11px;margin-top:6px}
+.sg-kpi-delta.up{color:var(--color-green)}.sg-kpi-delta.down{color:var(--color-accent)}
+.sg-prompt{background:#0c0c12;border-left:3px solid var(--signal);color:#d8d6cf;font-family:var(--font-mono);font-size:12px;line-height:1.7}
+.sg-prompt-head{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sg-prompt-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.18em;color:rgba(255,255,255,.5)}
+.sg-prompt-body{padding:16px;white-space:pre-wrap;margin:0}
+.sg-quote{background:var(--color-brand-light);border-left:3px solid var(--signal);padding:28px 32px 24px;position:relative}
+.sg-quote-mark{font-family:var(--font-display);font-size:90px;line-height:.6;color:var(--signal);opacity:.18;position:absolute;top:24px;left:18px}
+.sg-quote-text{font-family:var(--font-display);font-style:italic;font-size:22px;line-height:1.35;color:var(--text);position:relative}
+.sg-quote-attr{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);margin-top:14px;letter-spacing:.04em}
+/* chrome */
+.nl-nav{position:sticky;top:0;z-index:50;background:var(--chrome-bg);color:var(--chrome-fg);height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid var(--chrome-line)}
+.nl-brand{font-family:var(--font-display);font-size:18px;color:var(--chrome-fg);display:flex;align-items:center;gap:10px}
+.nl-brand .sub{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--chrome-dim)}
+.nl-links{display:flex;gap:22px;align-items:center}
+.nl-links a{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--chrome-dim);padding:4px 0;border-bottom:2px solid transparent}
+.nl-links a.active{color:var(--chrome-fg);border-bottom-color:var(--signal)}
+.nl-toggle{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--chrome-dim);background:transparent;border:1px solid var(--chrome-line);padding:6px 10px;cursor:pointer}
+/* layout */
+.wrap{max-width:1180px;margin:0 auto;padding:56px 44px 40px}
+.masthead{border-top:3px solid var(--signal);padding-top:26px;margin-bottom:30px}
+.masthead .tags{display:flex;gap:8px;align-items:center;margin:14px 0}
+.mast-title{font-size:46px;max-width:900px;margin:10px 0 16px}
+.mast-meta{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin-top:14px;font-family:var(--font-mono);font-size:11px;color:var(--text-dim);letter-spacing:.03em}
+.byline{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px}
+.block{margin:30px 0}
+.block-h{font-family:var(--font-display);font-size:26px;margin-bottom:16px;color:var(--text)}
+.prose p{font-size:16px;line-height:1.65;max-width:680px;margin:0 0 14px;color:var(--text)}
+.claim{padding:14px 0 14px 18px;border-left:2px solid var(--line);max-width:760px;margin-bottom:6px}
+.claim.untraced{border-left-color:var(--color-amber)}
+.claim-text{font-size:15.5px;line-height:1.55;color:var(--text)}
+.claim-ev{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
+.ev-chip{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.06em;color:var(--text-dim);background:var(--color-surface-low);padding:3px 7px}
+.conf{font-family:var(--font-mono);font-size:9.5px;color:var(--text-dim)}
+.chapter{display:grid;grid-template-columns:64px 1fr;gap:18px;padding:14px 0;border-top:1px solid var(--line)}
+.chapter .t{font-family:var(--font-mono);font-size:11px;color:var(--signal)}
+.chapter .ti{font-family:var(--font-display);font-size:18px;color:var(--text)}
+.chapter .bo{font-size:14px;color:var(--text-dim);margin-top:4px}
+.item{padding:18px 0;border-top:1px solid var(--line)}
+.item .ti{font-family:var(--font-display);font-size:21px;margin:8px 0 6px}
+.item .bo{font-size:15px;line-height:1.6;color:var(--text);max-width:700px}
+.rationale{background:var(--color-brand-light);border-left:3px solid var(--signal);padding:18px 22px;max-width:760px}
+.rationale .h{font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--signal);margin-bottom:8px}
+.diagram{border:1px solid var(--line);border-left:3px solid var(--signal);background:var(--card);padding:24px 26px}
+.diagram svg{width:100%;height:auto;display:block;overflow:visible}
+.diagram .dh{font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--signal);margin-bottom:16px}
+.diagram figcaption{font-family:var(--font-mono);font-size:10.5px;color:var(--text-dim);margin-top:16px;letter-spacing:.03em;line-height:1.5}
+.fanout{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--line)}
+.fan-row{display:grid;grid-template-columns:120px 1fr;gap:18px;padding:14px 0;border-bottom:1px solid var(--line);align-items:baseline}
+.nl-foot{background:var(--chrome-bg);color:var(--chrome-dim);border-top:3px solid var(--color-brand-primary);padding:40px 44px;margin-top:50px;font-family:var(--font-mono);font-size:11px;letter-spacing:.04em}
+.nl-foot .row{max-width:1180px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:20px}
+.nl-foot a{color:var(--chrome-fg)}
+/* library */
+.lib-surface{display:grid;grid-template-columns:64px 1fr 220px;gap:24px;align-items:baseline;padding:20px 0;border-bottom:1px solid var(--line)}
+.lib-idx{font-family:var(--font-display);font-size:30px;color:var(--signal)}
+.lib-title{font-family:var(--font-display);font-size:23px;color:var(--text)}
+.lib-tail{font-style:italic;color:var(--text-dim);font-size:14px}
+.lib-meta{text-align:right;font-family:var(--font-mono);font-size:10px;color:var(--text-dim);letter-spacing:.04em}
+@media(max-width:820px){.wrap{padding:40px 22px}.mast-title{font-size:34px}.lib-surface{grid-template-columns:44px 1fr}.lib-meta{grid-column:1/-1;text-align:left}.nl-links{display:none}}
+</style></head><body><div class="signals" id="root" data-theme="light" style="--signal:var(--color-brand-primary)"><nav class="nl-nav"><div class="nl-brand">Newsletters <span class="sub">working in the open</span></div><div class="nl-links"><a href="index.html" class="active">Start here</a><a href="index.html" class="">Newsletters</a><a href="index.html" class="">Articles</a><a href="index.html" class="">The Show</a></div><button class="nl-toggle" id="tg">&#9728; Light</button></nav><main class="wrap"><div class="masthead"><div class="sg-eyebrow">The Library &middot; working in the open</div><h1 class="sg-display mast-title">One reviewed record, fanned out.</h1><div class="prose"><p>Every surface below is cut from the same traced, reviewed truth — built in the open as we built Newsletters itself. Reports are the investigations we approved; the Article is a lesson awaiting peer review; the Newsletter re-cuts the week per reader; the Show records the process.</p></div><figure class="diagram" style="margin-top:24px"><div class="dh">How it fans out</div><svg viewBox='0 0 720 290' role='img' xmlns='http://www.w3.org/2000/svg'><defs><marker id='ahfo' markerWidth='9' markerHeight='9' refX='6' refY='3' orient='auto'><path d='M0,0 L6,3 L0,6 Z' style='fill:var(--text-dim)'/></marker></defs><text x='24' y='24' text-anchor='start' style='font-family:var(--font-mono);font-size:9.5px;letter-spacing:1.6px;fill:var(--color-brand-primary)'>ONE RECORD → FOUR SURFACES</text><rect x='24' y='96' width='220' height='88' style='fill:var(--card);stroke:var(--line);stroke-width:1.4'/><rect x='24' y='96' width='3' height='88' style='fill:var(--color-brand-primary)'/><text x='134.0' y='137.0' text-anchor='middle' style='font-family:var(--font-display);font-size:16px;fill:var(--text)'>One reviewed record</text><text x='134.0' y='154.0' text-anchor='middle' style='font-family:var(--font-mono);font-size:8.5px;letter-spacing:1px;fill:var(--text-dim)'>SOURCE → CLAIM → DISTILLATION</text><rect x='470' y='20' width='226' height='48' style='fill:var(--card);stroke:var(--line);stroke-width:1.4'/><rect x='470' y='20' width='3' height='48' style='fill:var(--color-accent)'/><text x='583.0' y='49.0' text-anchor='middle' style='font-family:var(--font-display);font-size:16px;fill:var(--text)'>The Show</text><text x='583' y='60' text-anchor='middle' style='font-family:var(--font-mono);font-size:9.5px;letter-spacing:1.6px;fill:var(--text-dim)'>BIWEEKLY</text><line x1='244' y1='140' x2='466' y2='44' style='stroke:var(--text-dim);stroke-width:1.4' stroke-dasharray='4 4' marker-end='url(#ahfo)'/><rect x='470' y='86' width='226' height='48' style='fill:var(--card);stroke:var(--line);stroke-width:1.4'/><rect x='470' y='86' width='3' height='48' style='fill:var(--color-brand-primary)'/><text x='583.0' y='115.0' text-anchor='middle' style='font-family:var(--font-display);font-size:16px;fill:var(--text)'>The Report</text><text x='583' y='126' text-anchor='middle' style='font-family:var(--font-mono);font-size:9.5px;letter-spacing:1.6px;fill:var(--text-dim)'>PER EVENT</text><line x1='244' y1='140' x2='466' y2='110' style='stroke:var(--text-dim);stroke-width:1.4' stroke-dasharray='4 4' marker-end='url(#ahfo)'/><rect x='470' y='152' width='226' height='48' style='fill:var(--card);stroke:var(--line);stroke-width:1.4'/><rect x='470' y='152' width='3' height='48' style='fill:var(--color-ink)'/><text x='583.0' y='181.0' text-anchor='middle' style='font-family:var(--font-display);font-size:16px;fill:var(--text)'>The Article</text><text x='583' y='192' text-anchor='middle' style='font-family:var(--font-mono);font-size:9.5px;letter-spacing:1.6px;fill:var(--text-dim)'>ON DEMAND</text><line x1='244' y1='140' x2='466' y2='176' style='stroke:var(--text-dim);stroke-width:1.4' stroke-dasharray='4 4' marker-end='url(#ahfo)'/><rect x='470' y='218' width='226' height='48' style='fill:var(--card);stroke:var(--line);stroke-width:1.4'/><rect x='470' y='218' width='3' height='48' style='fill:var(--color-amber)'/><text x='583.0' y='247.0' text-anchor='middle' style='font-family:var(--font-display);font-size:16px;fill:var(--text)'>Newsletters</text><text x='583' y='258' text-anchor='middle' style='font-family:var(--font-mono);font-size:9.5px;letter-spacing:1.6px;fill:var(--text-dim)'>WEEKLY · PER READER</text><line x1='244' y1='140' x2='466' y2='242' style='stroke:var(--text-dim);stroke-width:1.4' stroke-dasharray='4 4' marker-end='url(#ahfo)'/></svg><figcaption>One reviewed record, four surfaces — the Newsletter re-cuts per reader from their own private corpus.</figcaption></figure></div><a class="lib-surface" href="show-ep01.html" style="--signal:var(--color-accent)"><span class="lib-idx">01</span><span><span class="lib-title">Episode 01 — Building Newsletters in the open</span> <span class="lib-tail">— the recorded session everything is distilled from</span></span><span class="lib-meta">The Show<br>Every other week<br>published</span></a><a class="lib-surface" href="report-kickoff.html" style="--signal:var(--color-brand-primary)"><span class="lib-idx">02</span><span><span class="lib-title">Kicking off the build — spec set, repo shape, typed spine</span> <span class="lib-tail">— how we solved it — the investigation you approve</span></span><span class="lib-meta">The Report<br>Per event<br>published</span></a><a class="lib-surface" href="report-datamodel.html" style="--signal:var(--color-brand-primary)"><span class="lib-idx">03</span><span><span class="lib-title">Getting the data models right</span> <span class="lib-tail">— how we solved it — the investigation you approve</span></span><span class="lib-meta">The Report<br>Per event<br>published</span></a><a class="lib-surface" href="report-rev1.html" style="--signal:var(--color-brand-primary)"><span class="lib-idx">04</span><span><span class="lib-title">Rev1 — rendering the surfaces end to end</span> <span class="lib-tail">— how we solved it — the investigation you approve</span></span><span class="lib-meta">The Report<br>Per event<br>in_review</span></a><a class="lib-surface" href="report-plan.html" style="--signal:var(--color-brand-primary)"><span class="lib-idx">05</span><span><span class="lib-title">The build plan — GSD discuss → plan, phases 0–6</span> <span class="lib-tail">— how we solved it — the investigation you approve</span></span><span class="lib-meta">The Report<br>Per event<br>in_review</span></a><a class="lib-surface" href="article-semantic-spine.html" style="--signal:var(--color-ink)"><span class="lib-idx">06</span><span><span class="lib-title">Designing the semantic spine: two layers, parameterized surfaces, and promotion gates</span> <span class="lib-tail">— the durable, peer-reviewed lesson</span></span><span class="lib-meta">The Article<br>On demand<br>in_review</span></a><a class="lib-surface" href="newsletter-jj.html" style="--signal:var(--color-amber)"><span class="lib-idx">07</span><span><span class="lib-title">The Weekly Signal — Rev1 is live</span> <span class="lib-tail">— what matters to you this week</span></span><span class="lib-meta">Newsletters<br>Weekly<br>published</span></a></main><footer class="nl-foot"><div class="row"><div>Turn information into conversation. Conversation into action.</div><div>Open source &middot; MIT &middot; self-hostable &middot; human-in-the-loop by design</div><div>Renders without JavaScript &middot; WCAG AA</div></div></footer></div><script>(function(){var r=document.getElementById('root'),b=document.getElementById('tg');if(!b)return;function sync(){var dark=r.getAttribute('data-theme')==='dark';b.textContent=dark?'\u263e Dark':'\u2600 Light';}sync();b.addEventListener('click',function(){var dark=r.getAttribute('data-theme')==='dark';r.setAttribute('data-theme',dark?'light':'dark');sync();});})();</script></body></html>
