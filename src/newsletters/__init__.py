@@ -12,6 +12,7 @@ finished session into a traced Report.
 """
 
 from .capture import Decision, WorkSession, build_report, capture_session
+from .problem import Problem, ProblemState, TransitionEvent
 from .promote import promote_claim_to_kpi, promote_report_to_article
 from .render import render_library, render_surface
 from .site import Collection, Ledger, Page, Site, slugify
@@ -71,6 +72,8 @@ __all__ = [
     # capture + promotion
     "WorkSession", "Decision", "capture_session", "build_report",
     "promote_claim_to_kpi", "promote_report_to_article",
+    # problem lifecycle (A2) — a first-class entity above Source, distinct verb `transition`
+    "Problem", "ProblemState", "TransitionEvent",
     # render
     "render_surface", "render_library",
     # site (identity core — slug / ledger / content model)
