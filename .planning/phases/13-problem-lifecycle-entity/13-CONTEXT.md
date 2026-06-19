@@ -48,6 +48,38 @@ preserved + proven by test). **PROB-02 (queryable portfolio) and PROB-04 (board 
    real Source) is OK to prove it end-to-end, but the queryable portfolio (PROB-02) + the board surface
    (PROB-04) are **Phase 14** — do NOT build rendering/aggregation here. No AI; no new dependency.
 
+## Research-locked choices (13-RESEARCH.md accepted 2026-06-18, HIGH confidence)
+
+- **L1 — `src/newsletters/problem.py`** mirrors `promote.py` (imports `semantic` only) + `locators.py`
+  leaf style; acyclic confirmed (`semantic.py` imports only `.locators`/`.templates`, never `problem`);
+  AI-free. Export `Problem`/`ProblemState` from `__init__.py` (recommended yes).
+- **L2 — `Problem`** (Pydantic): `id`, `title`, `state: ProblemState = IDENTIFIED`,
+  `evidence: list[Trace]` (reuse the existing evidence-pointer type — gives content-addressing for free;
+  validated **≥1**), `log: list[TransitionEvent]`, `opened`. Plus a `source_ids` property
+  (single-entity traceability; the cross-problem query is Phase 14).
+- **L3 — `ProblemState`** = StrEnum `IDENTIFIED → OWNED → IN_PROGRESS → RESOLVED → VERIFIED`.
+- **L4 — `transition(to, by, note="")`** — the SOLE mutator: appends a `TransitionEvent(from,to,by,
+  note,at)` + sets state; RAISES on empty `by` (human-gated) and on an illegal move; NEVER auto-advances.
+  Ladder rule = **sequential forward + explicit RE-OPEN** (`Resolved → In Progress`, `Verified → In
+  Progress`) — A1 resolved: a legible record of the REAL lifecycle must allow reopening a bottleneck;
+  re-open is still a recorded human transition.
+- **L5 — No-write-back proof (PROB-03, three sub-proofs):** (a) a NEW `.importlinter` contract
+  `forbid-external-write-in-problem` (forbids socket/http/urllib/ftplib/smtplib/subprocess/requests from
+  `problem`), covered by the existing `lint-imports` test, PLUS a runtime `sys.modules` subprocess check
+  (mirrors test_ai_optional.py:143-158); (b) API allow-list test — `Problem`'s public surface has NO
+  export/push/sync/write/jira/ado method, `transition` is the only mutator; (c) spine unchanged —
+  `Source.content_hash()` byte-identical before/after a full transition sequence, and `semantic.py`
+  never imports `problem`. NOTE: adding a 2nd import-linter contract → `lint-imports` becomes "2 kept,
+  0 broken"; update any test asserting "1 kept".
+- **L6 — Terminology-distinctness test:** `ProblemState` is a DISTINCT type from `ReviewState` with NO
+  shared member VALUES (explicitly incl. `IN_PROGRESS="in_progress"` vs `IN_REVIEW="in_review"`); the
+  verb `transition` collides with no review-gate/fan-out/`promote` verb.
+- **L7 — Dogfood:** ONE real `Problem` aggregating the real `session-rev1` Source + a couple of
+  human-gated transitions — proves the entity end-to-end. NO rendering.
+- **L8 — Scope:** Phase 13 = entity + ladder + boundary + tests + 1 dogfood Problem. OUT (Phase 14):
+  any `list[Problem]` query/aggregation, portfolio container, grouping taxonomy, and ANY `render.py`/
+  `site.py`/`templates.py` touch. Zero new dependency; no AI; no external calls.
+
 ## Hard rules in play
 - **Legibility layer, not a tracker (PROB-03)** — NO write-back to external systems; solving stays
   external; the `semantic.py` spine boundary is preserved. Proven by test.
