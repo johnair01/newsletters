@@ -208,3 +208,32 @@ def test_transition_event_is_a_typed_record() -> None:
     assert ev.by == "Claude"
     assert ev.note == ""
     assert ev.at is not None
+
+
+def test_state_and_log_cannot_be_set_directly_outside_transition() -> None:
+    """The human-gate is real, not advisory: ``transition`` is the SOLE mutator of ``state``/``log``.
+
+    A bare ``p.state = VERIFIED`` would bypass the actor check, the ladder, AND the log — so it is
+    refused (AttributeError). Found by the Phase-13 verifier; this guards against reopening it.
+    """
+    from newsletters.semantic import Source, Trace
+
+    src = Source(id="S", transcript="The deploy queue stalls under load badly.")
+    p = Problem(id="P", title="stall", evidence=[Trace.from_source(src, 0, 20)])
+    p.transition(ProblemState.OWNED, by="JJ")
+
+    import pytest
+
+    with pytest.raises(AttributeError):
+        p.state = ProblemState.VERIFIED  # bypass attempt — refused
+    assert p.state is ProblemState.OWNED  # unchanged
+
+    with pytest.raises(AttributeError):
+        p.log = []  # erasing the legible record — refused
+    assert len(p.log) == 1
+
+    # transition remains the working, in-place mutator + round-trips with state preserved.
+    p.transition(ProblemState.IN_PROGRESS, by="JJ")
+    assert p.state is ProblemState.IN_PROGRESS
+    reloaded = Problem.model_validate_json(p.model_dump_json())
+    assert reloaded.state is ProblemState.IN_PROGRESS and len(reloaded.log) == 2

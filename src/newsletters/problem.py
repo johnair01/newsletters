@@ -38,7 +38,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from enum import StrEnum
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
 from .semantic import Source, Trace  # the ONLY non-stdlib/pydantic import — acyclic, AI-free
 
@@ -126,6 +126,28 @@ class Problem(BaseModel):
     log: list[TransitionEvent] = Field(default_factory=list)
     opened: datetime = Field(default_factory=_utcnow)
 
+    # A private gate: ``state``/``log`` may be assigned ONLY while ``transition`` holds this open.
+    # Without it, a bare ``p.state = VERIFIED`` would bypass the actor check, the ladder, AND the log
+    # — making the human-gate a lie. Construction sets fields through pydantic's core (not __setattr__),
+    # so initial state + round-trip deserialization are unaffected; only POST-construction assignment
+    # is guarded. (Found by the Phase-13 verifier; closed so "transition is the sole mutator" is literal.)
+    _via_transition: bool = PrivateAttr(default=False)
+
+    def __setattr__(self, name: str, value: object) -> None:
+        """Refuse direct assignment to ``state``/``log`` outside ``transition`` (human-gate integrity).
+
+        The lifecycle ladder is only meaningful if it cannot be sidestepped: ``p.state = ...`` and
+        ``p.log = ...`` are refused unless ``transition`` is actively applying a recorded, human-gated,
+        ladder-legal move. Mirrors the no-auto-publish gate — the rung never moves without a human.
+        """
+        if name in ("state", "log") and not getattr(self, "_via_transition", False):
+            raise AttributeError(
+                f"Problem.{name} is human-gated: it changes ONLY through transition(to, by). Direct "
+                "assignment is refused so the actor check, the ladder, and the log cannot be bypassed "
+                "(mirrors no-auto-publish). To move the lifecycle, call transition()."
+            )
+        super().__setattr__(name, value)
+
     @field_validator("evidence")
     @classmethod
     def _at_least_one_source(cls, v: list[Trace]) -> list[Trace]:
@@ -173,8 +195,12 @@ class Problem(BaseModel):
                 f"Allowed from {self.state.value!r}: {allowed}. The ladder is sequential "
                 "forward plus explicit re-open (Resolved/Verified -> In Progress)."
             )
-        self.log.append(
-            TransitionEvent(from_state=self.state, to_state=to, by=by, note=note)
-        )
-        self.state = to
+        # Open the private gate for exactly the two guarded writes, then close it (even on error),
+        # so ``transition`` is the ONLY path that can move ``state`` / append to ``log``.
+        object.__setattr__(self, "_via_transition", True)
+        try:
+            self.log = [*self.log, TransitionEvent(from_state=self.state, to_state=to, by=by, note=note)]
+            self.state = to
+        finally:
+            object.__setattr__(self, "_via_transition", False)
         return self
