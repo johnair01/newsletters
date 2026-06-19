@@ -303,3 +303,248 @@ def test_onboarding_step_carries_slug_and_optional_label() -> None:
     step = OnboardingStep(slug="report-datamodel")
     assert step.slug == "report-datamodel"
     assert step.label == ""  # render resolves the title via Site.by_slug (Plan 04)
+
+
+# --------------------------------------------------------------------------- #
+# L3 / Plan 04 — RENDER the learning surface + GlossaryBlock + render_path
+#
+# These exercise render.py directly on a real learning Surface (built via the
+# Plan-03 preset on a small Distillation IN-TEST — NOT depending on Plan 05's
+# dogfood wiring). They assert the RENDERED HTML, not the model: faithful (no
+# invented prose on the page), LEARN-02 (every concept links to its source),
+# LEARN-03 (render_path ordered + prev/next), no-JS ordered sections, and the
+# self-contained / no-external-call invariant (Phase 11 self-hosted fonts).
+# --------------------------------------------------------------------------- #
+
+import re as _re  # noqa: E402  (grouped with the render-side imports below)
+
+from newsletters.render import render_path, render_surface  # noqa: E402
+
+
+def _file_traced_claim(
+    text: str, *, locator: str, confidence: float, topics: list[str]
+) -> Claim:
+    """A traced claim whose evidence locator IS a repo FILE PATH.
+
+    ``link_for_source`` resolves a file-path locator to the repo blob URL, so the
+    rendered evidence chip becomes an ``<a class="ev-chip" href=...>`` — that is what
+    makes LEARN-02 ("every concept links to its source") literal on the HTML. The
+    fixtures in the Plan-01/03 logic tests use a FreeLocator() (empty text), which
+    resolves to plain text; here we need a working link, so we set a file-path locator.
+    """
+    from newsletters.locators import FreeLocator
+
+    src = Source(id="docs-record", transcript=text)
+    trace = Trace.from_source(src, 0, len(text), locator=FreeLocator(text=locator))
+    return Claim(text=text, evidence=[trace], confidence=confidence, topics=topics)
+
+
+def _render_record() -> Distillation:
+    """A small reviewed record whose claims carry FILE-PATH locators (so they link).
+
+    ``CI`` has a defining claim (glossable, traced to a file) → its glossary definition
+    renders with a working source link. ``Flux`` is mentioned but never defined → it
+    routes to ``missing[]`` and surfaces in the honesty panel, never on the page body.
+    """
+    claims = [
+        _file_traced_claim(
+            "You must understand the review gate before contributing.",
+            locator="docs/product-spec.md",
+            confidence=0.9,
+            topics=["onboarding"],
+        ),
+        _file_traced_claim(
+            "Every published claim traces to evidence.",
+            locator="docs/architecture.md",
+            confidence=0.95,
+            topics=["foundations"],
+        ),
+        _file_traced_claim(
+            "CI is the continuous integration pipeline that runs every test.",
+            locator="docs/architecture.md",
+            confidence=0.8,
+            topics=["glossary", "ci"],
+        ),
+        _file_traced_claim(
+            "We later migrated Flux jobs onto the shared runner.",
+            locator="docs/architecture.md",
+            confidence=0.4,
+            topics=["deep"],
+        ),
+    ]
+    srcs = [Source(id="docs-record", transcript=" ".join(c.text for c in claims))]
+    return Distillation(narrative="A reviewed record.", claims=claims, traces=srcs)
+
+
+def _render_surface() -> Surface:
+    return learning_surface(
+        _render_record(),
+        surface_id="learn-datamodel",
+        title="Onboarding: the data model",
+        eyebrow="Learning · the newcomer re-cut",
+        audience=Corpus(name="newcomer", weights={"onboarding": 1.0}),
+        glossary_terms=["CI", "Flux"],
+        prerequisites=["show-ep01"],
+        author="rivera",
+    )
+
+
+def _main_region(html: str) -> str:
+    """The surface's <main> body, with the honesty panel + chrome excluded.
+
+    The faithful-on-the-HTML assertion is about SURFACE CONTENT (claims + glossary
+    definitions), not the honesty panel (which deliberately lists un-glossed terms /
+    coverage gaps) nor the page chrome (nav, footer, masthead labels)."""
+    m = _re.search(r'<main class="wrap">(.*)</main>', html, _re.DOTALL)
+    body = m.group(1) if m else html
+    # Drop the honesty panel — it is not surface content (it is the gaps panel).
+    return _re.sub(r'<div class="honesty">.*?</div>\s*$', "", body, flags=_re.DOTALL)
+
+
+def test_glossary_block_renders_each_definition_with_a_source_link() -> None:
+    html = render_surface(_render_surface())
+    # The glossary heading renders.
+    assert "Glossary" in html
+    # The glossed term name appears, escaped.
+    assert "CI" in html
+    # The defining claim's text renders.
+    assert "continuous integration pipeline" in html
+    # The defining claim's evidence renders as a WORKING link (LEARN-02) — an <a ev-chip>.
+    assert _re.search(
+        r'<a class="ev-chip" href="https://github.com/[^"]*docs/architecture\.md">', html
+    )
+    # The verbatim addressed span box (_claim_spans) is present for the definition.
+    assert "claim-span" in html
+    # No dead href on the page.
+    assert 'href="None"' not in html
+    assert 'href=""' not in html
+
+
+def test_rendered_learning_surface_is_faithful_no_invented_prose() -> None:
+    record = _render_record()
+    surface = _render_surface()
+    html = render_surface(surface)
+    body = _main_region(html)
+
+    source_texts = {c.text for c in record.claims}
+    # Every reviewed claim that the surface selected must appear verbatim on the page.
+    rendered = _all_rendered_strings(surface)
+    assert rendered
+    for s in rendered:
+        from newsletters.render import _e
+
+        assert _e(s) in body, f"a selected claim is missing from the rendered body: {s!r}"
+        assert s in source_texts, f"a non-source string slipped into the surface: {s!r}"
+
+    # The un-glossed term's NON-defining claim text never appears as a glossary definition.
+    # "Flux" is not glossed — it is only in missing[] (honesty panel), excluded from body.
+    assert "Flux" not in body
+
+
+def test_every_concept_traces_to_source_on_the_rendered_surface() -> None:
+    html = render_surface(_render_surface())
+    body = _main_region(html)
+    # Every ev-chip in the surface body is a LINK (these fixtures all carry file locators),
+    # never a dead/empty href.
+    chips = _re.findall(r'<(a|span) class="ev-chip"[^>]*>', body)
+    assert chips, "the surface must render evidence chips"
+    for href in _re.findall(r'class="ev-chip" href="([^"]*)"', body):
+        assert href and href != "None", f"dead evidence href: {href!r}"
+    # The un-glossable term surfaces in the honesty panel (LEARN-02 honesty).
+    assert "Flux" in html  # present somewhere — in the honesty panel
+    assert "honesty" in html
+
+
+def test_learning_surface_is_no_js_ordered_sections() -> None:
+    html = render_surface(_render_surface())
+    # The three section headings render IN DOM ORDER.
+    i_start = html.find("Start here")
+    i_prereq = html.find("Prerequisites")
+    i_deep = html.find("Going deeper")
+    assert -1 < i_start < i_prereq < i_deep, "sections must render in disclosure order"
+    # Progressive disclosure is ORDER, not toggles: no <details>, no onclick.
+    assert "<details" not in html
+    assert "onclick" not in html
+    # Exactly ONE <script> — the existing theme toggle.
+    assert html.count("<script>") == 1
+
+
+# --------------------------------------------------------------------------- #
+# LEARN-03 — render_path() for the OnboardingPath (ordered track + prev/next)
+# --------------------------------------------------------------------------- #
+
+
+def _site_with_steps() -> Site:
+    """A Site holding the three step targets the onboarding path sequences."""
+    from newsletters.templates import get_template
+
+    surfaces = [
+        Surface(id="show-ep01", template=get_template("show"), title="Kickoff: how we debug"),
+        Surface(id="report-datamodel", template=get_template("report"), title="The data model"),
+        _render_surface(),  # id == learn-datamodel, kind == learning
+    ]
+    return Site.from_surfaces(surfaces, ledger=Ledger(__import__("pathlib").Path("/tmp/x.json"), {}))
+
+
+def _path() -> OnboardingPath:
+    return OnboardingPath(
+        id="track-newcomer",
+        title="Your first week",
+        audience_label="A new contributor",
+        steps=[
+            OnboardingStep(slug="show-ep01", label="Watch the kickoff"),
+            OnboardingStep(slug="report-datamodel", label="Read the record"),
+            OnboardingStep(slug="learn-datamodel", label="The newcomer re-cut"),
+        ],
+    )
+
+
+def test_onboarding_path_renders_ordered_with_prevnext() -> None:
+    site = _site_with_steps()
+    html = render_path(_path(), site=site)
+    # The three steps render in track ORDER, each linking to its resolved page.href.
+    i1 = html.find("show-ep01.html")
+    i2 = html.find("report-datamodel.html")
+    i3 = html.find("learn-datamodel.html")
+    assert -1 < i1 < i2 < i3, "steps must render in track order, each linking to its surface"
+    # Each step is an <a href="{slug}.html"> (resolved via Site.by_slug).
+    assert '<a' in html and 'href="show-ep01.html"' in html
+    # prev/next within the track: the first step has NO Previous, the last has NO Next.
+    # Reuse the _prevnext device's first-no-prev/last-no-next contract.
+    assert "Next" in html  # there is a next from step 1 / 2
+    assert "Previous" in html  # there is a prev into step 2 / 3
+    assert 'href="None"' not in html
+
+
+def test_onboarding_path_unresolved_step_is_plain_text() -> None:
+    site = _site_with_steps()
+    path = OnboardingPath(
+        id="track-x",
+        title="Track",
+        steps=[
+            OnboardingStep(slug="show-ep01", label="Watch"),
+            OnboardingStep(slug="does-not-exist", label="Missing step"),
+        ],
+    )
+    html = render_path(path, site=site)
+    # The unresolved step renders as plain text (its label), never a dead link.
+    assert "Missing step" in html
+    assert 'href="does-not-exist.html"' not in html
+    assert 'href="None"' not in html
+    assert 'href=""' not in html
+
+
+def test_learning_surface_and_path_make_no_external_call() -> None:
+    surface_html = render_surface(_render_surface())
+    path_html = render_path(_path(), site=_site_with_steps())
+    for html in (surface_html, path_html):
+        # No auto-loading external resource: no http(s):// in a @font-face src, <script src>,
+        # <link href>, or <img src>. Fonts are the self-hosted RELATIVE woff2 only (WORK-01).
+        assert _re.search(r"@font-face[^}]*src:url\('https?://", html) is None
+        assert _re.search(r"<script[^>]+src=", html) is None
+        assert _re.search(r"<link[^>]+href=\"https?://", html) is None
+        assert _re.search(r"<img[^>]+src=\"https?://", html) is None
+        # The only <script> is the theme toggle.
+        assert html.count("<script>") == 1
+    # Self-hosted fonts: the woff2 src is a RELATIVE url (no scheme).
+    assert "url('fonts/" in surface_html
