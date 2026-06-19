@@ -15,11 +15,13 @@ from typing import TypedDict
 
 from .diagrams import fanout as _fanout_svg
 from .distill.faithfulness import SpanContainmentFaithfulness
+from .learning import OnboardingPath, OnboardingStep
 from .semantic import (
     ChaptersBlock,
     ClaimsBlock,
     DiagramBlock,
     FanoutBlock,
+    GlossaryBlock,
     ItemsBlock,
     KpiStripBlock,
     ProseBlock,
@@ -32,6 +34,7 @@ from .semantic import (
     Trace,
 )
 from .site import Collection, Page, Site, slugify
+from .templates import SignalColor
 
 # --------------------------------------------------------------------------- #
 # Source links (SITE-05) — the single configurable repo base + the resolution rule
@@ -206,6 +209,20 @@ _CSS = """
 .claim-span::before{content:'\\201C'}.claim-span::after{content:'\\201D'}
 .claim-badge{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--color-amber);border:1px solid var(--color-amber);padding:2px 6px;margin-left:8px;line-height:1}
 .conf{font-family:var(--font-mono);font-size:9.5px;color:var(--text-dim)}
+/* glossary (LEARN-01) — each term name leads its DEFINING traced claim row (no JS) */
+.gloss-term{margin:0 0 14px;border-left:3px solid var(--signal);padding-left:16px}
+.gloss-name{font-family:var(--font-display);font-size:19px;line-height:1.15;color:var(--text);margin-bottom:2px}
+.gloss-term ul{margin:0}.gloss-term .claim{border-left:0;padding-left:0}
+/* onboarding track (LEARN-03) — ordered steps with in-track prev/next, no JS */
+.track{border-top:1px solid var(--line)}
+.track-step{display:grid;grid-template-columns:56px 1fr;gap:18px;padding:20px 0;border-bottom:1px solid var(--line);align-items:baseline}
+.track-num{font-family:var(--font-display);font-size:30px;color:var(--signal)}
+.track-link{font-family:var(--font-display);font-size:22px;color:var(--text);border-bottom:1px solid transparent}
+a.track-link:hover{border-bottom-color:var(--line)}
+.track-kind{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-dim);margin-left:10px}
+.track-nav{display:flex;gap:18px;margin-top:8px}
+.track-nav a{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-dim)}
+.track-nav a:hover{color:var(--text)}
 .chapter{display:grid;grid-template-columns:64px 1fr;gap:18px;padding:14px 0;border-top:1px solid var(--line)}
 .chapter .t{font-family:var(--font-mono);font-size:11px;color:var(--signal)}
 .chapter .ti{font-family:var(--font-display);font-size:18px;color:var(--text)}
@@ -486,30 +503,57 @@ def _claim_spans(claim) -> str:
     )
 
 
+def _claim_row(c, site: Site | None, sources: dict[str, Source] | None) -> str:
+    """One claim ``<li>`` — its text + an optional STALE/unfaithful badge, the verbatim
+    addressed span(s), and the evidence chips (linked via :func:`link_for_source`).
+
+    The single source of truth for "render a Claim with its provenance" — used by both the
+    ``ClaimsBlock`` branch and the ``GlossaryBlock`` branch (each glossary term's DEFINING
+    claim renders through THIS, so a glossary definition shows the same trace/source link as
+    any claim — LEARN-02). Faithful: an un-traced claim shows the explicit
+    ``unsubstantiated → missing[]`` chip, never a dead link.
+    """
+    ev = "".join(
+        _ev_chip(t, site) for t in c.evidence
+    ) or '<span class="ev-chip" style="color:var(--color-amber)">unsubstantiated &rarr; missing[]</span>'
+    conf = f'<span class="conf">conf {c.confidence:.2f}</span>'
+    cls = "claim" if c.is_traced else "claim untraced"
+    # PROV-03 / SC3: the verbatim addressed span(s) render inline by default (no click),
+    # and a STALE/un-entailed claim carries an inline amber badge so the unfaithful thing
+    # is visible WITHOUT a click. Un-addressed Rev1 traces show their chip alone.
+    badge = _claim_badge(c, sources)
+    spans = _claim_spans(c)
+    return (
+        f'<li class="{cls}"><div class="claim-text">{_e(c.text)}{badge}</div>'
+        f'{spans}<div class="claim-ev">{ev}{conf}</div></li>'
+    )
+
+
 def _block_html(b, site: Site | None = None, sources: dict[str, Source] | None = None) -> str:
     if isinstance(b, ProseBlock):
         paras = "".join(f"<p>{_e(p)}</p>" for p in b.text.split("\n\n") if p.strip())
         h = f'<h3 class="block-h">{_e(b.heading)}</h3>' if b.heading else ""
         return f'<div class="block prose">{h}{paras}</div>'
     if isinstance(b, ClaimsBlock):
-        rows = []
-        for c in b.claims:
-            ev = "".join(
-                _ev_chip(t, site) for t in c.evidence
-            ) or '<span class="ev-chip" style="color:var(--color-amber)">unsubstantiated &rarr; missing[]</span>'
-            conf = f'<span class="conf">conf {c.confidence:.2f}</span>'
-            cls = "claim" if c.is_traced else "claim untraced"
-            # PROV-03 / SC3: the verbatim addressed span(s) render inline by default (no click),
-            # and a STALE/un-entailed claim carries an inline amber badge so the unfaithful thing
-            # is visible WITHOUT a click. Un-addressed Rev1 traces show their chip alone.
-            badge = _claim_badge(c, sources)
-            spans = _claim_spans(c)
-            rows.append(
-                f'<li class="{cls}"><div class="claim-text">{_e(c.text)}{badge}</div>'
-                f'{spans}<div class="claim-ev">{ev}{conf}</div></li>'
-            )
+        rows = "".join(_claim_row(c, site, sources) for c in b.claims)
         h = f'<h3 class="block-h">{_e(b.heading)}</h3>' if b.heading else ""
-        return f'<div class="block">{h}<ul>{"".join(rows)}</ul></div>'
+        return f'<div class="block">{h}<ul>{rows}</ul></div>'
+    if isinstance(b, GlossaryBlock):
+        # LEARN-01/02: each term renders its name + its DEFINING traced Claim through the
+        # SAME claim devices a ClaimsBlock uses (_claim_row → _ev_chip/_claim_spans/
+        # _claim_badge) — so every glossary definition carries its provenance (the linked
+        # evidence chip + the verbatim span). Progressive disclosure = ORDER, not toggles:
+        # the term name is a heading element, the definition a claim row beneath it. No JS.
+        # An un-glossable term is NOT here (the preset routed it to missing[] / honesty panel),
+        # so every rendered definition is a traced reviewed claim — faithful on the HTML.
+        entries = "".join(
+            f'<div class="gloss-term">'
+            f'<div class="gloss-name">{_e(t.term)}</div>'
+            f'<ul>{_claim_row(t.definition, site, sources)}</ul></div>'
+            for t in b.terms
+        )
+        h = f'<h3 class="block-h">{_e(b.heading)}</h3>' if b.heading else ""
+        return f'<div class="block">{h}{entries}</div>'
     if isinstance(b, KpiStripBlock):
         cells = "".join(
             f'<div class="sg-kpi-cell"><div class="sg-kpi-label">{_e(i.label)}</div>'
@@ -926,6 +970,83 @@ def render_library(site: Site, *, theme: str = "light") -> str:
     return _page(
         title="The Library",
         signal_css="var(--color-brand-primary)",
+        body=body,
+        active="Start here",
+        theme=theme,
+        targets=_nav_targets(site),
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Onboarding path (LEARN-03) — an ordered learning track over already-gated surfaces
+# --------------------------------------------------------------------------- #
+
+
+def render_path(path: OnboardingPath, *, site: Site, theme: str = "light") -> str:
+    """Render an :class:`~newsletters.learning.OnboardingPath` as an ordered track page.
+
+    Each :class:`~newsletters.learning.OnboardingStep` resolves via ``site.by_slug``:
+
+    * a RESOLVED step is a numbered ``<a href="{page.href}">`` (the step label, or the
+      target page's title when the label is empty) — LEARN-02: the step links to its
+      already-published surface.
+    * an UNRESOLVED step (no Page for its slug) renders as PLAIN TEXT — never a dead
+      ``href="None"``/empty link (mirrors :func:`_fanout_row` faithfulness, T-12-04b/c).
+
+    prev/next live WITHIN the track using the same first-no-prev/last-no-next boundary
+    contract as :func:`_prevnext`: the first step has no "Previous", the last no "Next".
+    The path carries no claims of its own (it is navigation over surfaces that already
+    passed the gate, A5), so it needs no honesty panel — each linked surface carries its
+    own. No JS beyond the theme toggle; design-system GREEN tokens; ``--radius:0``.
+    """
+    # Resolve every step once (Page or None), preserving track order.
+    resolved: list[tuple[OnboardingStep, Page | None]] = [
+        (step, site.by_slug(step.slug)) for step in path.steps
+    ]
+    n = len(resolved)
+    rows: list[str] = []
+    for i, (step, page) in enumerate(resolved):
+        num = f'<span class="track-num">{i + 1:02d}</span>'
+        label = step.label or (page.title if page is not None else step.slug)
+        if page is not None:
+            head = (
+                f'<a class="track-link" href="{_e(page.href)}">{_e(label)}</a>'
+                f'<span class="track-kind">{_e(page.kind)}</span>'
+            )
+        else:
+            # Faithful: an unresolved step is plain text, never a dead link.
+            head = f'<span class="track-link">{_e(label)}</span>'
+        # Prev/next WITHIN the track (first-no-prev/last-no-next), pointing at the
+        # neighbouring RESOLVED step's surface href so the reader can walk the track.
+        nav_bits: list[str] = []
+        if i > 0 and resolved[i - 1][1] is not None:
+            prev_page = resolved[i - 1][1]
+            assert prev_page is not None  # narrowed by the guard above (mypy)
+            nav_bits.append(
+                f'<a class="track-prev" href="{_e(prev_page.href)}">'
+                f'<span class="lab">&larr; Previous</span></a>'
+            )
+        if i < n - 1 and resolved[i + 1][1] is not None:
+            next_page = resolved[i + 1][1]
+            assert next_page is not None
+            nav_bits.append(
+                f'<a class="track-next" href="{_e(next_page.href)}">'
+                f'<span class="lab">Next &rarr;</span></a>'
+            )
+        nav = f'<div class="track-nav">{"".join(nav_bits)}</div>' if nav_bits else ""
+        rows.append(f'<div class="track-step">{num}<div class="track-body">{head}{nav}</div></div>')
+
+    masthead = (
+        '<div class="masthead"><div class="sg-eyebrow">Onboarding path &middot; an ordered track</div>'
+        '<div class="tags"><span class="sg-tag featured">Learning</span></div>'
+        f'<h1 class="sg-display mast-title">{_e(path.title)}</h1>'
+        f'<div class="mast-meta">For <strong style="color:var(--signal)">'
+        f'{_e(path.audience_label)}</strong> &middot; {n} steps, in order</div></div>'
+    )
+    body = f'<main class="wrap">{masthead}<div class="track">{"".join(rows)}</div></main>'
+    return _page(
+        title=path.title,
+        signal_css=SignalColor.GREEN.css_var,
         body=body,
         active="Start here",
         theme=theme,
