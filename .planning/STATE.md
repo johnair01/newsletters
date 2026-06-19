@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
+status: executing
 stopped_at: Completed 12-03-PLAN.md
-last_updated: "2026-06-19T06:07:28.339Z"
-last_activity: 2026-06-19 -- Phase 12 marked complete
+last_updated: "2026-06-19T06:32:23.733Z"
+last_activity: 2026-06-19 -- Phase 13 execution started
 progress:
   total_phases: 14
   completed_phases: 11
-  total_plans: 41
-  completed_plans: 40
+  total_plans: 43
+  completed_plans: 41
   percent: 79
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-14)
 
 **Core value:** A deterministic, auditable pipeline that traces every published claim to evidence and never auto-publishes — AI is an optional accelerator, never an authority.
-**Current focus:** Phase 12 — learning-onboarding-surface
+**Current focus:** Phase 13 — problem-lifecycle-entity
 
 ## Current Position
 
-Phase: 12 — COMPLETE
-Plan: 5 of 5
-Status: Phase 12 complete
-Last activity: 2026-06-19 -- Phase 12 marked complete
+Phase: 13 (problem-lifecycle-entity) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-06-19 -- Phase 13 execution started
 
 Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-03 complete)
 
@@ -93,6 +93,7 @@ Progress: Phase 04 [██████████] 3/3 plans (04-01, 04-02, 04-
 | Phase 12 P03 | 5min | 2 tasks | 2 files |
 | Phase 12 P04 | 5min | 2 tasks | 2 files |
 | Phase 12 P05 | 18min | 2 tasks | 6 files |
+| Phase 13 P01 | 15 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -160,6 +161,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 12-03: learning_surface() re-cuts a reviewed record into 3 deterministic layers from existing traced claims only — faithfulness proven by set-membership + no-ProseBlock; un-glossable terms route to missing[]; OnboardingPath is navigation (not a Surface, no gate)
 - [Phase 12]: 12-04: GlossaryBlock renders each definition through the shared _claim_row provenance devices (LEARN-02 on the HTML); render_path replicates _prevnext boundary semantics over track steps, unresolved step -> plain text
 - [Phase ?]: 12-05: the dogfood learning surface stays Draft — un-glossable terms route to the honesty panel; a Published open-missing surface trips the merge gate, so honest gaps ship Draft (gate-exempt).
+- [Phase ?]: Problem.evidence is list[Trace] (content-addressed, drift-aware), not bare ids
+- [Phase ?]: Problem ladder is sequential-forward + explicit re-open (Resolved/Verified -> In Progress)
+- [Phase ?]: transition(to, by, note) is the sole human-gated mutator; no setter or auto-advance
 
 ### Pending Todos
 
@@ -188,6 +192,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-19T05:55:27.770Z
+Last session: 2026-06-19T06:32:15.935Z
 Stopped at: Completed 12-03-PLAN.md
 Resume file: None

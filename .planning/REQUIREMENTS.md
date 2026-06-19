@@ -68,7 +68,7 @@
 > `.planning/notes/a2-problem-lifecycle-decision.md`. Extends the spine after Phase 12; does not
 > alter Phases 1–12.
 
-- [ ] **PROB-01**: A first-class `Problem` entity sits *above* `Source`, aggregating ≥1 traced `Source` (scattered ticket / passdown / RCA) and carrying its own lifecycle state ladder (`Identified → Owned → In Progress → Resolved → Verified`) — kept rigorously distinct from the surface review gate (`Draft → In Review → Published`) and the surface fan-out chain
+- [x] **PROB-01**: A first-class `Problem` entity sits *above* `Source`, aggregating ≥1 traced `Source` (scattered ticket / passdown / RCA) and carrying its own lifecycle state ladder (`Identified → Owned → In Progress → Resolved → Verified`) — kept rigorously distinct from the surface review gate (`Draft → In Review → Published`) and the surface fan-out chain
 - [ ] **PROB-02**: The problem portfolio is queryable and aggregatable — group/count/age problems by node/area and surface recurrence across records (the cross-record view A1 structurally cannot produce)
 - [ ] **PROB-03** *(hard constraint)*: The Problem layer is a **legibility layer, not an execution tracker** — no write-back to external systems (Jira/Azure DevOps); the problem-SOLVING step stays external/operator-owned (preserves the `semantic.py` spine boundary). Lifecycle-state transitions are human-gated, never auto-mutated
 - [ ] **PROB-04**: A problem-board surface renders the portfolio alongside the existing gate-state board; every problem links back to its constituent `Source` records/claims, so the lifecycle stays traceable to evidence
@@ -136,7 +136,7 @@ Mapped during roadmap creation (2026-06-14). Every v1 requirement maps to exactl
 | LEARN-01 | Phase 12 — Learning & Onboarding Surface | Complete |
 | LEARN-02 | Phase 12 — Learning & Onboarding Surface | Complete |
 | LEARN-03 | Phase 12 — Learning & Onboarding Surface | Complete |
-| PROB-01 | Phase 13 — Problem Lifecycle Entity | Pending |
+| PROB-01 | Phase 13 — Problem Lifecycle Entity | Complete |
 | PROB-02 | Phase 14 — Problem Board Portfolio Surface | Pending |
 | PROB-03 | Phase 13 — Problem Lifecycle Entity | Pending |
 | PROB-04 | Phase 14 — Problem Board Portfolio Surface | Pending |

@@ -362,8 +362,9 @@ Plans:
 
 Plans:
 
-- [ ] 13-01-PLAN.md — Problem entity + ProblemState ladder + human-gated transition() + __init__ export + dogfood (PROB-01)
+- [x] 13-01-PLAN.md — Problem entity + ProblemState ladder + human-gated transition() + __init__ export + dogfood (PROB-01)
 - [ ] 13-02-PLAN.md — no-write-back proof (import-linter contract + runtime + API allow-list) + spine-unchanged + terminology-distinctness (PROB-03)
+
 **UI hint**: no
 
 ### Phase 14: Problem Board Portfolio Surface (A2)
@@ -407,5 +408,5 @@ merge-block gate (Phase 10) establish standing CI invariants verified on every s
 | 10. Reviewer Surfacing & Merge-Block Gate | 3/3 | Complete   | 2026-06-18 |
 | 11. Work-Surface Installation | 5/5 | Complete   | 2026-06-18 |
 | 12. Learning & Onboarding Surface | 5/5 | Complete   | 2026-06-19 |
-| 13. Problem Lifecycle Entity (A2) | 0/TBD | Not started | - |
+| 13. Problem Lifecycle Entity (A2) | 1/2 | In Progress|  |
 | 14. Problem Board Portfolio Surface (A2) | 0/TBD | Not started | - |
