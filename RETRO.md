@@ -4,6 +4,31 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
+## 2026-06-19 — Session: autonomous Phases 8–13 (the cut to UAT)
+
+**Friction observed**
+
+1. **A "sole-mutator" claim that a mutable model didn't enforce.** Phase-13's `Problem` documented
+   "transition is the only way state changes" + a human-gated guarantee — but it was a default-mutable
+   pydantic model, so `p.state = VERIFIED` bypassed the actor check, the ladder, AND the log. The
+   verifier's adversarial probe caught it. Same CLASS as the Phase-7 silent-drop: **a comment/claim
+   that the code doesn't actually enforce.** (Also recurred smaller: Phase-9 stale-green — gates run
+   before content regen; Phase-12 a publish() attempt the merge-gate correctly blocked.)
+2. **A planner subagent died mid-write, leaving truncated + uncommitted plans** (Phase 12). Caught only
+   because I audited the plans against the locked decisions and found render+dogfood uncovered + a
+   truncated 12-03. The "agent says green ≠ green" rule applied to a *planner*, not just executors.
+
+**Rules hardened**
+
+- *Enforce invariants in CODE, prove by TEST — never in a comment.* A trust guarantee (human-gated, no
+  silent drops, faithful, no auto-publish) is real only if a bypass attempt RAISES and a test proves it.
+  `Problem.state`/`log` are now `__setattr__`-guarded; the adversarial "try to bypass it" probe is now
+  part of verification, not optional. Generalises the Phase-7 lesson to ALL claimed invariants.
+- *Audit a returned plan against the locked decisions before executing* — a plan set can be thin or
+  truncated (dead subagent). Re-plan/extend to full coverage; don't execute an under-scoped plan.
+- *A completion notification is not liveness; gates run AFTER content regen; push every task* — carried
+  forward from the 16h stall and reconfirmed across these phases.
+
 ## 2026-06-18 — Session: autonomous Phases 5–7 (+ a 16h stall + a silent-drop bug)
 
 **Friction observed**

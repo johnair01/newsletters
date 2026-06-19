@@ -7,6 +7,21 @@
 
 ## Where we are right now
 
+**2026-06-19 — Phase 13 SHIPPED & VERIFIED (3/3): Problem Lifecycle Entity (PROB-01/03). THE CUT IS
+COMPLETE — Phases 1–13 all shipped & verified.** A first-class typed `Problem` sits ABOVE `Source`
+(`src/newsletters/problem.py`, AI-free leaf, acyclic — `semantic` never imports it): aggregates ≥1
+traced Source (≥1 enforced), carries its own `ProblemState` ladder (Identified→Owned→In Progress→
+Resolved→Verified, re-open the only backward edge), advanced ONLY through a human-gated `transition(to,
+by)` (empty actor → raises; illegal move → raises; never auto-advances). It is a **legibility layer,
+NOT a tracker** — the no-write-back boundary is proven FOUR ways (a 2nd import-linter contract
+`forbid-external-write-in-problem` → "2 kept, 0 broken"; a runtime delta-guard; an API allow-list with
+no Jira/ADO/export path; a spine-unchanged `content_hash` proof). The three state axes stay provably
+distinct (terminology guard; verb `transition`). The verifier caught a real loophole — a bare
+`p.state = …` bypassed the gate (mutable pydantic model) — **closed** with a `__setattr__` guard so
+`transition` is the *literal* sole mutator (claim==reality). 573 tests pass. PROB-02/04 (portfolio +
+board) are Phase 14, deliberately deferred. **Next: UAT — open the PR + publish the live GitHub Pages
+site.**
+
 **2026-06-18 — Phase 12 SHIPPED & VERIFIED (3/3): Learning & Onboarding Surface (LEARN-01/02/03).** The
 **5th surface type**. A `learning` SurfaceTemplate (distance 4, GREEN) + a typed `GlossaryBlock` whose
 `GlossaryTerm.definition` IS a traced `Claim` (a `str`/invented definition raises `ValidationError` —
