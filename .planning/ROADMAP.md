@@ -358,7 +358,12 @@ Plans:
   2. The problem lifecycle ladder is provably distinct in code from the surface review gate (`Draft → In Review → Published`) and the surface fan-out chain — no shared/overloaded "promotion" term (enforced per the terminology-guard seed)
   3. Lifecycle-state transitions are human-gated and never auto-mutated; there is no write-back path to any external system (Jira/ADO) — the `semantic.py` spine boundary (solving is external) is preserved and proven by a test
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+
+- [ ] 13-01-PLAN.md — Problem entity + ProblemState ladder + human-gated transition() + __init__ export + dogfood (PROB-01)
+- [ ] 13-02-PLAN.md — no-write-back proof (import-linter contract + runtime + API allow-list) + spine-unchanged + terminology-distinctness (PROB-03)
 **UI hint**: no
 
 ### Phase 14: Problem Board Portfolio Surface (A2)
