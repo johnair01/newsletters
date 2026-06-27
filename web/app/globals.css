@@ -1,0 +1,99 @@
+/* ============================================================
+   SIGNALS — global token layer + base styles
+   Ported verbatim from the "Signals — Navigation & IA" handoff.
+   Tokens are the visual contract; see docs/design-system.md and
+   design-reference/signals/tokens.css for the wider system.
+   ============================================================ */
+
+/* Self-hosted fonts — no external calls */
+@font-face { font-family: 'DM Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/dm-mono-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'DM Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/dm-mono-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'DM Serif Display'; font-style: italic; font-weight: 400; font-display: swap; src: url('/fonts/dm-serif-display-400-italic.woff2') format('woff2'); }
+@font-face { font-family: 'DM Serif Display'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/dm-serif-display-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Instrument Sans'; font-style: italic; font-weight: 400; font-display: swap; src: url('/fonts/instrument-sans-400-italic.woff2') format('woff2'); }
+@font-face { font-family: 'Instrument Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/instrument-sans-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Instrument Sans'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/instrument-sans-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Instrument Sans'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/instrument-sans-600-normal.woff2') format('woff2'); }
+
+:root {
+  --bg: #f5f3ee; --paper: #f5f3ee; --card: #ffffff; --ink: #0a0a0f; --muted: #6b6860;
+  --hairline: #c8c4bb; --low: #f0ede8; --blue: #0068b5; --terra: #d4622a; --amber: #c8860a;
+  --green: #2f7d4f; --chrome: #0a0a0f; --chrome-text: #f5f3ee; --chrome-muted: #8c887e;
+  --amber-ink: #946400; --terra-ink: #a8481d;
+  --ev-bg: #ffffff;
+
+  /* type system */
+  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-body: 'Instrument Sans', system-ui, sans-serif;
+  --font-mono: 'DM Mono', 'Courier New', monospace;
+  --radius: 0px;
+}
+
+[data-theme="dark"] {
+  --bg: #07070b; --paper: #0e0e14; --card: #14141b; --ink: #f1efe9; --muted: #9a978f;
+  --hairline: #2a2a33; --low: #16161d; --blue: #3a9be0; --terra: #e07a48; --amber: #dba62f;
+  --green: #4caa75; --chrome: #050509; --chrome-text: #f1efe9; --chrome-muted: #7d7a74;
+  --amber-ink: #dba62f; --terra-ink: #e07a48;
+  --ev-bg: #14141b;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+html { background: var(--bg); }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--amber); color: #0a0a0f; }
+
+button { font-family: inherit; cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+
+/* Accessibility — visible focus ring on every interactive element */
+[data-nav]:focus-visible,
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* Evidence panel entrance */
+@keyframes evIn { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
+}
+
+/* The framed viewport — a centered editorial column with hairline sides.
+   In production this is just the responsive content frame. */
+.viewport {
+  max-width: 1180px;
+  margin: 0 auto;
+  border-left: 1px solid var(--hairline);
+  border-right: 1px solid var(--hairline);
+  background: var(--bg);
+  min-height: 100vh;
+  position: relative;
+}
+
+/* ---- responsive helpers (inline styles can't carry media queries) ---- */
+
+/* Nav: inline spine on wide, hamburger drawer below the breakpoint. */
+.nav-desktop { display: flex; }
+.nav-burger { display: none; }
+@media (max-width: 860px) {
+  .nav-desktop { display: none; }
+  .nav-burger { display: flex; }
+}
+
+/* Surface body: claims + sticky margin rail, collapses to one column. */
+.rail-grid { display: grid; grid-template-columns: 1fr 250px; gap: 34px; align-items: start; }
+.rail-aside { display: flex; }
+@media (max-width: 860px) {
+  .rail-grid { grid-template-columns: 1fr; }
+  .rail-aside { display: none; }
+}
