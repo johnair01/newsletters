@@ -15,6 +15,17 @@ agent's say-so; a human verifies.
 Establish the repo, the design tokens, and the shared component kit so every later surface
 is consistent.
 
+> **Status (2026-06-27): in progress.** `web/` is scaffolded as a Next.js 14 (App Router) +
+> TS app and the **"Signals — Navigation & IA" handoff** is being recreated there — a
+> front-loaded slice of Phase 0 plus the Phase 0→1/3 seam (global chrome, fan-out switcher,
+> claim→evidence provenance, ⌘K palette, Library, Onboarding, the review-gate edge state).
+> Tokens are being reconciled onto the `design-system.md` / `design-reference/signals/tokens.css`
+> namespace (the visual contract). Do **not** re-scaffold; resume from the token foundation.
+> Decision recorded this round: the reader-facing set is **five surfaces** (Report · Article ·
+> Newsletter · Show · **Learning**) at the presentation layer — see the note in
+> `architecture.md §1`. The shared component-kit atoms named below (`Eyebrow`, `GateBadge`, …)
+> are still to be extracted from the inline-styled chrome built for the handoff.
+
 ▸ Scaffold the repo per `architecture.md` §4 (`/core`, `/mcp`, `/web`, `/content`, `/docs`).
 ▸ Stand up the web app (Next.js + TS recommended) with SSR and a no-JS-renders baseline.
 ▸ Port `design-reference/signals/tokens.css` into the app as the global token layer

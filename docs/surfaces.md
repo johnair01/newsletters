@@ -257,6 +257,39 @@ surface.
 
 ---
 
+## Navigation & IA layer
+
+Added 2026-06-27 from the **"Signals — Navigation & IA"** design package
+(`design-reference/signals-navigation/`), which specifies the connective tissue the older
+per-surface specs didn't: how a reader moves *between* surfaces of one record and from a claim
+to its evidence. Built in `web/`. The mechanics below are the contract; body prose is
+illustrative.
+
+- **Five reader surfaces.** The package presents one record as **Report · Article · Newsletter ·
+  Show · Learning** — note the fifth, `learning` (see `architecture.md §1`). Per-surface accent:
+  Report → blue, Article → ink, Newsletter → amber, Show → terra, Learning → green.
+- **Global nav spine.** Persistent near-black chrome on every page: logo → Home, six primary
+  destinations (Start here · Library · Newsletters · Articles · The Show · Learning), a "Jump
+  to… ⌘K" button, a breadcrumb bar (`Home / <view>`), and a mobile hamburger drawer.
+- **Fan-out switcher** ("See this record as") — the signature control; a sticky **segmented
+  control** (shipped treatment A) that swaps the current record between its surfaces, preserving
+  context. The active segment carries the destination surface's accent underline.
+- **Provenance: claim → evidence → back** — every published claim carries an inline **EV**
+  trigger that opens a **slide-in evidence panel** (shipped treatment A) showing the claim, its
+  trace (source + locator), and the source span, with a clear return and an "open source
+  surface" jump.
+- **Library** — browsable index, by **record** or **topic**, with review-state filter chips
+  (state is a badge + filter, never the way in) and empty states.
+- **Onboarding** — an ordered guided path (Show → Report → Article → Learning) with a stepper.
+- **⌘K command palette** — searchable jump across surfaces, pages, and records.
+- **Review gate is first-class in the IA** — surfaces carry their `Draft · In Review ·
+  Published` state as a badge; a Draft surface renders the **gated edge state** (`/gated`):
+  claims aren't readable and can't be cited until they clear the gate.
+
+The prototype runtime (`support.js`, the `<x-dc>`/`<sc-*>` tags, the harness toolbar) is
+reference only — **not** ported. See `design-reference/signals-navigation/README.md` for the
+full visual spec and `web/README.md` for the implementation.
+
 ## Sample data is illustrative
 
 Across all surfaces the worked example (a latency-regression RCA the four dashboards

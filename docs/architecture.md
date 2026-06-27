@@ -19,6 +19,13 @@ carry the whole system:
 - **Surface** — `kind`, `body`, `gate: Review`, `traces: Source[]`. The published artifact and
   the review state that gates it. `kind ∈ { show, newsletter, article, report }`.
 
+> **Note (2026-06-27) — the presentation layer carries a fifth surface, `learning`.** The
+> "Signals — Navigation & IA" design package presents the record as **five** reader surfaces:
+> Report, Article, Newsletter, Show, and a newcomer **Learning** re-cut. The web/IA layer
+> (`web/`) ships all five. The typed core `kind` enum above still caps at four until `learning`
+> is ratified into the `SurfaceTemplate` presets (`templates.py`) + `ReviewPolicy` — a separate
+> core task. Recorded here so code and spec don't drift silently (per `CLAUDE.md`).
+
 Supporting types:
 
 - **Corpus** — a reader's private profile: `role`, `owned[]` (services/areas), `read[]`

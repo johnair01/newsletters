@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  /* Self-hosted fonts — no external calls */
+  @font-face{font-family:'DM Mono';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/dm-mono-400-normal.woff2') format('woff2');}
+  @font-face{font-family:'DM Mono';font-style:normal;font-weight:500;font-display:swap;src:url('fonts/dm-mono-500-normal.woff2') format('woff2');}
+  @font-face{font-family:'DM Serif Display';font-style:italic;font-weight:400;font-display:swap;src:url('fonts/dm-serif-display-400-italic.woff2') format('woff2');}
+  @font-face{font-family:'DM Serif Display';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/dm-serif-display-400-normal.woff2') format('woff2');}
+  @font-face{font-family:'Instrument Sans';font-style:italic;font-weight:400;font-display:swap;src:url('fonts/instrument-sans-400-italic.woff2') format('woff2');}
+  @font-face{font-family:'Instrument Sans';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/instrument-sans-400-normal.woff2') format('woff2');}
+  @font-face{font-family:'Instrument Sans';font-style:normal;font-weight:500;font-display:swap;src:url('fonts/instrument-sans-500-normal.woff2') format('woff2');}
+  @font-face{font-family:'Instrument Sans';font-style:normal;font-weight:600;font-display:swap;src:url('fonts/instrument-sans-600-normal.woff2') format('woff2');}
+</style>
+<style>
+  :root{
+    --bg:#f5f3ee; --paper:#f5f3ee; --card:#ffffff; --ink:#0a0a0f; --muted:#6b6860;
+    --hairline:#c8c4bb; --low:#f0ede8; --blue:#0068b5; --terra:#d4622a; --amber:#c8860a;
+    --green:#2f7d4f; --chrome:#0a0a0f; --chrome-text:#f5f3ee; --chrome-muted:#8c887e;
+    --amber-ink:#946400; --terra-ink:#a8481d;
+    --ev-bg:#ffffff;
+  }
+  [data-theme="dark"]{
+    --bg:#07070b; --paper:#0e0e14; --card:#14141b; --ink:#f1efe9; --muted:#9a978f;
+    --hairline:#2a2a33; --low:#16161d; --blue:#3a9be0; --terra:#e07a48; --amber:#dba62f;
+    --green:#4caa75; --chrome:#050509; --chrome-text:#f1efe9; --chrome-muted:#7d7a74;
+    --amber-ink:#dba62f; --terra-ink:#e07a48;
+    --ev-bg:#14141b;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  ::selection{background:var(--amber);color:#0a0a0f;}
+  [data-nav]:focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
+  button{font-family:inherit;cursor:pointer;}
+  @keyframes evIn{from{transform:translateX(24px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+</style>
+</helmet>
+<div data-theme="{{ themeAttr }}" style="font-family:'Instrument Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;">
+
+  <!-- ===== PROTOTYPE HARNESS TOOLBAR ===== -->
+  <div style="position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:18px;flex-wrap:wrap;background:#101016;border-bottom:1px solid #26262e;padding:9px 18px;color:#e7e5df;">
+    <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.18em;color:#6f6c78;text-transform:uppercase;">Prototype</span>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.14em;color:#cfcdd6;text-transform:uppercase;">Signals · Navigation &amp; IA</span>
+    <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+      <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;color:#6f6c78;text-transform:uppercase;">View</span>
+      <select data-nav value="{{ view }}" onChange="{{ setView }}" style="font-family:'DM Mono',monospace;font-size:12px;background:#1c1c24;color:#e7e5df;border:1px solid #34343e;padding:6px 10px;border-radius:0;letter-spacing:.04em;">
+        <option value="ia">IA &amp; Patterns</option>
+        <option value="home">Home</option>
+        <option value="library">Library</option>
+        <option value="report">Report</option>
+        <option value="article">Article</option>
+        <option value="newsletter">Newsletter</option>
+        <option value="show">The Show</option>
+        <option value="learning">Learning</option>
+        <option value="onboarding">Onboarding</option>
+      </select>
+    </div>
+    <div style="display:flex;border:1px solid #34343e;">
+      <button data-nav onClick="{{ setDesktop }}" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:6px 11px;border:0;background:{{ deskBg }};color:{{ deskFg }};">Desktop</button>
+      <button data-nav onClick="{{ setMobile }}" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:6px 11px;border:0;border-left:1px solid #34343e;background:{{ mobBg }};color:{{ mobFg }};">Mobile</button>
+    </div>
+    <button data-nav onClick="{{ toggleTheme }}" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;border:1px solid #34343e;background:#1c1c24;color:#e7e5df;">◑ {{ themeLabel }}</button>
+  </div>
+
+  <!-- ===== VIEWPORT ===== -->
+  <div style="max-width:{{ vpWidth }};margin:0 auto;border-left:1px solid var(--hairline);border-right:1px solid var(--hairline);background:var(--bg);min-height:calc(100vh - 44px);position:relative;overflow:hidden;">
+
+    <!-- ===== GLOBAL NAV HEADER ===== -->
+    <header style="background:var(--chrome);color:var(--chrome-text);position:sticky;top:44px;z-index:40;">
+      <div style="display:flex;align-items:center;gap:20px;padding:0 22px;height:62px;">
+        <button data-nav onClick="{{ goHome }}" style="display:flex;align-items:baseline;gap:9px;background:none;border:0;padding:0;color:var(--chrome-text);">
+          <span style="width:13px;height:13px;background:var(--blue);display:inline-block;"></span>
+          <span style="font-family:'DM Serif Display',serif;font-size:22px;line-height:1;">Signals</span>
+        </button>
+        <nav style="display:{{ navDisplay }};align-items:center;gap:3px;margin-left:14px;">
+          <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="6">
+            <button data-nav onClick="{{ n.go }}" style="font-family:'DM Mono',monospace;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;background:none;border:0;border-bottom:2px solid {{ n.underline }};color:{{ n.color }};padding:7px 11px;">{{ n.label }}</button>
+          </sc-for>
+        </nav>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+          <button data-nav onClick="{{ openJump }}" style="display:{{ navDisplay }};align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:var(--chrome-muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;padding:7px 12px;">Jump to… <span style="opacity:.6;">⌘K</span></button>
+          <button data-nav onClick="{{ toggleMnav }}" style="display:{{ burgerDisplay }};flex-direction:column;gap:4px;background:none;border:0;padding:6px;">
+            <span style="width:20px;height:2px;background:var(--chrome-text);display:block;"></span>
+            <span style="width:20px;height:2px;background:var(--chrome-text);display:block;"></span>
+            <span style="width:20px;height:2px;background:var(--chrome-text);display:block;"></span>
+          </button>
+        </div>
+      </div>
+      <!-- mobile drawer -->
+      <sc-if value="{{ showMnav }}" hint-placeholder-val="{{ false }}">
+        <div style="border-top:1px solid rgba(255,255,255,.1);padding:8px 22px 16px;display:flex;flex-direction:column;">
+          <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="6">
+            <button data-nav onClick="{{ n.go }}" style="text-align:left;font-family:'DM Mono',monospace;font-size:13px;letter-spacing:.08em;text-transform:uppercase;background:none;border:0;border-bottom:1px solid rgba(255,255,255,.08);color:var(--chrome-text);padding:13px 2px;">{{ n.label }}</button>
+          </sc-for>
+        </div>
+      </sc-if>
+    </header>
+
+    <!-- breadcrumb -->
+    <div style="display:flex;align-items:center;gap:9px;padding:11px 22px;border-bottom:1px solid var(--hairline);background:var(--low);font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);overflow:hidden;white-space:nowrap;">
+      <button data-nav onClick="{{ goHome }}" style="background:none;border:0;color:var(--muted);font:inherit;letter-spacing:inherit;text-transform:inherit;padding:0;">Home</button>
+      <span style="opacity:.5;">/</span>
+      <span style="color:var(--ink);">{{ crumb }}</span>
+    </div>
+
+    <!-- ===== SCREENS ===== -->
+    <main style="min-height:60vh;">
+
+      <!-- IA & PATTERNS -->
+      <sc-if value="{{ isIA }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:40px 28px 70px;max-width:980px;margin:0 auto;">
+          <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--blue);margin:0 0 14px;">Design round · Information Architecture</p>
+          <h1 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:clamp(34px,5vw,52px);line-height:1.04;margin:0 0 18px;max-width:16ch;">Make the fan-out visible.</h1>
+          <p style="font-size:17px;line-height:1.6;color:var(--muted);max-width:62ch;margin:0 0 42px;">One reviewed record fans out into five reader surfaces. The surfaces are well-built in isolation — this round redesigns how they <em style="color:var(--ink);font-style:italic;">connect</em>: a persistent spine, a lateral fan-out switcher, a first-class claim→evidence trail, and a library you can actually browse.</p>
+
+          <!-- sitemap -->
+          <div style="border-top:2px solid var(--ink);padding-top:14px;margin-bottom:48px;">
+            <h2 style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);margin:0 0 18px;">01 · Sitemap</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1px;background:var(--hairline);border:1px solid var(--hairline);">
+              <sc-for list="{{ sitemap }}" as="m" hint-placeholder-count="6">
+                <button data-nav onClick="{{ m.go }}" style="text-align:left;background:var(--card);border:0;border-left:3px solid {{ m.color }};padding:15px 16px;color:var(--ink);">
+                  <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">{{ m.kicker }}</span>
+                  <span style="font-family:'DM Serif Display',serif;font-size:19px;display:block;line-height:1.1;">{{ m.label }}</span>
+                  <span style="font-size:12.5px;color:var(--muted);display:block;margin-top:5px;line-height:1.4;">{{ m.note }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- cross-link graph -->
+          <div style="border-top:2px solid var(--ink);padding-top:14px;margin-bottom:10px;">
+            <h2 style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);margin:0 0 6px;">02 · The cross-link graph</h2>
+            <p style="font-size:14.5px;line-height:1.55;color:var(--muted);max-width:60ch;margin:0 0 26px;">One <strong style="color:var(--ink);">record</strong> → many <strong style="color:var(--ink);">surfaces</strong>. Every surface is built of <strong style="color:var(--ink);">claims</strong>; every claim links to its <strong style="color:var(--ink);">evidence</strong>. The onboarding path is an ordered thread across them.</p>
+            <div style="border:1px solid var(--hairline);background:var(--card);padding:26px 22px;">
+              <div style="display:flex;justify-content:center;margin-bottom:8px;">
+                <div style="background:var(--ink);color:var(--paper);padding:13px 22px;text-align:center;">
+                  <span style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.7;display:block;margin-bottom:3px;">Record · source of truth</span>
+                  <span style="font-family:'DM Serif Display',serif;font-size:20px;">The Semantic Spine</span>
+                </div>
+              </div>
+              <div style="height:24px;width:2px;background:var(--hairline);margin:0 auto;"></div>
+              <div style="display:flex;flex-wrap:wrap;gap:1px;justify-content:center;background:var(--hairline);border:1px solid var(--hairline);">
+                <sc-for list="{{ surfaces }}" as="s" hint-placeholder-count="5">
+                  <button data-nav onClick="{{ s.go }}" style="flex:1 1 130px;min-width:120px;background:var(--card);border:0;border-top:4px solid {{ s.color }};padding:14px 12px;text-align:center;color:var(--ink);">
+                    <span style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:{{ s.textColor }};display:block;margin-bottom:5px;">Surface</span>
+                    <span style="font-family:'DM Serif Display',serif;font-size:18px;display:block;">{{ s.label }}</span>
+                    <span style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">{{ s.claims }} claims</span>
+                  </button>
+                </sc-for>
+              </div>
+              <p style="font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.06em;color:var(--muted);text-align:center;margin:18px 0 0;">↓ each claim ↘ evidence span ↘ back · ⟶ onboarding threads Show → Report → Article → Learning</p>
+            </div>
+          </div>
+          <!-- nav concept -->
+          <div style="border-top:2px solid var(--ink);padding-top:14px;margin:48px 0;">
+            <h2 style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);margin:0 0 6px;">03 · Global navigation</h2>
+            <p style="font-size:14.5px;line-height:1.55;color:var(--muted);max-width:60ch;margin:0 0 22px;">A persistent near-black spine on every page. Six primary destinations, a jump-to search, breadcrumbs, and a mobile drawer. The spine is always reachable — surfaces are never dead-ends.</p>
+            <div style="border:1px solid var(--hairline);background:var(--chrome);color:var(--chrome-text);">
+              <div style="display:flex;align-items:center;gap:16px;padding:0 18px;height:56px;flex-wrap:wrap;">
+                <span style="display:flex;align-items:baseline;gap:8px;"><span style="width:11px;height:11px;background:var(--blue);display:inline-block;"></span><span style="font-family:'DM Serif Display',serif;font-size:19px;">Signals</span></span>
+                <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--chrome-text);border-bottom:2px solid var(--blue);padding-bottom:3px;">Start here</span>
+                <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--chrome-muted);">Library</span>
+                <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--chrome-muted);">Newsletters</span>
+                <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--chrome-muted);">Articles</span>
+                <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--chrome-muted);">The Show</span>
+                <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--chrome-muted);">Learning</span>
+                <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:10.5px;color:var(--chrome-muted);border:1px solid rgba(255,255,255,.14);padding:6px 10px;">Jump to… ⌘K</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- fan-out switcher options -->
+          <div style="border-top:2px solid var(--ink);padding-top:14px;margin:48px 0;">
+            <h2 style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);margin:0 0 6px;">04 · The fan-out switcher <span style="color:var(--muted);">— three treatments</span></h2>
+            <p style="font-size:14.5px;line-height:1.55;color:var(--muted);max-width:60ch;margin:0 0 24px;">The signature control: jump laterally between the surfaces of the <em style="color:var(--ink);font-style:italic;">same record</em>. Live screens use option A.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1px;background:var(--hairline);border:1px solid var(--hairline);">
+
+              <!-- A: segmented control -->
+              <div style="background:var(--card);padding:20px 18px;">
+                <p style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin:0 0 14px;">A · Segmented control</p>
+                <div style="border:1px solid var(--hairline);display:flex;flex-wrap:wrap;">
+                  <span style="flex:1;text-align:center;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:9px 6px;background:var(--ink);color:var(--paper);border-bottom:3px solid var(--blue);">Report</span>
+                  <span style="flex:1;text-align:center;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:9px 6px;color:var(--muted);border-bottom:3px solid transparent;border-left:1px solid var(--hairline);">Article</span>
+                  <span style="flex:1;text-align:center;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:9px 6px;color:var(--muted);border-left:1px solid var(--hairline);">News</span>
+                  <span style="flex:1;text-align:center;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:9px 6px;color:var(--muted);border-left:1px solid var(--hairline);">Show</span>
+                  <span style="flex:1;text-align:center;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:9px 6px;color:var(--muted);border-left:1px solid var(--hairline);">Learn</span>
+                </div>
+                <p style="font-size:12.5px;line-height:1.5;color:var(--muted);margin:13px 0 0;">Compact, horizontal, reads as one object. Color underline encodes the active surface type.</p>
+              </div>
+
+              <!-- B: see-this-as strip -->
+              <div style="background:var(--card);padding:20px 18px;">
+                <p style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin:0 0 14px;">B · “See this as” strip</p>
+                <div style="border-left:3px solid var(--blue);padding:4px 0 4px 12px;">
+                  <span style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:7px;">See this record as</span>
+                  <div style="display:flex;flex-wrap:wrap;gap:7px;">
+                    <span style="font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.04em;background:var(--ink);color:var(--paper);padding:4px 9px;">Report ✓</span>
+                    <span style="font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.04em;border:1px solid var(--hairline);color:var(--ink);padding:4px 9px;">Article</span>
+                    <span style="font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.04em;border:1px solid var(--hairline);color:var(--ink);padding:4px 9px;">Newsletter</span>
+                    <span style="font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.04em;border:1px solid var(--hairline);color:var(--ink);padding:4px 9px;">Show</span>
+                    <span style="font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.04em;border:1px solid var(--hairline);color:var(--ink);padding:4px 9px;">Learning</span>
+                  </div>
+                </div>
+                <p style="font-size:12.5px;line-height:1.5;color:var(--muted);margin:13px 0 0;">Editorial, sits under the title. The label spells out the mental model explicitly.</p>
+              </div>
+
+              <!-- C: sibling rail -->
+              <div style="background:var(--card);padding:20px 18px;">
+                <p style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin:0 0 14px;">C · Sibling rail</p>
+                <div style="display:flex;flex-direction:column;border:1px solid var(--hairline);">
+                  <span style="font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-left:3px solid var(--blue);background:var(--low);color:var(--ink);">Report</span>
+                  <span style="font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-left:3px solid var(--ink);color:var(--muted);border-top:1px solid var(--hairline);">Article</span>
+                  <span style="font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-left:3px solid var(--amber);color:var(--muted);border-top:1px solid var(--hairline);">Newsletter</span>
+                  <span style="font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-left:3px solid var(--terra);color:var(--muted);border-top:1px solid var(--hairline);">Show</span>
+                  <span style="font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-left:3px solid var(--green);color:var(--muted);border-top:1px solid var(--hairline);">Learning</span>
+                </div>
+                <p style="font-size:12.5px;line-height:1.5;color:var(--muted);margin:13px 0 0;">Vertical, parks in the margin on wide screens. Best when surfaces are long-scroll.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- provenance options -->
+          <div style="border-top:2px solid var(--ink);padding-top:14px;margin:48px 0 0;">
+            <h2 style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);margin:0 0 6px;">05 · The provenance pattern <span style="color:var(--muted);">— two treatments</span></h2>
+            <p style="font-size:14.5px;line-height:1.55;color:var(--muted);max-width:60ch;margin:0 0 24px;">Claim → evidence → back, as one repeatable affordance. Live Report uses option A (slide-in panel).</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1px;background:var(--hairline);border:1px solid var(--hairline);">
+
+              <!-- A: slide-in panel -->
+              <div style="background:var(--card);padding:20px 18px;">
+                <p style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin:0 0 14px;">A · Slide-in evidence panel</p>
+                <p style="font-size:14px;line-height:1.6;color:var(--ink);margin:0 0 14px;">Every published claim links to its source evidence<sup style="font-family:'DM Mono',monospace;font-size:10px;color:var(--paper);background:var(--blue);padding:1px 5px;margin-left:3px;">EV</sup>.</p>
+                <div style="border-left:3px solid var(--blue);background:var(--low);padding:11px 13px;">
+                  <span style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);display:block;margin-bottom:6px;">Evidence · The Show 00:21:08 →</span>
+                  <span style="font-size:12.5px;line-height:1.5;color:var(--muted);font-style:italic;">“…nothing ships unless the claim points back at a span…”</span>
+                  <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--blue);display:block;margin-top:9px;">← Back to claim</span>
+                </div>
+                <p style="font-size:12.5px;line-height:1.5;color:var(--muted);margin:13px 0 0;">Reader stays in place; evidence opens beside the claim, with a clear return.</p>
+              </div>
+
+              <!-- B: jump + breadcrumb return -->
+              <div style="background:var(--card);padding:20px 18px;">
+                <p style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin:0 0 14px;">B · Jump to highlighted span</p>
+                <p style="font-size:14px;line-height:1.6;color:var(--ink);margin:0 0 14px;">The claim is a <span style="color:var(--blue);border-bottom:2px solid var(--blue);">link</span> that jumps to its source, highlighted in context.</p>
+                <div style="border:1px solid var(--hairline);padding:11px 13px;">
+                  <span style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:7px;">Report · §3.2</span>
+                  <span style="font-size:12.5px;line-height:1.55;color:var(--muted);">…the gate is <mark style="background:var(--amber);color:var(--ink);padding:0 2px;">Draft → In Review → Published</mark>, and a human signs…</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:7px;margin-top:11px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);"><span style="color:var(--blue);">← Back to Article</span><span style="opacity:.5;">where you came from</span></div>
+                <p style="font-size:12.5px;line-height:1.5;color:var(--muted);margin:13px 0 0;">Full context of the source; a breadcrumb returns you to the citing surface.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- HOME -->
+      <sc-if value="{{ isHome }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <!-- hero -->
+          <div style="padding:64px 28px 54px;max-width:900px;margin:0 auto;border-bottom:1px solid var(--hairline);">
+            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--blue);margin:0 0 18px;">One record · five surfaces · every claim traced</p>
+            <h1 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:clamp(38px,6vw,68px);line-height:1.02;margin:0 0 22px;max-width:14ch;">The record, told for every reader.</h1>
+            <p style="font-size:18px;line-height:1.6;color:var(--muted);max-width:54ch;margin:0 0 30px;">Signals turns the messy record of how work gets done into trustworthy, audience-tuned stories. Read it as a Report, an Article, a Newsletter, a Show, or a Learning re-cut — same evidence underneath.</p>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;">
+              <button data-nav onClick="{{ go.onboarding }}" style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;background:var(--ink);color:var(--paper);border:0;padding:14px 22px;">Start here →</button>
+              <button data-nav onClick="{{ go.library }}" style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;background:transparent;color:var(--ink);border:1px solid var(--ink);padding:14px 22px;">Browse the library</button>
+            </div>
+          </div>
+
+          <!-- the fan-out, explained -->
+          <div style="padding:48px 28px;max-width:980px;margin:0 auto;">
+            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 6px;">How it works</p>
+            <h2 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:30px;margin:0 0 26px;">One reviewed record fans out.</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:1px;background:var(--hairline);border:1px solid var(--hairline);">
+              <sc-for list="{{ surfaces }}" as="s" hint-placeholder-count="5">
+                <button data-nav onClick="{{ s.go }}" style="text-align:left;background:var(--card);border:0;border-top:4px solid {{ s.color }};padding:20px 16px;color:var(--ink);min-height:148px;display:flex;flex-direction:column;">
+                  <span style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:{{ s.textColor }};margin-bottom:9px;">Surface</span>
+                  <span style="font-family:'DM Serif Display',serif;font-size:23px;line-height:1.05;margin-bottom:6px;">{{ s.label }}</span>
+                  <span style="font-size:12.5px;line-height:1.45;color:var(--muted);margin-top:auto;">{{ s.claims }} claims · enter →</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- start-here journey + principles -->
+          <div style="padding:8px 28px 60px;max-width:980px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:30px;">
+            <div style="border-left:3px solid var(--green);padding:6px 0 6px 18px;">
+              <p style="font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--green);margin:0 0 12px;">New here? Read in order</p>
+              <div style="display:flex;flex-direction:column;gap:1px;background:var(--hairline);border:1px solid var(--hairline);">
+                <button data-nav onClick="{{ go.show }}" style="text-align:left;background:var(--card);border:0;padding:13px 15px;display:flex;gap:13px;align-items:baseline;color:var(--ink);">
+                  <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">01</span><span style="font-size:14.5px;">Listen to the source conversation</span>
+                </button>
+                <button data-nav onClick="{{ go.report }}" style="text-align:left;background:var(--card);border:0;padding:13px 15px;display:flex;gap:13px;align-items:baseline;color:var(--ink);">
+                  <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">02</span><span style="font-size:14.5px;">Read the reviewed Report</span>
+                </button>
+                <button data-nav onClick="{{ go.learning }}" style="text-align:left;background:var(--card);border:0;padding:13px 15px;display:flex;gap:13px;align-items:baseline;color:var(--ink);">
+                  <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">03</span><span style="font-size:14.5px;">Or start with the gentle re-cut</span>
+                </button>
+              </div>
+              <button data-nav onClick="{{ go.onboarding }}" style="margin-top:14px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:none;border:0;color:var(--green);padding:0;">Open the guided path →</button>
+            </div>
+            <div style="border-left:3px solid var(--blue);padding:6px 0 6px 18px;">
+              <p style="font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin:0 0 12px;">The promise</p>
+              <div style="display:flex;flex-direction:column;gap:16px;">
+                <div><p style="font-family:'DM Serif Display',serif;font-size:18px;margin:0 0 4px;">Every claim is traced.</p><p style="font-size:13.5px;line-height:1.55;color:var(--muted);margin:0;">Click any claim to see the exact source span it came from, then click back.</p></div>
+                <div><p style="font-family:'DM Serif Display',serif;font-size:18px;margin:0 0 4px;">Nothing ships unreviewed.</p><p style="font-size:13.5px;line-height:1.55;color:var(--muted);margin:0;">A visible Draft → In Review → Published gate sits on every surface.</p></div>
+                <div><p style="font-family:'DM Serif Display',serif;font-size:18px;margin:0 0 4px;">Move sideways, freely.</p><p style="font-size:13.5px;line-height:1.55;color:var(--muted);margin:0;">The fan-out switcher jumps you between surfaces of the same record.</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- LIBRARY -->
+      <sc-if value="{{ isLibrary }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:36px 28px 70px;max-width:1040px;margin:0 auto;">
+          <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin:0 0 12px;">The index</p>
+          <h1 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:clamp(32px,4.5vw,46px);line-height:1.05;margin:0 0 10px;">Library</h1>
+          <p style="font-size:16px;line-height:1.55;color:var(--muted);max-width:58ch;margin:0 0 26px;">Browse by <strong style="color:var(--ink);">record</strong> or by <strong style="color:var(--ink);">topic</strong>. Review state is a badge and a filter — not the way in. Click a record to open its surfaces.</p>
+
+          <!-- controls -->
+          <div style="display:flex;flex-wrap:wrap;gap:16px 22px;align-items:center;justify-content:space-between;border-top:2px solid var(--ink);border-bottom:1px solid var(--hairline);padding:13px 0;margin-bottom:28px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);">Browse</span>
+              <div style="display:flex;border:1px solid var(--ink);">
+                <button data-nav onClick="{{ setLibRecord }}" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;border:0;padding:8px 15px;background:{{ libRecordBtn.bg }};color:{{ libRecordBtn.fg }};">By record</button>
+                <button data-nav onClick="{{ setLibTopic }}" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;border:0;border-left:1px solid var(--ink);padding:8px 15px;background:{{ libTopicBtn.bg }};color:{{ libTopicBtn.fg }};">By topic</button>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);">Filter state</span>
+              <sc-for list="{{ stateFilters }}" as="f" hint-placeholder-count="4">
+                <button data-nav onClick="{{ f.set }}" style="display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;background:{{ f.bg }};color:{{ f.fg }};border:1px solid {{ f.border }};padding:5px 10px;"><span style="width:8px;height:8px;background:{{ f.dot }};display:inline-block;border-radius:50%;"></span>{{ f.label }}<span style="opacity:.6;">{{ f.count }}</span></button>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- BY RECORD -->
+          <sc-if value="{{ byRecord }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <sc-if value="{{ hasRecords }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;flex-direction:column;gap:1px;background:var(--hairline);border:1px solid var(--hairline);">
+                  <sc-for list="{{ records }}" as="r" hint-placeholder-count="4">
+                <div style="background:var(--card);padding:22px 20px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start;">
+                  <div>
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap;">
+                      <span style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);">Record · {{ r.topic }}</span>
+                      <span style="display:inline-flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:{{ r.stateColor }};border:1px solid {{ r.stateColor }};padding:2px 8px;"><span style="width:7px;height:7px;background:{{ r.stateColor }};display:inline-block;border-radius:50%;"></span>{{ r.state }}</span>
+                    </div>
+                    <button data-nav onClick="{{ r.go }}" style="text-align:left;background:none;border:0;padding:0;color:var(--ink);"><span style="font-family:'DM Serif Display',serif;font-size:26px;line-height:1.05;">{{ r.title }}</span></button>
+                    <p style="font-size:14px;line-height:1.55;color:var(--muted);margin:7px 0 14px;max-width:60ch;">{{ r.summary }}</p>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                      <span style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Read as</span>
+                      <sc-for list="{{ r.chips }}" as="c" hint-placeholder-count="5">
+                        <button data-nav onClick="{{ c.go }}" style="font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;background:transparent;border:1px solid var(--hairline);border-left:3px solid {{ c.color }};color:var(--ink);padding:4px 9px;">{{ c.label }}</button>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <button data-nav onClick="{{ r.go }}" style="align-self:center;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:var(--ink);color:var(--paper);border:0;padding:11px 16px;white-space:nowrap;">Open →</button>
+                </div>
+              </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ noRecords }}" hint-placeholder-val="{{ false }}">
+                <div style="border:1px dashed var(--hairline);background:var(--low);padding:48px 24px;text-align:center;">
+                  <p style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;">No records · {{ activeStateLabel }}</p>
+                  <p style="font-family:'DM Serif Display',serif;font-size:24px;line-height:1.2;margin:0 0 8px;color:var(--ink);">Nothing in this state yet.</p>
+                  <p style="font-size:14px;line-height:1.55;color:var(--muted);margin:0 0 18px;max-width:42ch;margin-left:auto;margin-right:auto;">No records are currently <strong style="color:var(--ink);">{{ activeStateLabel }}</strong>. Try another state, or clear the filter to see everything.</p>
+                  <button data-nav onClick="{{ clearStateFilter }}" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:var(--ink);color:var(--paper);border:0;padding:11px 18px;">Clear filter</button>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <!-- BY TOPIC -->
+          <sc-if value="{{ byTopic }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <sc-if value="{{ hasRecords }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;flex-direction:column;gap:34px;">
+              <sc-for list="{{ topics }}" as="t" hint-placeholder-count="3">
+                <div>
+                  <div style="display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--hairline);padding-bottom:8px;margin-bottom:16px;">
+                    <h2 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:26px;margin:0;">{{ t.name }}</h2>
+                    <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">{{ t.records.length }} records</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1px;background:var(--hairline);border:1px solid var(--hairline);">
+                    <sc-for list="{{ t.records }}" as="r" hint-placeholder-count="2">
+                      <button data-nav onClick="{{ r.go }}" style="text-align:left;background:var(--card);border:0;border-left:3px solid {{ r.stateColor }};padding:16px 15px;color:var(--ink);">
+                        <span style="display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:{{ r.stateColor }};margin-bottom:9px;"><span style="width:6px;height:6px;background:{{ r.stateColor }};display:inline-block;border-radius:50%;"></span>{{ r.state }}</span>
+                        <span style="font-family:'DM Serif Display',serif;font-size:20px;line-height:1.08;display:block;margin-bottom:6px;">{{ r.title }}</span>
+                        <span style="font-size:12.5px;line-height:1.45;color:var(--muted);display:block;">{{ r.count }} surfaces →</span>
+                      </button>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ noRecords }}" hint-placeholder-val="{{ false }}">
+                <div style="border:1px dashed var(--hairline);background:var(--low);padding:48px 24px;text-align:center;">
+                  <p style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;">No records · {{ activeStateLabel }}</p>
+                  <p style="font-family:'DM Serif Display',serif;font-size:24px;line-height:1.2;margin:0 0 8px;color:var(--ink);">No topics match this state.</p>
+                  <p style="font-size:14px;line-height:1.55;color:var(--muted);margin:0 0 18px;max-width:42ch;margin-left:auto;margin-right:auto;">Clear the filter to browse all topics again.</p>
+                  <button data-nav onClick="{{ clearStateFilter }}" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:var(--ink);color:var(--paper);border:0;padding:11px 18px;">Clear filter</button>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- REPORT -->
+      <sc-if value="{{ isReport }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:1040px;margin:0 auto;padding:0 28px;">
+          <!-- surface header -->
+          <div style="padding:34px 0 0;">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+              <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--paper);background:var(--blue);padding:4px 10px;">Report</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--green);border:1px solid var(--green);padding:3px 9px;"><span style="width:7px;height:7px;background:var(--green);border-radius:50%;display:inline-block;"></span>Published</span>
+              <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Record · The Semantic Spine</span>
+            </div>
+            <h1 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:clamp(32px,4.6vw,48px);line-height:1.04;margin:0 0 6px;max-width:20ch;">The data model that keeps every surface honest.</h1>
+            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;color:var(--muted);margin:0 0 22px;">Reviewed record · 9 claims · last signed off 3 days ago</p>
+          </div>
+
+          <!-- FAN-OUT SWITCHER (live, option A) -->
+          <div style="position:sticky;top:107px;z-index:20;background:var(--bg);padding:10px 0 12px;border-bottom:1px solid var(--hairline);margin-bottom:8px;">
+            <span style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">See this record as</span>
+            <div style="display:flex;border:1px solid var(--ink);flex-wrap:wrap;">
+              <sc-for list="{{ surfaces }}" as="s" hint-placeholder-count="5">
+                <button data-nav onClick="{{ s.go }}" style="flex:1 1 0;min-width:84px;text-align:center;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.05em;text-transform:uppercase;border:0;border-left:{{ s.sep }};padding:10px 8px;background:{{ s.tabBg }};color:{{ s.tabFg }};border-bottom:3px solid {{ s.tabUnderline }};">{{ s.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- body: claims + margin rail -->
+          <div style="display:grid;grid-template-columns:{{ railCols }};gap:34px;padding:24px 0 70px;align-items:start;">
+            <div style="max-width:66ch;">
+              <p style="font-size:17px;line-height:1.7;color:var(--ink);margin:0 0 22px;">A surface is only as trustworthy as the record beneath it. This report defines that record — the semantic spine every Article, Newsletter, Show, and Learning re-cut is generated from.</p>
+
+              <!-- claim with evidence -->
+              <div style="border-left:3px solid var(--hairline);padding:2px 0 2px 18px;margin:0 0 22px;">
+                <p style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 7px;">Claim 01</p>
+                <p style="font-size:17px;line-height:1.65;color:var(--ink);margin:0;">One record fans out into five reader surfaces, rather than five facts written five times.
+                  <button data-nav onClick="{{ openEv.e1 }}" style="vertical-align:super;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.04em;color:var(--paper);background:var(--blue);border:0;padding:1px 6px;margin-left:3px;">EV ↗</button>
+                </p>
+              </div>
+
+              <div style="border-left:3px solid var(--hairline);padding:2px 0 2px 18px;margin:0 0 22px;">
+                <p style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 7px;">Claim 02</p>
+                <p style="font-size:17px;line-height:1.65;color:var(--ink);margin:0;">Every published claim links to its source evidence — a span in the record or transcript.
+                  <button data-nav onClick="{{ openEv.e2 }}" style="vertical-align:super;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.04em;color:var(--paper);background:var(--blue);border:0;padding:1px 6px;margin-left:3px;">EV ↗</button>
+                </p>
+              </div>
+
+              <div style="border-left:3px solid var(--hairline);padding:2px 0 2px 18px;margin:0 0 22px;">
+                <p style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 7px;">Claim 03</p>
+                <p style="font-size:17px;line-height:1.65;color:var(--ink);margin:0;">Nothing publishes without human review; the gate is Draft → In Review → Published.
+                  <button data-nav onClick="{{ openEv.e3 }}" style="vertical-align:super;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.04em;color:var(--paper);background:var(--blue);border:0;padding:1px 6px;margin-left:3px;">EV ↗</button>
+                </p>
+              </div>
+
+              <p style="font-size:16px;line-height:1.7;color:var(--muted);margin:26px 0 0;border-top:1px solid var(--hairline);padding-top:20px;">Continue laterally: read the same record as the peer-reviewed <button data-nav onClick="{{ go.article }}" style="background:none;border:0;border-bottom:2px solid var(--ink);color:var(--ink);font:inherit;padding:0;">Article</button>, or the newcomer <button data-nav onClick="{{ go.learning }}" style="background:none;border:0;border-bottom:2px solid var(--green);color:var(--green);font:inherit;padding:0;">Learning re-cut</button>.</p>
+            </div>
+
+            <!-- margin rail: sibling surfaces + provenance legend -->
+            <aside style="display:{{ railDisplay }};flex-direction:column;gap:20px;position:sticky;top:170px;">
+              <div style="border:1px solid var(--hairline);background:var(--card);">
+                <p style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0;padding:12px 14px 10px;border-bottom:1px solid var(--hairline);">Sibling surfaces</p>
+                <sc-for list="{{ surfaces }}" as="s" hint-placeholder-count="5">
+                  <button data-nav onClick="{{ s.go }}" style="width:100%;text-align:left;background:{{ s.railBg }};border:0;border-left:3px solid {{ s.color }};border-top:1px solid var(--hairline);padding:10px 13px;color:var(--ink);display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.04em;">{{ s.label }}</span>
+                    <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">{{ s.railMark }}</span>
+                  </button>
+                </sc-for>
+              </div>
+              <div style="border-left:3px solid var(--blue);padding:4px 0 4px 13px;">
+                <p style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin:0 0 6px;">Provenance</p>
+                <p style="font-size:12.5px;line-height:1.5;color:var(--muted);margin:0;">Tap any <span style="font-family:'DM Mono',monospace;font-size:9.5px;color:var(--paper);background:var(--blue);padding:1px 5px;">EV</span> to open the source span. Close to return.</p>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ARTICLE -->
+      <sc-if value="{{ isArticle }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:1040px;margin:0 auto;padding:0 28px;">
+          <div style="padding:34px 0 0;">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+              <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--paper);background:var(--ink);padding:4px 10px;">Article</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--green);border:1px solid var(--green);padding:3px 9px;"><span style="width:7px;height:7px;background:var(--green);border-radius:50%;display:inline-block;"></span>Published · peer-reviewed</span>
+              <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Record · The Semantic Spine</span>
+            </div>
+            <h1 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:clamp(32px,4.6vw,48px);line-height:1.04;margin:0 0 6px;max-width:20ch;">The Semantic Spine: a traceable record for many readers.</h1>
+            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;color:var(--muted);margin:0 0 22px;">Article · 6 claims · 9 citations</p>
+          </div>
+          <div style="position:sticky;top:107px;z-index:20;background:var(--bg);padding:10px 0 12px;border-bottom:1px solid var(--hairline);margin-bottom:8px;">
+            <span style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">See this record as</span>
+            <div style="display:flex;border:1px solid var(--ink);flex-wrap:wrap;">
+              <sc-for list="{{ surfaces }}" as="s" hint-placeholder-count="5">
+                <button data-nav onClick="{{ s.go }}" style="flex:1 1 0;min-width:84px;text-align:center;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.05em;text-transform:uppercase;border:0;border-left:{{ s.sep }};padding:10px 8px;background:{{ s.tabBg }};color:{{ s.tabFg }};border-bottom:3px solid {{ s.tabUnderline }};">{{ s.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="max-width:62ch;padding:24px 0 70px;">
+            <p style="font-family:'DM Serif Display',serif;font-style:italic;font-size:21px;line-height:1.5;color:var(--ink);margin:0 0 24px;">Abstract — A single reviewed record can serve five distinct audiences without duplicating or drifting from its evidence.</p>
+            <p style="font-size:17px;line-height:1.75;color:var(--ink);margin:0 0 20px;">We argue that audience-tuning belongs at the surface layer, not the fact layer. Each claim in this article cites the same spine the Report is built from
+              <button data-nav onClick="{{ openEv.e1 }}" style="vertical-align:super;font-family:'DM Mono',monospace;font-size:9.5px;color:var(--paper);background:var(--ink);border:0;padding:1px 6px;margin-left:2px;">EV ↗</button>, which is what keeps the Newsletter, Show, and Learning re-cuts mutually consistent.</p>
+            <p style="font-size:17px;line-height:1.75;color:var(--ink);margin:0 0 20px;">Provenance is not a footnote convenience; it is the contract. A claim with no traceable span cannot publish
+              <button data-nav onClick="{{ openEv.e2 }}" style="vertical-align:super;font-family:'DM Mono',monospace;font-size:9.5px;color:var(--paper);background:var(--ink);border:0;padding:1px 6px;margin-left:2px;">EV ↗</button>.</p>
+            <p style="font-size:16px;line-height:1.7;color:var(--muted);margin:26px 0 0;border-top:1px solid var(--hairline);padding-top:20px;">Prefer it lighter? Read the same record as the <button data-nav onClick="{{ go.learning }}" style="background:none;border:0;border-bottom:2px solid var(--green);color:var(--green);font:inherit;padding:0;">Learning re-cut →</button></p>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- NEWSLETTER -->
+      <sc-if value="{{ isNewsletter }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:760px;margin:0 auto;padding:0 28px;">
+          <div style="padding:34px 0 0;">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+              <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);background:var(--amber);padding:4px 10px;">Newsletter</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--green);border:1px solid var(--green);padding:3px 9px;"><span style="width:7px;height:7px;background:var(--green);border-radius:50%;display:inline-block;"></span>Published</span>
+              <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">For · the newcomer</span>
+            </div>
+            <h1 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:clamp(30px,4.4vw,44px);line-height:1.06;margin:0 0 6px;">What the spine means for you this week.</h1>
+            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;color:var(--muted);margin:0 0 22px;">Newsletter · per-reader digest · 4 claims</p>
+          </div>
+          <div style="position:sticky;top:107px;z-index:20;background:var(--bg);padding:10px 0 12px;border-bottom:1px solid var(--hairline);margin-bottom:8px;">
+            <span style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">See this record as</span>
+            <div style="display:flex;border:1px solid var(--ink);flex-wrap:wrap;">
+              <sc-for list="{{ surfaces }}" as="s" hint-placeholder-count="5">
+                <button data-nav onClick="{{ s.go }}" style="flex:1 1 0;min-width:84px;text-align:center;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.05em;text-transform:uppercase;border:0;border-left:{{ s.sep }};padding:10px 8px;background:{{ s.tabBg }};color:{{ s.tabFg }};border-bottom:3px solid {{ s.tabUnderline }};">{{ s.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <!-- per-reader picker -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;padding:18px 0 8px;">
+            <span style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);align-self:center;">Edition</span>
+            <span style="font-family:'DM Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;background:var(--ink);color:var(--paper);padding:4px 10px;">Newcomer ✓</span>
+            <span style="font-family:'DM Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;border:1px solid var(--hairline);color:var(--ink);padding:4px 10px;">For JJ</span>
+            <span style="font-family:'DM Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;border:1px solid var(--hairline);color:var(--ink);padding:4px 10px;">For Nate</span>
+          </div>
+          <div style="padding:14px 0 70px;">
+            <div style="border-left:3px solid var(--amber);padding:2px 0 2px 18px;margin:0 0 22px;">
+              <p style="font-size:17px;line-height:1.65;color:var(--ink);margin:0;">The headline this week: one record now powers all five surfaces, and you can move between them freely.
+                <button data-nav onClick="{{ openEv.e1 }}" style="vertical-align:super;font-family:'DM Mono',monospace;font-size:9.5px;color:var(--ink);background:var(--amber);border:0;padding:1px 6px;margin-left:2px;">EV ↗</button>
+              </p>
+            </div>
+            <p style="font-size:16px;line-height:1.7;color:var(--muted);margin:0;">Want the full argument? Read the <button data-nav onClick="{{ go.article }}" style="background:none;border:0;border-bottom:2px solid var(--ink);color:var(--ink);font:inherit;padding:0;">Article →</button></p>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- SHOW -->
+      <sc-if value="{{ isShow }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:1040px;margin:0 auto;padding:0 28px;">
+          <div style="padding:34px 0 0;">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+              <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--paper);background:var(--terra-ink);padding:4px 10px;">The Show</span>
+              <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Ep.01 · the source conversation</span>
+            </div>
+            <h1 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:clamp(30px,4.4vw,46px);line-height:1.05;margin:0 0 6px;max-width:20ch;">Where the record actually started.</h1>
+            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;color:var(--muted);margin:0 0 22px;">Episode 01 · 38 min · transcript below feeds the record</p>
+          </div>
+          <div style="position:sticky;top:107px;z-index:20;background:var(--bg);padding:10px 0 12px;border-bottom:1px solid var(--hairline);margin-bottom:8px;">
+            <span style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">See this record as</span>
+            <div style="display:flex;border:1px solid var(--ink);flex-wrap:wrap;">
+              <sc-for list="{{ surfaces }}" as="s" hint-placeholder-count="5">
+                <button data-nav onClick="{{ s.go }}" style="flex:1 1 0;min-width:84px;text-align:center;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.05em;text-transform:uppercase;border:0;border-left:{{ s.sep }};padding:10px 8px;background:{{ s.tabBg }};color:{{ s.tabFg }};border-bottom:3px solid {{ s.tabUnderline }};">{{ s.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <!-- player -->
+          <div style="background:var(--ink);color:var(--paper);padding:22px;margin:18px 0 26px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
+            <button data-nav onClick="{{ noop }}" style="width:52px;height:52px;border-radius:50%;background:var(--terra);border:0;color:var(--paper);font-size:18px;flex:none;">▶</button>
+            <div style="flex:1;min-width:160px;">
+              <div style="height:4px;background:rgba(255,255,255,.2);position:relative;"><span style="position:absolute;left:0;top:0;bottom:0;width:36%;background:var(--terra);"></span></div>
+              <p style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.06em;color:rgba(255,255,255,.6);margin:8px 0 0;">00:14:22 / 00:38:40</p>
+            </div>
+          </div>
+          <!-- transcript with cited span -->
+          <div style="max-width:64ch;padding-bottom:70px;">
+            <p style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 14px;">Transcript</p>
+            <div style="display:flex;gap:14px;margin-bottom:16px;"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--terra-ink);flex:none;width:62px;">00:14:22</span><p style="font-size:16px;line-height:1.7;color:var(--ink);margin:0;"><mark id="cited-span" style="background:var(--amber);color:var(--ink);padding:0 3px;">…we keep one reviewed record and re-cut it per audience rather than rewriting facts five times…</mark> That's the whole bet.</p></div>
+            <div style="display:flex;gap:14px;margin-bottom:16px;"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--terra-ink);flex:none;width:62px;">00:21:08</span><p style="font-size:16px;line-height:1.7;color:var(--muted);margin:0;">…nothing ships unless the claim points back at a span in the record or transcript…</p></div>
+            <p style="font-size:15px;line-height:1.65;color:var(--muted);border-top:1px solid var(--hairline);padding-top:18px;margin-top:8px;">This transcript is the evidence behind the <button data-nav onClick="{{ go.report }}" style="background:none;border:0;border-bottom:2px solid var(--blue);color:var(--blue);font:inherit;padding:0;">Report's</button> claims. That's why claim links land here.</p>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- LEARNING -->
+      <sc-if value="{{ isLearning }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:1040px;margin:0 auto;padding:0 28px;">
+          <div style="padding:34px 0 0;">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+              <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--paper);background:var(--green);padding:4px 10px;">Learning</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--green);border:1px solid var(--green);padding:3px 9px;"><span style="width:7px;height:7px;background:var(--green);border-radius:50%;display:inline-block;"></span>Published · newcomer re-cut</span>
+              <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Record · The Semantic Spine</span>
+            </div>
+            <h1 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:clamp(32px,4.6vw,48px);line-height:1.04;margin:0 0 6px;max-width:18ch;">Start here: what “the spine” actually means.</h1>
+            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;color:var(--muted);margin:0 0 22px;">Learning · re-cut of the Report · ~6 min read</p>
+          </div>
+          <div style="position:sticky;top:107px;z-index:20;background:var(--bg);padding:10px 0 12px;border-bottom:1px solid var(--hairline);margin-bottom:8px;">
+            <span style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">See this record as</span>
+            <div style="display:flex;border:1px solid var(--ink);flex-wrap:wrap;">
+              <sc-for list="{{ surfaces }}" as="s" hint-placeholder-count="5">
+                <button data-nav onClick="{{ s.go }}" style="flex:1 1 0;min-width:84px;text-align:center;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.05em;text-transform:uppercase;border:0;border-left:{{ s.sep }};padding:10px 8px;background:{{ s.tabBg }};color:{{ s.tabFg }};border-bottom:3px solid {{ s.tabUnderline }};">{{ s.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:{{ railCols }};gap:34px;padding:24px 0 70px;align-items:start;">
+            <div style="max-width:62ch;">
+              <p style="font-size:18px;line-height:1.75;color:var(--ink);margin:0 0 22px;">New to all this? Read it plainly. A <strong style="border-bottom:2px dotted var(--green);">record</strong> is the single, checked version of what happened. Everything you read on Signals is just that record, re-told for a different reader.</p>
+              <div style="border-left:3px solid var(--green);background:var(--low);padding:16px 18px;margin:0 0 24px;">
+                <p style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin:0 0 8px;">In one sentence</p>
+                <p style="font-size:17px;line-height:1.55;color:var(--ink);margin:0;">One checked record → five ways to read it → every sentence shows its source.</p>
+              </div>
+              <p style="font-size:17px;line-height:1.75;color:var(--ink);margin:0 0 20px;">When you see an <button data-nav onClick="{{ openEv.e1 }}" style="font-family:'DM Mono',monospace;font-size:9.5px;color:var(--paper);background:var(--green);border:0;padding:1px 6px;">EV</button> marker, tap it — it shows you exactly where that fact came from, then brings you right back.</p>
+            </div>
+            <aside style="display:{{ railDisplay }};flex-direction:column;gap:16px;position:sticky;top:170px;">
+              <div style="border:1px solid var(--hairline);background:var(--card);padding:14px 15px;">
+                <p style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin:0 0 11px;">Glossary</p>
+                <div style="display:flex;flex-direction:column;gap:11px;">
+                  <div><p style="font-family:'DM Serif Display',serif;font-size:16px;margin:0;">Record</p><p style="font-size:12.5px;line-height:1.45;color:var(--muted);margin:2px 0 0;">The checked source of truth.</p></div>
+                  <div><p style="font-family:'DM Serif Display',serif;font-size:16px;margin:0;">Surface</p><p style="font-size:12.5px;line-height:1.45;color:var(--muted);margin:2px 0 0;">One way of reading the record.</p></div>
+                  <div><p style="font-family:'DM Serif Display',serif;font-size:16px;margin:0;">Evidence</p><p style="font-size:12.5px;line-height:1.45;color:var(--muted);margin:2px 0 0;">Where a claim came from.</p></div>
+                </div>
+              </div>
+              <button data-nav onClick="{{ go.onboarding }}" style="text-align:left;background:var(--green);color:var(--paper);border:0;padding:14px 15px;"><span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:4px;opacity:.85;">Guided</span><span style="font-family:'DM Serif Display',serif;font-size:18px;">Take the path →</span></button>
+            </aside>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ONBOARDING -->
+      <sc-if value="{{ isOnboarding }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:880px;margin:0 auto;padding:34px 28px 70px;">
+          <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--green);margin:0 0 12px;">Guided reading path</p>
+          <h1 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:clamp(32px,4.6vw,46px);line-height:1.04;margin:0 0 24px;">Start here.</h1>
+
+          <!-- progress -->
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <sc-for list="{{ steps }}" as="st" hint-placeholder-count="4">
+              <div style="flex:1;height:5px;background:{{ st.barColor }};"></div>
+            </sc-for>
+          </div>
+          <p style="font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 28px;">Step {{ stepNum }} of {{ stepTotal }}</p>
+
+          <!-- current step card -->
+          <div style="border:1px solid var(--hairline);border-left:4px solid {{ cur.color }};background:var(--card);padding:30px 28px;margin-bottom:24px;">
+            <p style="font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:{{ cur.color }};margin:0 0 14px;">{{ cur.kicker }}</p>
+            <h2 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:clamp(26px,3.4vw,36px);line-height:1.08;margin:0 0 14px;">{{ cur.title }}</h2>
+            <p style="font-size:17px;line-height:1.65;color:var(--muted);margin:0 0 24px;max-width:54ch;">{{ cur.blurb }}</p>
+            <button data-nav onClick="{{ openCurSurface }}" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;background:var(--ink);color:var(--paper);border:0;padding:13px 20px;">Open this surface →</button>
+          </div>
+
+          <!-- prev / next -->
+          <div style="display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--hairline);padding-top:18px;">
+            <button data-nav onClick="{{ prev }}" disabled="{{ atStart }}" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:transparent;border:1px solid var(--ink);color:var(--ink);padding:12px 18px;opacity:{{ prevOpacity }};">← Previous</button>
+            <button data-nav onClick="{{ next }}" disabled="{{ atEnd }}" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:var(--green);border:0;color:var(--paper);padding:12px 18px;opacity:{{ nextOpacity }};">Next step →</button>
+          </div>
+
+          <!-- step list -->
+          <div style="margin-top:34px;display:flex;flex-direction:column;gap:1px;background:var(--hairline);border:1px solid var(--hairline);">
+            <sc-for list="{{ steps }}" as="st" hint-placeholder-count="4">
+              <button data-nav onClick="{{ st.goStep }}" style="text-align:left;background:{{ st.rowBg }};border:0;border-left:3px solid {{ st.color }};padding:13px 16px;display:flex;gap:14px;align-items:center;color:var(--ink);">
+                <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">{{ st.num }}</span>
+                <span style="font-family:'DM Serif Display',serif;font-size:17px;flex:1;">{{ st.title }}</span>
+                <span style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">{{ st.mark }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- GATED (review-gate edge state) -->
+      <sc-if value="{{ isGated }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:760px;margin:0 auto;padding:0 28px;">
+          <div style="padding:34px 0 0;">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+              <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--paper);background:var(--blue);padding:4px 10px;">Report</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--muted);padding:3px 9px;"><span style="width:7px;height:7px;background:var(--muted);border-radius:50%;display:inline-block;"></span>Draft</span>
+              <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Record · Review Round 1</span>
+            </div>
+            <h1 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:clamp(30px,4.4vw,46px);line-height:1.05;margin:0 0 22px;max-width:20ch;">First evidence audit — open threads before publish.</h1>
+          </div>
+
+          <!-- review gate notice -->
+          <div style="border:1px solid var(--hairline);border-left:4px solid var(--amber);background:var(--card);padding:26px 24px;margin-bottom:24px;">
+            <p style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber-ink);margin:0 0 14px;">Held at the review gate</p>
+            <p style="font-size:17px;line-height:1.65;color:var(--ink);margin:0 0 18px;max-width:52ch;">This surface is still a <strong>Draft</strong>. Nothing publishes without human review, so its claims aren't readable yet — and they can't be cited from other surfaces until they clear the gate.</p>
+            <!-- gate progress -->
+            <div style="display:flex;align-items:stretch;border:1px solid var(--hairline);margin-bottom:6px;">
+              <div style="flex:1;padding:11px 12px;background:var(--low);border-right:1px solid var(--hairline);text-align:center;">
+                <span style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);display:block;">● Draft</span>
+                <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);">you are here</span>
+              </div>
+              <div style="flex:1;padding:11px 12px;border-right:1px solid var(--hairline);text-align:center;">
+                <span style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;">○ In Review</span>
+                <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);">next</span>
+              </div>
+              <div style="flex:1;padding:11px 12px;text-align:center;">
+                <span style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;">○ Published</span>
+                <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);">readable</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- what you can still do -->
+          <div style="padding-bottom:70px;">
+            <p style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 14px;">While it's in draft, you can still</p>
+            <div style="display:flex;flex-direction:column;gap:1px;background:var(--hairline);border:1px solid var(--hairline);">
+              <button data-nav onClick="{{ go.report }}" style="text-align:left;background:var(--card);border:0;border-left:3px solid var(--blue);padding:15px 16px;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:12px;">
+                <span><span style="font-family:'DM Serif Display',serif;font-size:18px;display:block;">Read the published record it audits</span><span style="font-size:13px;color:var(--muted);">The Semantic Spine · Report</span></span>
+                <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">→</span>
+              </button>
+              <button data-nav onClick="{{ go.library }}" style="text-align:left;background:var(--card);border:0;border-left:3px solid var(--ink);padding:15px 16px;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:12px;">
+                <span><span style="font-family:'DM Serif Display',serif;font-size:18px;display:block;">Back to the library</span><span style="font-size:13px;color:var(--muted);">Browse published records by topic</span></span>
+                <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- screens-end -->
+
+    </main>
+
+    <!-- ===== FOOTER ===== -->
+    <footer style="background:var(--chrome);color:var(--chrome-text);padding:40px 22px 34px;">
+      <div style="display:flex;flex-wrap:wrap;gap:34px 60px;">
+        <div style="flex:1 1 220px;">
+          <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:12px;">
+            <span style="width:11px;height:11px;background:var(--blue);display:inline-block;"></span>
+            <span style="font-family:'DM Serif Display',serif;font-size:20px;">Signals</span>
+          </div>
+          <p style="font-size:13.5px;line-height:1.55;color:var(--chrome-muted);max-width:34ch;margin:0;">One reviewed record, told for every reader. Every claim traces to its source.</p>
+        </div>
+        <sc-for list="{{ footerCols }}" as="c" hint-placeholder-count="3">
+          <div style="flex:0 1 auto;">
+            <p style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--chrome-muted);margin:0 0 13px;">{{ c.head }}</p>
+            <div style="display:flex;flex-direction:column;gap:9px;">
+              <sc-for list="{{ c.links }}" as="l" hint-placeholder-count="4">
+                <button data-nav onClick="{{ l.go }}" style="text-align:left;background:none;border:0;color:var(--chrome-text);font-family:'Instrument Sans',sans-serif;font-size:13.5px;padding:0;opacity:.85;">{{ l.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="border-top:1px solid rgba(255,255,255,.12);margin-top:30px;padding-top:16px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--chrome-muted);">
+        <span>© Signals — reviewed record system</span>
+        <span>Draft · In Review · Published — review gate on every surface</span>
+      </div>
+    </footer>
+
+    <!-- EVIDENCE SLIDE-IN PANEL -->
+    <sc-if value="{{ hasEvidence }}" hint-placeholder-val="{{ false }}">
+      <div style="position:fixed;inset:0;z-index:80;">
+        <div onClick="{{ closeEv }}" style="position:absolute;inset:0;background:rgba(10,10,15,.42);"></div>
+        <div style="position:absolute;top:0;right:0;bottom:0;width:min(420px,86%);background:var(--ev-bg);border-left:3px solid var(--blue);box-shadow:-16px 0 40px rgba(10,10,15,.18);animation:evIn .26s cubic-bezier(.2,.7,.3,1);display:flex;flex-direction:column;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--hairline);">
+            <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--blue);">Evidence</span>
+            <button data-nav onClick="{{ closeEv }}" style="background:none;border:0;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:4px;">✕ Back to claim</button>
+          </div>
+          <div style="padding:22px 20px;overflow:auto;flex:1;">
+            <p style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 9px;">The claim</p>
+            <p style="font-family:'DM Serif Display',serif;font-size:20px;line-height:1.3;margin:0 0 24px;color:var(--ink);">{{ evidence.claim }}</p>
+            <p style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);margin:0 0 9px;">Traces to · {{ evidence.source }} · {{ evidence.ts }}</p>
+            <div style="border-left:3px solid var(--blue);background:var(--low);padding:14px 16px;">
+              <p style="font-size:15px;line-height:1.65;font-style:italic;color:var(--ink);margin:0;">{{ evidence.span }}</p>
+            </div>
+          </div>
+          <div style="padding:16px 20px;border-top:1px solid var(--hairline);display:flex;gap:10px;">
+            <button data-nav onClick="{{ goToSource }}" style="flex:1;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:var(--ink);color:var(--paper);border:0;padding:12px;">Open source surface →</button>
+            <button data-nav onClick="{{ closeEv }}" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:transparent;color:var(--ink);border:1px solid var(--ink);padding:12px 16px;">← Back</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+    <!-- evidence-anchor -->
+
+    <!-- JUMP-TO / COMMAND PALETTE -->
+    <sc-if value="{{ jumpOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:fixed;inset:0;z-index:90;">
+        <div onClick="{{ closeJump }}" style="position:absolute;inset:0;background:rgba(10,10,15,.5);"></div>
+        <div style="position:absolute;top:64px;left:50%;transform:translateX(-50%);width:min(560px,90%);background:var(--card);border:1px solid var(--hairline);box-shadow:0 24px 60px rgba(10,10,15,.3);display:flex;flex-direction:column;max-height:78%;">
+          <div style="display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--hairline);">
+            <span style="font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);">⌘K</span>
+            <input data-nav value="{{ jumpQuery }}" onInput="{{ setJumpQuery }}" placeholder="Jump to a surface, record, or page…" style="flex:1;border:0;background:none;outline:none;font-family:'Instrument Sans',sans-serif;font-size:16px;color:var(--ink);" />
+            <button data-nav onClick="{{ closeJump }}" style="background:none;border:1px solid var(--hairline);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:4px 8px;">Esc</button>
+          </div>
+          <div style="overflow:auto;flex:1;">
+            <sc-for list="{{ jumpGroups }}" as="g" hint-placeholder-count="3">
+              <div>
+                <p style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0;padding:12px 18px 6px;">{{ g.head }}</p>
+                <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+                  <button data-nav onClick="{{ it.go }}" style="width:100%;text-align:left;background:var(--card);border:0;border-left:3px solid {{ it.color }};border-top:1px solid var(--hairline);padding:11px 18px;color:var(--ink);display:flex;align-items:center;gap:12px;">
+                    <span style="font-family:'DM Serif Display',serif;font-size:16px;flex:1;">{{ it.label }}</span>
+                    <span style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">{{ it.kind }}</span>
+                    <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);">↵</span>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-for>
+            <sc-if value="{{ jumpEmpty }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:40px 18px;text-align:center;">
+                <p style="font-family:'DM Serif Display',serif;font-size:22px;margin:0 0 6px;color:var(--ink);">No matches</p>
+                <p style="font-size:13.5px;color:var(--muted);margin:0;">Try “report”, “show”, or a record name like “spine”.</p>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { view:'ia', dark:false, device:'desktop', libView:'record', stateFilter:'all', evidence:null, step:0, mnav:false, jump:false, jumpQ:'' };
+
+  go(v){ this.setState({ view:v, evidence:null, mnav:false, jump:false, jumpQ:'' }); window.scrollTo&&window.scrollTo(0,0); }
+
+  componentDidMount(){
+    this._kd = (e)=>{
+      if((e.metaKey||e.ctrlKey) && (e.key==='k'||e.key==='K')){ e.preventDefault(); this.setState(s=>({ jump:!s.jump, jumpQ:'' })); }
+      if(e.key==='Escape'){ this.setState({ jump:false, evidence:null, mnav:false }); }
+    };
+    window.addEventListener('keydown', this._kd);
+  }
+  componentWillUnmount(){ window.removeEventListener('keydown', this._kd); }
+
+  renderVals(){
+    const s = this.state;
+    const isMobile = s.device==='mobile';
+
+    const meta = {
+      report:{ label:'Report', color:'var(--blue)', textColor:'var(--blue)', view:'report' },
+      article:{ label:'Article', color:'var(--ink)', textColor:'var(--ink)', view:'article' },
+      newsletter:{ label:'Newsletter', color:'var(--amber)', textColor:'var(--amber-ink)', view:'newsletter' },
+      show:{ label:'Show', color:'var(--terra)', textColor:'var(--terra-ink)', view:'show' },
+      learning:{ label:'Learning', color:'var(--green)', textColor:'var(--green)', view:'learning' },
+    };
+    const claimsCount = { report:9, article:6, newsletter:4, show:7, learning:5 };
+    const go = (v)=>()=>this.go(v);
+
+    const surfaces = ['report','article','newsletter','show','learning'].map((t,i)=>{
+      const active = s.view===meta[t].view;
+      return {
+        type:t, label:meta[t].label, color:meta[t].color, textColor:meta[t].textColor, view:meta[t].view,
+        claims:claimsCount[t], active, go:go(meta[t].view),
+        sep: i===0?'0':'1px solid var(--ink)',
+        tabBg: active?'var(--ink)':'transparent',
+        tabFg: active?'var(--paper)':'var(--muted)',
+        tabUnderline: active?meta[t].color:'transparent',
+        railBg: active?'var(--low)':'var(--card)',
+        railMark: active?'● here':'→',
+      };
+    });
+
+    const navSpine = [
+      { label:'Start here', v:'onboarding' },
+      { label:'Library', v:'library' },
+      { label:'Newsletters', v:'newsletter' },
+      { label:'Articles', v:'article' },
+      { label:'The Show', v:'show' },
+      { label:'Learning', v:'learning' },
+    ];
+    const navItems = navSpine.map(n=>({
+      label:n.label, go:go(n.v),
+      color: s.view===n.v ? 'var(--chrome-text)' : 'var(--chrome-muted)',
+      underline: s.view===n.v ? 'var(--blue)' : 'transparent',
+    }));
+
+    const sitemap = [
+      { kicker:'Front door', label:'Home', note:'Start-here reading journey', color:'var(--blue)', go:go('home') },
+      { kicker:'Index', label:'Library', note:'Browse by record & topic', color:'var(--ink)', go:go('library') },
+      { kicker:'Surface', label:'Report', note:'Dense reviewed record', color:'var(--blue)', go:go('report') },
+      { kicker:'Surface', label:'Article', note:'Peer-reviewed write-up', color:'var(--ink)', go:go('article') },
+      { kicker:'Surface', label:'Newsletter', note:'Per-reader digest', color:'var(--amber)', go:go('newsletter') },
+      { kicker:'Surface', label:'The Show', note:'Source conversation', color:'var(--terra)', go:go('show') },
+      { kicker:'Surface', label:'Learning', note:'Newcomer re-cut', color:'var(--green)', go:go('learning') },
+      { kicker:'Path', label:'Onboarding', note:'Ordered 1→2→3 track', color:'var(--green)', go:go('onboarding') },
+    ];
+
+    const crumbMap = { ia:'IA & Patterns', home:'Home', library:'Library', report:'Report · Data Model', article:'Article · The Semantic Spine', newsletter:'Newsletter', show:'The Show · Ep.01', learning:'Learning · Data Model', onboarding:'Start here', gated:'Library · Review Round 1' };
+
+    const footerCols = [
+      { head:'Surfaces', links:[ {label:'Reports',go:go('report')},{label:'Articles',go:go('article')},{label:'Newsletters',go:go('newsletter')},{label:'The Show',go:go('show')},{label:'Learning',go:go('learning')} ] },
+      { head:'Navigate', links:[ {label:'Start here',go:go('onboarding')},{label:'Library',go:go('library')},{label:'IA & patterns',go:go('ia')} ] },
+    ];
+
+    // Library records
+    const chip = (t)=>({ label:meta[t].label, color:meta[t].color, go:go(meta[t].view) });
+    const records = [
+      { id:'datamodel', title:'The Semantic Spine', topic:'Architecture', state:'Published', stateColor:'var(--green)', summary:'How the shared record is structured so every surface stays traceable.', chips:['report','article','newsletter','show','learning'].map(chip), count:5, go:go('report') },
+      { id:'kickoff', title:'Project Kickoff', topic:'Process', state:'Published', stateColor:'var(--green)', summary:'Scope, readers, and the fan-out thesis agreed at the start.', chips:['report','show'].map(chip), count:2, go:go('report') },
+      { id:'plan', title:'The Build Plan', topic:'Process', state:'In Review', stateColor:'var(--amber-ink)', summary:'Sequenced milestones and the review gate definition.', chips:['report','newsletter'].map(chip), count:2, go:go('report') },
+      { id:'rev1', title:'Review Round 1', topic:'Quality', state:'Draft', stateColor:'var(--muted)', summary:'First evidence audit — open threads before publish.', chips:['report'].map(chip), count:1, go:go('gated') },
+    ];
+    const topics = ['Architecture','Process','Quality'].map(t=>({
+      name:t, records: records.filter(r=>r.topic===t),
+    }));
+
+    // state filter
+    const sf = s.stateFilter || 'all';
+    const filteredRecords = records.filter(r => sf==='all' || r.state===sf);
+    const filteredTopics = topics
+      .map(t=>({ name:t.name, records:t.records.filter(r=> sf==='all' || r.state===sf) }))
+      .filter(t=>t.records.length);
+    const stateMeta = [
+      { key:'all', label:'All', dot:'var(--ink)' },
+      { key:'Published', label:'Published', dot:'var(--green)' },
+      { key:'In Review', label:'In review', dot:'var(--amber)' },
+      { key:'Draft', label:'Draft', dot:'var(--muted)' },
+    ];
+    const stateFilters = stateMeta.map(m=>{
+      const active = sf===m.key;
+      const count = m.key==='all' ? records.length : records.filter(r=>r.state===m.key).length;
+      return {
+        label:m.label, dot:m.dot, count:count,
+        set:()=>this.setState({ stateFilter:m.key }),
+        bg: active?'var(--ink)':'transparent',
+        fg: active?'var(--paper)':'var(--ink)',
+        border: active?'var(--ink)':'var(--hairline)',
+      };
+    });
+    const activeStateLabel = (stateMeta.find(m=>m.key===sf)||{}).label || 'All';
+
+    // Evidence map (provenance)
+    const evMap = {
+      e1:{ claim:'“One record fans out into five reader surfaces.”', span:'…we keep ONE reviewed record and re-cut it per audience rather than rewriting facts five times…', source:'The Show — Ep.01', sourceView:'show', ts:'00:14:22' },
+      e2:{ claim:'“Every published claim links to its source evidence.”', span:'…nothing ships unless the claim points back at a span in the record or transcript…', source:'The Show — Ep.01', sourceView:'show', ts:'00:21:08' },
+      e3:{ claim:'“Nothing publishes without human review.”', span:'…the gate is Draft → In Review → Published, and a human signs the review…', source:'Report — Build Plan', sourceView:'report', ts:'§3.2' },
+    };
+    const ev = s.evidence ? evMap[s.evidence] : null;
+    const openEv = (id)=>()=>this.setState({ evidence:id });
+
+    // Onboarding path
+    const steps = [
+      { kicker:'Step 1 · Listen', title:'The source conversation', surface:'show', color:'var(--terra)', view:'show', blurb:'Everything starts as a real conversation. Hear the raw thinking before it was written up.' },
+      { kicker:'Step 2 · Read the record', title:'The reviewed Report', surface:'report', color:'var(--blue)', view:'report', blurb:'The conversation becomes a dense, reviewed record — the single source of truth other surfaces cite.' },
+      { kicker:'Step 3 · Go deeper', title:'The peer-reviewed Article', surface:'article', color:'var(--ink)', view:'article', blurb:'The argued, citable write-up of the same record for a technical reader.' },
+      { kicker:'Step 4 · Or start gentle', title:'The Learning re-cut', surface:'learning', color:'var(--green)', view:'learning', blurb:'The same record re-cut for a newcomer, plain-language, with a glossary.' },
+    ];
+    const stepsUI = steps.map((st,i)=>({
+      ...st, num:String(i+1).padStart(2,'0'),
+      barColor: i<=s.step?'var(--green)':'var(--hairline)',
+      rowBg: i===s.step?'var(--low)':'var(--card)',
+      mark: i===s.step?'● now':(i<s.step?'done':'→'),
+      goStep:()=>this.setState({ step:i }),
+    }));
+    const cur = steps[s.step];
+
+    // jump-to / command palette
+    const jq = (s.jumpQ||'').trim().toLowerCase();
+    const jumpAll = [
+      { head:'Surfaces', items:[
+        { label:'Report', kind:'Surface', color:'var(--blue)', view:'report', kw:'report record datamodel spine dense' },
+        { label:'Article', kind:'Surface', color:'var(--ink)', view:'article', kw:'article peer review semantic spine' },
+        { label:'Newsletter', kind:'Surface', color:'var(--amber)', view:'newsletter', kw:'newsletter digest reader edition' },
+        { label:'The Show', kind:'Surface', color:'var(--terra)', view:'show', kw:'show episode conversation transcript source' },
+        { label:'Learning', kind:'Surface', color:'var(--green)', view:'learning', kw:'learning newcomer recut glossary start' },
+      ]},
+      { head:'Pages', items:[
+        { label:'Home', kind:'Page', color:'var(--blue)', view:'home', kw:'home front door' },
+        { label:'Library', kind:'Index', color:'var(--ink)', view:'library', kw:'library index archive browse topic record' },
+        { label:'Start here', kind:'Path', color:'var(--green)', view:'onboarding', kw:'onboarding path guided start here journey' },
+        { label:'IA & Patterns', kind:'Reference', color:'var(--blue)', view:'ia', kw:'ia map sitemap patterns fan-out provenance' },
+      ]},
+      { head:'Records', items:[
+        { label:'The Semantic Spine', kind:'Record', color:'var(--blue)', view:'report', kw:'semantic spine datamodel architecture' },
+        { label:'Project Kickoff', kind:'Record', color:'var(--blue)', view:'report', kw:'kickoff process scope' },
+        { label:'The Build Plan', kind:'Record', color:'var(--amber)', view:'report', kw:'build plan milestones review gate' },
+      ]},
+    ];
+    const jumpGroups = jumpAll.map(g=>({
+      head:g.head,
+      items: g.items.filter(it=> !jq || (it.label+' '+it.kw).toLowerCase().includes(jq)).map(it=>({ ...it, go:go(it.view) })),
+    })).filter(g=>g.items.length);
+
+    return {
+      // chrome / harness
+      themeAttr: s.dark?'dark':'light', isDark:s.dark, themeLabel:s.dark?'Dark':'Light',
+      toggleTheme:()=>this.setState({ dark:!s.dark }),
+      setDesktop:()=>this.setState({ device:'desktop' }), setMobile:()=>this.setState({ device:'mobile' }),
+      vpWidth: isMobile?'412px':'1180px', isMobile,
+      deskBg: !isMobile?'#e7e5df':'#1c1c24', deskFg: !isMobile?'#101016':'#9b98a4',
+      mobBg: isMobile?'#e7e5df':'#1c1c24', mobFg: isMobile?'#101016':'#9b98a4',
+      view:s.view, setView:(e)=>this.go(e.target.value),
+      navDisplay: isMobile?'none':'flex', burgerDisplay: isMobile?'flex':'none',
+      goHome:go('home'), noop:()=>{}, toggleMnav:()=>this.setState({ mnav:!s.mnav }),
+      // jump palette
+      jumpOpen:s.jump, openJump:()=>this.setState({ jump:true, jumpQ:'' }), closeJump:()=>this.setState({ jump:false }),
+      jumpQuery:s.jumpQ, setJumpQuery:(e)=>this.setState({ jumpQ:e.target.value }),
+      jumpGroups, jumpEmpty: jumpGroups.length===0,
+      showMnav: isMobile && s.mnav,
+      navItems, footerCols, crumb: crumbMap[s.view]||'',
+      // view flags
+      isIA:s.view==='ia', isHome:s.view==='home', isLibrary:s.view==='library', isReport:s.view==='report',
+      isArticle:s.view==='article', isNewsletter:s.view==='newsletter', isShow:s.view==='show',
+      isLearning:s.view==='learning', isOnboarding:s.view==='onboarding', isGated:s.view==='gated',
+      go:{ home:go('home'), library:go('library'), report:go('report'), article:go('article'), newsletter:go('newsletter'), show:go('show'), learning:go('learning'), onboarding:go('onboarding'), ia:go('ia') },
+      // ia data
+      sitemap, surfaces,
+      railCols: isMobile?'1fr':'1fr 250px', railDisplay: isMobile?'none':'flex',
+      // library
+      byRecord:s.libView==='record', byTopic:s.libView==='topic',
+      setLibRecord:()=>this.setState({ libView:'record' }), setLibTopic:()=>this.setState({ libView:'topic' }),
+      records: filteredRecords, topics: filteredTopics,
+      stateFilters, activeStateLabel,
+      hasRecords: filteredRecords.length>0, noRecords: filteredRecords.length===0,
+      clearStateFilter:()=>this.setState({ stateFilter:'all' }),
+      libRecordBtn:{ bg:s.libView==='record'?'var(--ink)':'transparent', fg:s.libView==='record'?'var(--paper)':'var(--ink)' },
+      libTopicBtn:{ bg:s.libView==='topic'?'var(--ink)':'transparent', fg:s.libView==='topic'?'var(--paper)':'var(--ink)' },
+      // provenance
+      openEv:{ e1:openEv('e1'), e2:openEv('e2'), e3:openEv('e3') }, closeEv:()=>this.setState({ evidence:null }), evidence:ev, hasEvidence:!!ev,
+      goToSource: ev?go(ev.sourceView):(()=>{}),
+      // onboarding
+      steps:stepsUI, step:s.step, stepNum:s.step+1, stepTotal:steps.length, cur,
+      atStart:s.step===0, atEnd:s.step===steps.length-1,
+      prevOpacity:s.step===0?'.4':'1', nextOpacity:s.step===steps.length-1?'.4':'1',
+      next:()=>this.setState({ step:Math.min(steps.length-1,s.step+1) }),
+      prev:()=>this.setState({ step:Math.max(0,s.step-1) }),
+      openCurSurface: cur?go(cur.view):(()=>{}),
+    };
+  }
+}
+</script>
+</body>
+</html>
