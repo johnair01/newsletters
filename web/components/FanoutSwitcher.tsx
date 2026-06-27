@@ -23,14 +23,14 @@ export function FanoutSwitcher() {
         zIndex: 20,
         background: 'var(--bg)',
         padding: '10px 0 12px',
-        borderBottom: '1px solid var(--hairline)',
+        borderBottom: '1px solid var(--line)',
         marginBottom: 8,
       }}
     >
-      <span style={{ fontFamily: mono, fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--muted)', display: 'block', marginBottom: 8 }}>
+      <span style={{ fontFamily: mono, fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--text-dim)', display: 'block', marginBottom: 8 }}>
         See this record as
       </span>
-      <div style={{ display: 'flex', border: '1px solid var(--ink)', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', border: '1px solid var(--text)', flexWrap: 'wrap' }}>
         {surfaceList.map((s, i) => {
           const active = pathname === s.href;
           return (
@@ -47,10 +47,10 @@ export function FanoutSwitcher() {
                 fontSize: 11,
                 letterSpacing: '.05em',
                 textTransform: 'uppercase',
-                borderLeft: i === 0 ? '0' : '1px solid var(--ink)',
+                borderLeft: i === 0 ? '0' : '1px solid var(--text)',
                 padding: '10px 8px',
-                background: active ? 'var(--ink)' : 'transparent',
-                color: active ? 'var(--paper)' : 'var(--muted)',
+                background: active ? 'var(--text)' : 'transparent',
+                color: active ? 'var(--color-paper)' : 'var(--text-dim)',
                 borderBottom: `3px solid ${active ? s.color : 'transparent'}`,
               }}
             >

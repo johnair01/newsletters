@@ -12,15 +12,15 @@ export function Nav() {
   const { drawerOpen, setDrawerOpen, openPalette } = useSignals();
 
   return (
-    <header style={{ background: 'var(--chrome)', color: 'var(--chrome-text)', position: 'sticky', top: 0, zIndex: 40 }}>
+    <header style={{ background: 'var(--chrome-bg)', color: 'var(--chrome-fg)', position: 'sticky', top: 0, zIndex: 40 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '0 22px', height: 62 }}>
         <Link
           href="/"
           data-nav
           aria-label="Signals — home"
-          style={{ display: 'flex', alignItems: 'baseline', gap: 9, color: 'var(--chrome-text)' }}
+          style={{ display: 'flex', alignItems: 'baseline', gap: 9, color: 'var(--chrome-fg)' }}
         >
-          <span style={{ width: 13, height: 13, background: 'var(--blue)', display: 'inline-block' }} />
+          <span style={{ width: 13, height: 13, background: 'var(--color-brand-primary)', display: 'inline-block' }} />
           <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, lineHeight: 1 }}>Signals</span>
         </Link>
 
@@ -38,8 +38,8 @@ export function Nav() {
                   fontSize: 11.5,
                   letterSpacing: '.1em',
                   textTransform: 'uppercase',
-                  borderBottom: `2px solid ${active ? 'var(--blue)' : 'transparent'}`,
-                  color: active ? 'var(--chrome-text)' : 'var(--chrome-muted)',
+                  borderBottom: `2px solid ${active ? 'var(--color-brand-primary)' : 'transparent'}`,
+                  color: active ? 'var(--chrome-fg)' : 'var(--chrome-dim)',
                   padding: '7px 11px',
                 }}
               >
@@ -61,7 +61,7 @@ export function Nav() {
               gap: 8,
               background: 'rgba(255,255,255,.06)',
               border: '1px solid rgba(255,255,255,.14)',
-              color: 'var(--chrome-muted)',
+              color: 'var(--chrome-dim)',
               fontFamily: mono,
               fontSize: 11,
               letterSpacing: '.06em',
@@ -80,9 +80,9 @@ export function Nav() {
             className="nav-burger"
             style={{ flexDirection: 'column', gap: 4, background: 'none', border: 0, padding: 6 }}
           >
-            <span style={{ width: 20, height: 2, background: 'var(--chrome-text)', display: 'block' }} />
-            <span style={{ width: 20, height: 2, background: 'var(--chrome-text)', display: 'block' }} />
-            <span style={{ width: 20, height: 2, background: 'var(--chrome-text)', display: 'block' }} />
+            <span style={{ width: 20, height: 2, background: 'var(--chrome-fg)', display: 'block' }} />
+            <span style={{ width: 20, height: 2, background: 'var(--chrome-fg)', display: 'block' }} />
+            <span style={{ width: 20, height: 2, background: 'var(--chrome-fg)', display: 'block' }} />
           </button>
         </div>
       </div>
@@ -105,7 +105,7 @@ export function Nav() {
                 letterSpacing: '.08em',
                 textTransform: 'uppercase',
                 borderBottom: '1px solid rgba(255,255,255,.08)',
-                color: 'var(--chrome-text)',
+                color: 'var(--chrome-fg)',
                 padding: '13px 2px',
               }}
             >

@@ -27,21 +27,27 @@ export function useSignals(): SignalsContextValue {
 
 export function SignalsProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('light');
+  const [ready, setReady] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [evidenceId, setEvidenceId] = useState<string | null>(null);
 
-  // Resolve initial theme from storage / system preference, then keep <html> in sync.
+  // Sync state to whatever the pre-paint inline script already applied to <html>
+  // (storage → system preference). Reading it here means no hydration flash.
   useEffect(() => {
-    const stored = window.localStorage.getItem('signals-theme') as Theme | null;
-    const initial: Theme = stored ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const applied = document.documentElement.getAttribute('data-theme') as Theme | null;
+    const initial: Theme = applied ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     setTheme(initial);
+    setReady(true);
   }, []);
 
+  // Only write the attribute/storage on subsequent changes (a user toggle),
+  // never on the first resolve — the inline script owns the initial paint.
   useEffect(() => {
+    if (!ready) return;
     document.documentElement.setAttribute('data-theme', theme);
     window.localStorage.setItem('signals-theme', theme);
-  }, [theme]);
+  }, [theme, ready]);
 
   const toggleTheme = useCallback(() => setTheme((t) => (t === 'dark' ? 'light' : 'dark')), []);
   const openPalette = useCallback(() => setPaletteOpen(true), []);

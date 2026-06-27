@@ -12,8 +12,8 @@ export function MarginRail() {
 
   return (
     <aside className="rail-aside" style={{ flexDirection: 'column', gap: 20, position: 'sticky', top: 132 }}>
-      <div style={{ border: '1px solid var(--hairline)', background: 'var(--card)' }}>
-        <p style={{ fontFamily: mono, fontSize: 9.5, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--muted)', margin: 0, padding: '12px 14px 10px', borderBottom: '1px solid var(--hairline)' }}>
+      <div style={{ border: '1px solid var(--line)', background: 'var(--card)' }}>
+        <p style={{ fontFamily: mono, fontSize: 9.5, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--text-dim)', margin: 0, padding: '12px 14px 10px', borderBottom: '1px solid var(--line)' }}>
           Sibling surfaces
         </p>
         {surfaceList.map((s) => {
@@ -27,26 +27,26 @@ export function MarginRail() {
               style={{
                 width: '100%',
                 textAlign: 'left',
-                background: active ? 'var(--low)' : 'var(--card)',
+                background: active ? 'var(--color-surface-low)' : 'var(--card)',
                 borderLeft: `3px solid ${s.color}`,
-                borderTop: '1px solid var(--hairline)',
+                borderTop: '1px solid var(--line)',
                 padding: '10px 13px',
-                color: 'var(--ink)',
+                color: 'var(--text)',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
               }}
             >
               <span style={{ fontFamily: mono, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em' }}>{s.label}</span>
-              <span style={{ fontFamily: mono, fontSize: 10, color: 'var(--muted)' }}>{active ? '● here' : '→'}</span>
+              <span style={{ fontFamily: mono, fontSize: 10, color: 'var(--text-dim)' }}>{active ? '● here' : '→'}</span>
             </Link>
           );
         })}
       </div>
-      <div style={{ borderLeft: '3px solid var(--blue)', padding: '4px 0 4px 13px' }}>
-        <p style={{ fontFamily: mono, fontSize: 9.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--blue)', margin: '0 0 6px' }}>Provenance</p>
-        <p style={{ fontSize: 12.5, lineHeight: 1.5, color: 'var(--muted)', margin: 0 }}>
-          Tap any <span style={{ fontFamily: mono, fontSize: 9.5, color: 'var(--paper)', background: 'var(--blue)', padding: '1px 5px' }}>EV</span> to open the source span. Close to return.
+      <div style={{ borderLeft: '3px solid var(--color-brand-primary)', padding: '4px 0 4px 13px' }}>
+        <p style={{ fontFamily: mono, fontSize: 9.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-brand-primary)', margin: '0 0 6px' }}>Provenance</p>
+        <p style={{ fontSize: 12.5, lineHeight: 1.5, color: 'var(--text-dim)', margin: 0 }}>
+          Tap any <span style={{ fontFamily: mono, fontSize: 9.5, color: 'var(--color-paper)', background: 'var(--color-brand-primary)', padding: '1px 5px' }}>EV</span> to open the source span. Close to return.
         </p>
       </div>
     </aside>

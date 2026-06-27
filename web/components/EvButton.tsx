@@ -16,7 +16,7 @@ interface EvButtonProps {
 }
 
 /** Inline claim → evidence trigger. Opens the slide-in evidence panel. */
-export function EvButton({ id, bg = 'var(--blue)', fg = 'var(--paper)', label = 'EV ↗', superscript = true }: EvButtonProps) {
+export function EvButton({ id, bg = 'var(--color-brand-primary)', fg = 'var(--color-paper)', label = 'EV ↗', superscript = true }: EvButtonProps) {
   const { openEvidence } = useSignals();
   return (
     <button

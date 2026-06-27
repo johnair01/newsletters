@@ -1,8 +1,11 @@
 /* ============================================================
    SIGNALS — global token layer + base styles
-   Ported verbatim from the "Signals — Navigation & IA" handoff.
-   Tokens are the visual contract; see docs/design-system.md and
-   design-reference/signals/tokens.css for the wider system.
+   The token namespace is the one declared in docs/design-system.md and
+   design-reference/signals/tokens.css (the non-negotiable visual contract):
+   raw --color-* + semantic --bg/--card/--text/--text-dim/--line + --chrome-*.
+   Three net-new tokens are folded in from the Navigation & IA handoff:
+   --color-amber-ink / --color-accent-ink (AA text-on-light) and --ev-bg.
+   Fonts are self-hosted (no external calls) — see public/fonts.
    ============================================================ */
 
 /* Self-hosted fonts — no external calls */
@@ -16,25 +19,72 @@
 @font-face { font-family: 'Instrument Sans'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/instrument-sans-600-normal.woff2') format('woff2'); }
 
 :root {
-  --bg: #f5f3ee; --paper: #f5f3ee; --card: #ffffff; --ink: #0a0a0f; --muted: #6b6860;
-  --hairline: #c8c4bb; --low: #f0ede8; --blue: #0068b5; --terra: #d4622a; --amber: #c8860a;
-  --green: #2f7d4f; --chrome: #0a0a0f; --chrome-text: #f5f3ee; --chrome-muted: #8c887e;
-  --amber-ink: #946400; --terra-ink: #a8481d;
-  --ev-bg: #ffffff;
+  /* PALETTE (raw) */
+  --color-ink:            #0a0a0f;
+  --color-paper:          #f5f3ee;
+  --color-white:          #ffffff;
+  --color-brand-primary:  #0068b5;
+  --color-brand-mid:      #005a9e;
+  --color-brand-light:    #e8f2fb;
+  --color-brand-dark:     #003d6b;
+  --color-accent:         #d4622a;
+  --color-amber:          #c8860a;
+  --color-green:          #2f7d4f;
+  --color-rule:           #c8c4bb;
+  --color-muted:          #6b6860;
+  --color-surface-low:    #f0ede8;
+  --color-surface-mid:    #e8e4de;
 
-  /* type system */
+  /* AA text-on-light variants of the accent surfaces (folded in from the handoff) */
+  --color-amber-ink:      #946400;
+  --color-accent-ink:     #a8481d;
+
+  /* SEMANTIC */
+  --bg:        var(--color-paper);
+  --card:      var(--color-white);
+  --text:      var(--color-ink);
+  --text-dim:  var(--color-muted);
+  --line:      var(--color-rule);
+  --ev-bg:     var(--card);
+
+  /* CHROME — nav / footer surfaces that stay dark in BOTH themes */
+  --chrome-bg:   #0a0a0f;
+  --chrome-fg:   #f5f3ee;
+  --chrome-dim:  #8c887e;
+  --chrome-line: rgba(255,255,255,0.12);
+
+  /* TYPE */
   --font-display: 'DM Serif Display', Georgia, serif;
-  --font-body: 'Instrument Sans', system-ui, sans-serif;
-  --font-mono: 'DM Mono', 'Courier New', monospace;
+  --font-body:    'Instrument Sans', system-ui, sans-serif;
+  --font-mono:    'DM Mono', 'Courier New', monospace;
+
   --radius: 0px;
+  --dur-fast: 120ms; --dur-base: 200ms; --dur-slow: 380ms;
+  --ease-out: cubic-bezier(0,0,0.2,1);
+
+  /* shared chrome height so sticky offsets don't hardcode magic numbers */
+  --nav-h: 62px;
 }
 
 [data-theme="dark"] {
-  --bg: #07070b; --paper: #0e0e14; --card: #14141b; --ink: #f1efe9; --muted: #9a978f;
-  --hairline: #2a2a33; --low: #16161d; --blue: #3a9be0; --terra: #e07a48; --amber: #dba62f;
-  --green: #4caa75; --chrome: #050509; --chrome-text: #f1efe9; --chrome-muted: #7d7a74;
-  --amber-ink: #dba62f; --terra-ink: #e07a48;
-  --ev-bg: #14141b;
+  --color-ink:            #f0ede8;
+  --color-paper:          #0f0f14;
+  --color-white:          #1a1a22;
+  --color-brand-primary:  #3f9ae0;
+  --color-brand-mid:      #5aa9e6;
+  --color-brand-light:    #15293a;
+  --color-brand-dark:     #0c1b29;
+  --color-accent:         #e07a45;
+  --color-amber:          #d99a2a;
+  --color-green:          #4fa873;
+  --color-rule:           rgba(240,237,232,0.16);
+  --color-muted:          rgba(240,237,232,0.55);
+  --color-surface-low:    #16161d;
+  --color-surface-mid:    #20202a;
+  --color-amber-ink:      #d99a2a;
+  --color-accent-ink:     #e07a45;
+  --chrome-bg:   #07070b;
+  --chrome-line: rgba(255,255,255,0.10);
 }
 
 * { box-sizing: border-box; }
@@ -43,13 +93,13 @@ html { background: var(--bg); }
 body {
   font-family: var(--font-body);
   background: var(--bg);
-  color: var(--ink);
+  color: var(--text);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-::selection { background: var(--amber); color: #0a0a0f; }
+::selection { background: var(--color-brand-primary); color: #fff; }
 
 button { font-family: inherit; cursor: pointer; }
 a { color: inherit; text-decoration: none; }
@@ -59,7 +109,7 @@ a { color: inherit; text-decoration: none; }
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
-select:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+select:focus-visible { outline: 2px solid var(--color-brand-primary); outline-offset: 2px; }
 
 /* Evidence panel entrance */
 @keyframes evIn { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -73,8 +123,8 @@ select:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .viewport {
   max-width: 1180px;
   margin: 0 auto;
-  border-left: 1px solid var(--hairline);
-  border-right: 1px solid var(--hairline);
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
   background: var(--bg);
   min-height: 100vh;
   position: relative;
