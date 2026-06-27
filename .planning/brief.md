@@ -1,7 +1,7 @@
 # Newsletters — Project Brief (GSD idea document)
 
 > Seed/idea document for `/gsd-new-project --auto @.planning/brief.md`.
-> Distilled from the architect ↔ agent discussion on 2026-06-14.
+> Distilled from the co-authors ↔ agent discussion on 2026-06-14.
 > **Decision status is marked explicitly: [DECIDED] vs [OPEN].** Treat [OPEN] items as
 > discuss-phase questions, not settled scope.
 
@@ -89,7 +89,7 @@ The novelty is the **integration** and the **trust-layer-as-product** thesis.
 - **[OPEN]** Which format adapters to build/borrow first, and how to normalize their output to
   `Claim(+Trace)`.
 - **[OPEN]** Rev2 navigation specifics and the Home/Library board design.
-- **[OPEN]** The work-surface design (interview the architect to capture it).
+- **[OPEN]** The work-surface design (interview the co-authors to capture it).
 
 ## Constraints / non-negotiables
 

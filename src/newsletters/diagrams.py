@@ -140,7 +140,7 @@ def personalization() -> str:
     u = "pz"
     p = [_eyebrow(24, 24, "SAME RECORD · RE-CUT PER READER", _NEWS)]
     p.append(_box(24, 78, 210, 72, "The Weekly Signal", "ONE REVIEWED RECORD", _NEWS))
-    readers = [("JJ · Architect", "LEADS WITH: VISION", 18), ("Nate · Engineer", "LEADS WITH: CORE", 84),
+    readers = [("JJ · Co-author", "LEADS WITH: VISION", 18), ("Nate · Co-author", "LEADS WITH: CORE", 84),
                ("New Contributor", "LEADS WITH: START HERE", 150)]
     for lbl, sub, y in readers:
         p.append(_box(456, y, 240, 50, lbl, sub, _NEWS))
