@@ -158,12 +158,12 @@ def address_corpus_traces(
 
 READERS = {
     "jj": Corpus(
-        name="JJ Airuoyo", role="Founder · architect", initials="JJ",
+        name="JJ Airuoyo", role="Architect", initials="JJ",
         owned=["Vision", "Articles"],
         weights={"vision": 1.0, "process": 0.8, "design": 0.5},
     ),
     "nate": Corpus(
-        name="Nate Neibauer", role="Maintainer · core", initials="NN",
+        name="Nate Neibauer", role="Engineer", initials="NN",
         owned=["Core", "Packaging"],
         weights={"core": 1.0, "measurement": 0.7, "design": 0.4},
     ),
@@ -497,8 +497,8 @@ def _show() -> Surface:
         eyebrow="The Show · recorded session",
         byline=[PEER, AUTHOR],
         blocks=[
-            ProseBlock(text="The raw conversation everything above was distilled from: a "
-                       "founder and a trusted agent reasoning the product into existence, in "
+            ProseBlock(text="The raw conversation everything above was distilled from: an "
+                       "architect and a trusted agent reasoning the product into existence, in "
                        "the open. This is the rawest surface — closest to the work."),
             ChaptersBlock(chapters=[
                 Chapter(time="00:00", title="Kickoff", body="An empty repo, a starter kit, and "

@@ -163,7 +163,7 @@ servers. Corpora are loaded locally and never transmitted.
 
 ## 7. Rev1 — as implemented (the model decisions)
 
-Rev1 (in `src/newsletters/`) refines §1–§3 with decisions reasoned out with the founder.
+Rev1 (in `src/newsletters/`) refines §1–§3 with decisions reasoned out with the architect.
 The Reports in `content/rev1/` are the working record of *why*; this section is the *what*.
 
 - **Two layers, not five peers.** *Truth* (`Source → Claim(+Trace) → Distillation`) is
