@@ -76,6 +76,25 @@ until Phase 4.
 - Renders/serves with no console or server errors.
 - Spec updated if behavior changed.
 
+## Working mode / operating loop (non-negotiable)
+
+Every change runs the GSD four-beat loop — **Specify › Plan › Implement › Validate**
+(see `GSD.md`) — against `docs/` as the spec. The loop is enforced here, not optional:
+
+- **Branch + PR only. Never push to `main`.** All work lands on a feature branch and merges
+  via pull request. There is no direct-to-`main` path — the same discipline the product's
+  review gate enforces for content (`Draft › In Review › Published`).
+- **Phase-by-phase, with a human gate between phases.** Work `docs/roadmap.md` in order. At
+  the end of a phase, **stop and let a human review** before starting the next. Nothing is
+  "done" on the agent's say-so (see *Definition of done*).
+- **Atomic commits.** One task = one focused commit; keep the history legible (working in
+  the open is a product principle).
+- **Heavy work in fresh-context subagents.** Cut each phase into atomic plans (a few tasks
+  each), sized to finish in one clean context. Research / planning / execution run in
+  subagents so the main session stays lean.
+
+If you cannot satisfy this loop for a change, stop and surface it — do not work around it.
+
 ## Using GSD
 
 This repo is set up to be driven by **GSD (Get Shit Done)**, the spec-driven Claude Code
