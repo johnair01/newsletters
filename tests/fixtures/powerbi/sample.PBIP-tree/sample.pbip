@@ -1,0 +1,11 @@
+{
+  "artifacts": [
+    {
+      "report": {
+        "path": "sample.Report"
+      }
+    }
+  ],
+  "settings": {},
+  "version": "1.0"
+}

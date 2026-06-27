@@ -170,9 +170,12 @@ def test_render_does_not_leak_private_corpus():
 
 
 def test_render_library_lists_surfaces():
+    from newsletters import Ledger, Site
     r = _report()
     r.publish(reviewer="Claude")
-    html = render_library([r])
+    # render_library is Page-driven (SITE-01): it consumes a Site, not a raw list.
+    site = Site.from_surfaces([r], ledger=Ledger.load("/nonexistent-ledger.json"))
+    html = render_library(site)
     assert r.title in html and "The Library" in html
 
 

@@ -11,17 +11,20 @@ Sample content is illustrative of the *shapes and voice*; wire real values to re
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from .capture import Decision, WorkSession, build_report
 from .diagrams import personalization, two_layer
+from .learning import OnboardingPath, OnboardingStep, learning_surface
 from .promote import promote_report_to_article
-from .render import render_library, render_surface
+from .render import render_home, render_library, render_path, render_surface
 from .semantic import (
     Claim,
     ClaimsBlock,
     Corpus,
     DiagramBlock,
+    Distillation,
     FanoutBlock,
     FanoutLink,
     ItemsBlock,
@@ -38,10 +41,116 @@ from .semantic import (
     Surface,
     Trace,
 )
+from .site import Ledger, Site
 from .templates import NEWSLETTER, REPORT, SHOW
 
 AUTHOR = "Claude"
 PEER = "JJ Airuoyo"
+
+
+# --------------------------------------------------------------------------- #
+# Provenance migration (PROV-01 / D-4) — content-address the Rev1 corpus IN PLACE
+# --------------------------------------------------------------------------- #
+#
+# The Rev1 sample corpus is "Newsletters reporting on building Newsletters" — our first
+# corpus. PROV-01 is only real if the SHIPPED corpus practices the trust property it
+# preaches, so we migrate it in place: for each trace whose ``span`` is a *verbatim*
+# substring of its live ``Source.transcript``, we locate the span with ``str.find`` and
+# re-mint the trace via ``Trace.from_source`` (03-01) so it carries a content hash + the
+# character offsets. We re-use the one canonical pinning constructor — we do not
+# re-implement hashing or offset logic here.
+#
+# The migration is FAITHFUL, not suggestive: it changes neither the claim text nor the
+# span string; it only ADDS the content-address metadata. A span it cannot locate (empty,
+# or not a substring) is REPORTED — ``_address_trace`` raises a teaching ValueError naming
+# the span + source; the corpus-level ``address_corpus_traces`` collects it into a
+# ``MigrationReport.unlocated`` list instead of fabricating an offset or silently dropping it.
+
+
+@dataclass
+class MigrationReport:
+    """The outcome of content-addressing a corpus's traces, faithfully (D-4).
+
+    ``addressed`` counts the traces that carried a locatable verbatim span and were pinned.
+    ``unlocated`` lists, in human-readable form, every span that could NOT be located
+    (empty span, or not a substring of its source) — reported, never silently dropped and
+    never given fabricated offsets. ``skipped_no_span`` counts traces with no span at all
+    (the Rev1 structural-locator path): nothing to locate, so they stay un-addressed and
+    are simply never stale.
+    """
+
+    addressed: int = 0
+    skipped_no_span: int = 0
+    unlocated: list[str] = field(default_factory=list)
+
+
+def _address_trace(source: Source, trace: Trace) -> Trace:
+    """Content-address ONE trace by locating its verbatim ``span`` in ``source.transcript``.
+
+    Faithful, not suggestive: finds the existing ``trace.span`` via ``str.find`` and, if
+    present, re-mints the trace through ``Trace.from_source`` so it pins
+    ``content_hash`` + character offsets while keeping the span string and locator
+    byte-identical. It NEVER edits the claim or invents evidence — it only adds metadata
+    to content that already exists.
+
+    Reports rather than fabricates: an empty span, or a span that is not a substring of
+    the transcript, raises a teaching ``ValueError`` naming the span and the source id —
+    never a bogus ``0:0`` offset.
+    """
+    span = trace.span
+    if not span:
+        raise ValueError(
+            f"_address_trace: trace on source {source.id!r} has an empty span — there is "
+            "no evidence text to locate; refusing to fabricate an offset (faithful, not "
+            "suggestive)."
+        )
+    start = source.transcript.find(span)
+    if start < 0:
+        raise ValueError(
+            f"_address_trace: span {span!r} was not found verbatim in source "
+            f"{source.id!r}'s transcript; refusing to fabricate an offset. Report it as "
+            "unlocatable rather than mis-attributing it."
+        )
+    end = start + len(span)
+    return Trace.from_source(source, start, end, locator=trace.locator)
+
+
+def address_corpus_traces(
+    sources: dict[str, Source],
+    traces: list[Trace],
+) -> MigrationReport:
+    """Content-address every locatable trace IN PLACE, reporting what cannot be located.
+
+    For each trace with a non-empty span whose source is known, pin it via
+    ``_address_trace`` and copy the resulting content-address fields back onto the live
+    trace object (in-place migration). Traces with no span are skipped (never stale).
+    Traces whose span is not a verbatim substring — or whose source is unknown — are
+    collected into ``MigrationReport.unlocated`` and left UN-addressed: that is the
+    faithful outcome, not an error to swallow.
+    """
+    report = MigrationReport()
+    for trace in traces:
+        if not trace.span:
+            report.skipped_no_span += 1
+            continue
+        source = sources.get(trace.source_id)
+        if source is None:
+            report.unlocated.append(
+                f"{trace.span!r} (source {trace.source_id!r} not available to verify)"
+            )
+            continue
+        try:
+            addressed = _address_trace(source, trace)
+        except ValueError as exc:
+            report.unlocated.append(str(exc))
+            continue
+        # In-place pin: copy the additive content-address metadata onto the live trace.
+        trace.content_hash = addressed.content_hash
+        trace.start = addressed.start
+        trace.end = addressed.end
+        report.addressed += 1
+    return report
+
 
 # --------------------------------------------------------------------------- #
 # Readers — the corpora (private; used for emphasis, never serialized out)
@@ -49,12 +158,12 @@ PEER = "JJ Airuoyo"
 
 READERS = {
     "jj": Corpus(
-        name="JJ Airuoyo", role="Founder · architect", initials="JJ",
+        name="JJ Airuoyo", role="Co-author", initials="JJ",
         owned=["Vision", "Articles"],
         weights={"vision": 1.0, "process": 0.8, "design": 0.5},
     ),
     "nate": Corpus(
-        name="Nate Neibauer", role="Maintainer · core", initials="NN",
+        name="Nate Neibauer", role="Co-author", initials="NN",
         owned=["Core", "Packaging"],
         weights={"core": 1.0, "measurement": 0.7, "design": 0.4},
     ),
@@ -70,20 +179,60 @@ READERS = {
 # Sources + sessions — our actual journey
 # --------------------------------------------------------------------------- #
 
+def _record_transcript(lead: str, decisions: list[Decision]) -> str:
+    """Build a Source transcript that is the verbatim record of a session's decisions.
+
+    The session ``Source`` IS the record of what was decided in that session, so its
+    transcript faithfully contains each decision statement verbatim. This is what lets the
+    migration content-address each decision's trace by locating its span — we are not
+    inventing evidence, we are recording (and then pinning) the decisions that were made.
+    """
+    return lead + "\n\n" + "\n".join(f"- {d.text}" for d in decisions)
+
+
+def _address_report(report: Surface, sources: list[Source]) -> MigrationReport:
+    """Set each ClaimsBlock trace's span to its claim text and content-address it.
+
+    A captured decision becomes a Claim whose single Trace points back at the session
+    Source (``capture.py``). Here we pin that trace to the verbatim claim text inside the
+    source transcript — the span IS the decision statement, which the transcript records
+    verbatim — and content-address it via the migration helper. Faithful: the claim text
+    is unchanged; we only add the span + hash + offsets.
+    """
+    lookup = {s.id: s for s in sources}
+    traces: list[Trace] = []
+    for block in report.blocks:
+        if isinstance(block, ClaimsBlock):
+            for claim in block.claims:
+                for trace in claim.evidence:
+                    if not trace.span:
+                        trace.span = claim.text  # the verbatim decision statement
+                    traces.append(trace)
+    return address_corpus_traces(lookup, traces)
+
+
 def _sources_and_reports() -> list[Surface]:
+    kickoff_decisions = [
+        Decision(text="Land the spec set + design references as the source of truth, "
+                 "rather than dumping the zip.", source_id="session-kickoff",
+                 locator="docs/", topics=["process", "vision"]),
+        Decision(text="Keep the Python core at src/newsletters and document the "
+                 "architecture §4 repo-shape mapping in CLAUDE.md.",
+                 source_id="session-kickoff", locator="CLAUDE.md", topics=["core"]),
+        Decision(text="Implement the typed spine with all three invariants enforced "
+                 "in code, agentic distill left an honest stub.",
+                 source_id="session-kickoff", locator="src/newsletters/semantic.py",
+                 topics=["core", "design"]),
+        Decision(text="Neutralize the GSD.md supply-chain redirect to 'verify any "
+                 "install against its official source' and flag it for review.",
+                 source_id="session-kickoff", locator="GSD.md", topics=["process"]),
+    ]
     src_kickoff = Source(
         id="session-kickoff", context="claude-code",
-        transcript="Foundation pass: spec set, repo shape, typed semantic spine, tests.",
-    )
-    src_datamodel = Source(
-        id="session-datamodel", context="claude-code · design conversation",
-        transcript="Reasoning over the core data models with JJ — two layers, templates, "
-        "Report vs Article, the agent boundary, capture modes, promotions.",
-    )
-    src_rev1 = Source(
-        id="session-rev1", context="claude-code",
-        transcript="Rev1 end-to-end: refactor to templates + policy + capture + promotion, "
-        "a token-faithful HTML renderer, and this dogfood content.",
+        transcript=_record_transcript(
+            "Foundation pass: spec set, repo shape, typed semantic spine, tests.",
+            kickoff_decisions,
+        ),
     )
 
     kickoff = build_report(
@@ -91,21 +240,7 @@ def _sources_and_reports() -> list[Surface]:
             id="session-kickoff", title="Kicking off the build", tool="Claude Code",
             artifacts=["docs/", "src/newsletters/semantic.py", "tests/"],
             sources=[src_kickoff],
-            decisions=[
-                Decision(text="Land the spec set + design references as the source of truth, "
-                         "rather than dumping the zip.", source_id="session-kickoff",
-                         locator="docs/", topics=["process", "vision"]),
-                Decision(text="Keep the Python core at src/newsletters and document the "
-                         "architecture §4 repo-shape mapping in CLAUDE.md.",
-                         source_id="session-kickoff", locator="CLAUDE.md", topics=["core"]),
-                Decision(text="Implement the typed spine with all three invariants enforced "
-                         "in code, agentic distill left an honest stub.",
-                         source_id="session-kickoff", locator="semantic.py",
-                         topics=["core", "design"]),
-                Decision(text="Neutralize the GSD.md supply-chain redirect to 'verify any "
-                         "install against its official source' and flag it for review.",
-                         source_id="session-kickoff", locator="GSD.md", topics=["process"]),
-            ],
+            decisions=kickoff_decisions,
         ),
         surface_id="report-kickoff", title="Kicking off the build — spec set, repo shape, typed spine",
         eyebrow="Report · how we solved it", author=AUTHOR,
@@ -128,35 +263,45 @@ def _sources_and_reports() -> list[Surface]:
     ]))
     kickoff.publish(reviewer=AUTHOR)
 
+    datamodel_decisions = [
+        Decision(text="Two layers, not five peers: a Truth layer (Source→Claim→"
+                 "Distillation) and a Surface layer over it.", source_id="session-datamodel",
+                 locator="layers", topics=["design", "core"], confidence=0.95),
+        Decision(text="The four surfaces are one parameterized template, not four "
+                 "classes — cadence, personalization, signal color, review policy are "
+                 "config.", source_id="session-datamodel", locator="templates",
+                 topics=["design", "core"], confidence=0.95),
+        Decision(text="The Report is the investigation you approve (light PR); the "
+                 "Article is the durable, peer-reviewed lesson promoted from it.",
+                 source_id="session-datamodel", locator="report-vs-article",
+                 topics=["design", "process"], confidence=0.95),
+        Decision(text="Problem-solving agents are external and operator-owned; "
+                 "Newsletters owns capture + trust + publish, never the agent.",
+                 source_id="session-datamodel", locator="agent-boundary",
+                 topics=["process", "vision"], confidence=0.9),
+        Decision(text="Default capture is post-session and reads the workspace "
+                 "(tool-agnostic); push-integration is the operator add-on.",
+                 source_id="session-datamodel", locator="capture",
+                 topics=["process", "core"], confidence=0.9),
+        Decision(text="Two human-gated promotions form the system's grammar: "
+                 "Claim→KPI (measurable) and Report→Article (durable).",
+                 source_id="session-datamodel", locator="promotions",
+                 topics=["design", "measurement"], confidence=0.9),
+    ]
+    src_datamodel = Source(
+        id="session-datamodel", context="claude-code · design conversation",
+        transcript=_record_transcript(
+            "Reasoning over the core data models with JJ — two layers, templates, "
+            "Report vs Article, the agent boundary, capture modes, promotions.",
+            datamodel_decisions,
+        ),
+    )
+
     datamodel = build_report(
         WorkSession(
             id="session-datamodel", title="Getting the data models right", tool="Claude Code",
             artifacts=["docs/vision.md"], sources=[src_datamodel],
-            decisions=[
-                Decision(text="Two layers, not five peers: a Truth layer (Source→Claim→"
-                         "Distillation) and a Surface layer over it.", source_id="session-datamodel",
-                         locator="layers", topics=["design", "core"], confidence=0.95),
-                Decision(text="The four surfaces are one parameterized template, not four "
-                         "classes — cadence, personalization, signal color, review policy are "
-                         "config.", source_id="session-datamodel", locator="templates",
-                         topics=["design", "core"], confidence=0.95),
-                Decision(text="The Report is the investigation you approve (light PR); the "
-                         "Article is the durable, peer-reviewed lesson promoted from it.",
-                         source_id="session-datamodel", locator="report-vs-article",
-                         topics=["design", "process"], confidence=0.95),
-                Decision(text="Problem-solving agents are external and operator-owned; "
-                         "Newsletters owns capture + trust + publish, never the agent.",
-                         source_id="session-datamodel", locator="agent-boundary",
-                         topics=["process", "vision"], confidence=0.9),
-                Decision(text="Default capture is post-session and reads the workspace "
-                         "(tool-agnostic); push-integration is the operator add-on.",
-                         source_id="session-datamodel", locator="capture",
-                         topics=["process", "core"], confidence=0.9),
-                Decision(text="Two human-gated promotions form the system's grammar: "
-                         "Claim→KPI (measurable) and Report→Article (durable).",
-                         source_id="session-datamodel", locator="promotions",
-                         topics=["design", "measurement"], confidence=0.9),
-            ],
+            decisions=datamodel_decisions,
         ),
         surface_id="report-datamodel", title="Getting the data models right",
         eyebrow="Report · how we solved it", author=AUTHOR,
@@ -199,26 +344,36 @@ def _sources_and_reports() -> list[Surface]:
     ]))
     datamodel.publish(reviewer=AUTHOR)
 
+    rev1_decisions = [
+        Decision(text="Surfaces compose from typed content blocks — the blocks ARE the "
+                 "slots; only prose is templated, structure stays typed.",
+                 source_id="session-rev1", locator="blocks", topics=["core", "design"]),
+        Decision(text="A self-contained HTML renderer ports the design tokens 1:1 so "
+                 "Rev1 is viewable with no server.", source_id="session-rev1",
+                 locator="src/newsletters/render.py", topics=["design"]),
+        Decision(text="Per-template review policy is enforced at publish: Report "
+                 "self-approves, the Article requires a peer.", source_id="session-rev1",
+                 locator="ReviewPolicy", topics=["core", "process"]),
+        Decision(text="Provenance + lineage track the process on every surface — which "
+                 "tool, which session, what it derived from / produced.",
+                 source_id="session-rev1", locator="Provenance", topics=["process", "measurement"]),
+    ]
+    src_rev1 = Source(
+        id="session-rev1", context="claude-code",
+        transcript=_record_transcript(
+            "Rev1 end-to-end: refactor to templates + policy + capture + promotion, "
+            "a token-faithful HTML renderer, and this dogfood content.",
+            rev1_decisions,
+        ),
+    )
+
     rev1 = build_report(
         WorkSession(
             id="session-rev1", title="Rev1 — rendering the surfaces", tool="Claude Code",
             artifacts=["src/newsletters/templates.py", "src/newsletters/render.py",
                        "src/newsletters/capture.py", "src/newsletters/promote.py"],
             sources=[src_rev1],
-            decisions=[
-                Decision(text="Surfaces compose from typed content blocks — the blocks ARE the "
-                         "slots; only prose is templated, structure stays typed.",
-                         source_id="session-rev1", locator="blocks", topics=["core", "design"]),
-                Decision(text="A self-contained HTML renderer ports the design tokens 1:1 so "
-                         "Rev1 is viewable with no server.", source_id="session-rev1",
-                         locator="render.py", topics=["design"]),
-                Decision(text="Per-template review policy is enforced at publish: Report "
-                         "self-approves, the Article requires a peer.", source_id="session-rev1",
-                         locator="ReviewPolicy", topics=["core", "process"]),
-                Decision(text="Provenance + lineage track the process on every surface — which "
-                         "tool, which session, what it derived from / produced.",
-                         source_id="session-rev1", locator="Provenance", topics=["process", "measurement"]),
-            ],
+            decisions=rev1_decisions,
         ),
         surface_id="report-rev1", title="Rev1 — rendering the surfaces end to end",
         eyebrow="Report · in review", author=AUTHOR,
@@ -248,6 +403,16 @@ def _sources_and_reports() -> list[Surface]:
         FanoutLink(kind="show", title="Episode 01 — Building Newsletters in the open"),
     ]))
     rev1.open_pull_request(pr_url="(this PR)")  # left In Review on purpose
+
+    # PROV-01 / D-4: content-address the Rev1 corpus IN PLACE. Each report's claim traces
+    # are pinned to their verbatim decision statement inside the session Source transcript,
+    # so the shipped sample corpus is itself content-addressed and drift-aware. Faithful:
+    # spans/claim text are unchanged; only hash+offsets are added. Anything unlocatable would
+    # be reported on the MigrationReport (here every decision is recorded verbatim, so the
+    # corpus addresses cleanly and is never stale at capture time).
+    _address_report(kickoff, [src_kickoff])
+    _address_report(datamodel, [src_datamodel])
+    _address_report(rev1, [src_rev1])
 
     return [kickoff, datamodel, rev1]
 
@@ -333,7 +498,7 @@ def _show() -> Surface:
         byline=[PEER, AUTHOR],
         blocks=[
             ProseBlock(text="The raw conversation everything above was distilled from: a "
-                       "founder and a trusted agent reasoning the product into existence, in "
+                       "co-author and a trusted agent reasoning the product into existence, in "
                        "the open. This is the rawest surface — closest to the work."),
             ChaptersBlock(chapters=[
                 Chapter(time="00:00", title="Kickoff", body="An empty repo, a starter kit, and "
@@ -472,6 +637,94 @@ def _article(datamodel_report: Surface) -> Surface:
 
 
 # --------------------------------------------------------------------------- #
+# Learning re-cut + onboarding path (LEARN-01/02/03) — the newcomer surface
+# --------------------------------------------------------------------------- #
+#
+# This is the END-TO-END dogfood of Phase 12: we re-cut the richest reviewed record
+# (report-datamodel) into a newcomer-shaped learning surface, and sequence it into an
+# ordered onboarding track. FAITHFUL, not suggestive: the re-cut SELECTS / ORDERS / LINKS
+# the report's EXISTING traced claims (and their content-addressed traces) — it authors NO
+# new factual prose. A glossary term with no genuine DEFINING claim in the record routes to
+# the honesty panel (missing[]) instead of being fabricated. Here, the record's claims
+# define "Report", "Article" and "capture" ("X is/are …"), so those gloss; "Distillation",
+# "Surface" and "the review gate" are concepts the datamodel decisions USE but never DEFINE,
+# so they are shown to the reader as gaps, never invented.
+
+# The glossary terms a newcomer most wants to look up while reading the data-model guide.
+# Mix of glossable + un-glossable on purpose — the un-glossable ones prove the honesty panel.
+_LEARNING_GLOSSARY = ["Report", "Article", "capture", "Distillation", "Surface", "the review gate"]
+
+
+def _datamodel_distillation(datamodel_report: Surface) -> Distillation:
+    """Recover the reviewed Distillation behind report-datamodel, to re-cut FAITHFULLY.
+
+    We do NOT hand-author new claims: we lift the report's existing traced ``Claim``s
+    straight off its ``ClaimsBlock``s (they carry the content-addressed traces minted by
+    ``_address_report``), and carry the report's ``Source`` traces through. The result is the
+    SAME reviewed truth — so the learning re-cut's glossary definitions render with the exact
+    working provenance links the report shows. (We rebuild a Distillation rather than thread
+    one out of ``build_report`` because ``build_report`` returns the Surface, not its
+    Distillation; the claims it carries ARE that Distillation's claims.)
+    """
+    claims: list[Claim] = []
+    for block in datamodel_report.blocks:
+        if isinstance(block, ClaimsBlock):
+            claims.extend(block.claims)
+    return Distillation(
+        narrative="",
+        claims=claims,
+        traces=list(datamodel_report.traces),
+    )
+
+
+def _learning_recut(datamodel_report: Surface) -> Surface:
+    """Re-cut report-datamodel into the newcomer learning surface — left a Draft (faithful).
+
+    The re-cut honestly carries un-glossable terms in ``missing[]`` (the honesty panel):
+    "Distillation", "Surface" and "the review gate" are concepts the datamodel decisions USE
+    but never DEFINE, so they are SHOWN to the reviewer as gaps. A surface with open gaps must
+    NOT be published — the merge gate (PROV-04 / ``review_blockers``) treats an open
+    ``missing[]`` on a PUBLISHED surface as a blocker, and CLAUDE.md forbids publishing
+    unsubstantiated material silently. So we deliberately leave it a **Draft** (it lands in
+    the Library's Draft column, exempt from the gate). This is the load-bearing, faithful
+    outcome: the teaching surface ships its honest gaps visibly, and waits for a human to
+    glossary-define those terms (with traced claims) before it is ever published. NO
+    auto-publish — there is no ``publish()`` call here.
+    """
+    return learning_surface(
+        _datamodel_distillation(datamodel_report),
+        surface_id="learning-datamodel",
+        title="How the data model works — a newcomer's guide",
+        eyebrow="Learning · for your first week",
+        audience=READERS["newcomer"],
+        glossary_terms=_LEARNING_GLOSSARY,
+        # Prerequisite context = LINKS to the records this builds on (resolved via
+        # Site.by_slug at render time), NOT new exposition.
+        prerequisites=["show-ep01", "report-datamodel"],
+        author=AUTHOR,
+    )
+
+
+def _onboarding_path() -> OnboardingPath:
+    """The newcomer track: watch the build → read the decisions → read the newcomer guide.
+
+    An ORDERED sequence of slug refs over surfaces that ALREADY passed the review gate
+    (show-ep01, report-datamodel, learning-datamodel). It is navigation, not a Surface — it
+    publishes nothing new (A5). ``render_path`` resolves each step via ``Site.by_slug``.
+    """
+    return OnboardingPath(
+        id="onboarding-newcomer",
+        title="Start here — a new contributor's first week",
+        audience_label="A new contributor",
+        steps=[
+            OnboardingStep(slug="show-ep01", label="Watch the build (Episode 01)"),
+            OnboardingStep(slug="report-datamodel", label="Read the decisions (the data model)"),
+            OnboardingStep(slug="learning-datamodel", label="Read the newcomer's guide"),
+        ],
+    )
+
+
+# --------------------------------------------------------------------------- #
 # Assemble + render
 # --------------------------------------------------------------------------- #
 
@@ -482,22 +735,92 @@ def build_surfaces() -> list[Surface]:
     article = _article(datamodel)
     show = _show()
     newsletters = [_newsletter_for(k) for k in ("jj", "nate", "newcomer")]
-    return [show, kickoff, datamodel, rev1, plan, article, *newsletters]
+    # The learning surface re-cuts report-datamodel for newcomers — it joins the Site as the
+    # 5th surface type and the ledger assigns it L-001 (do NOT hardcode the ref).
+    learning = _learning_recut(datamodel)
+    return [show, kickoff, datamodel, rev1, plan, article, *newsletters, learning]
 
 
 def build_site(out_dir: str | Path = "content/rev1/site") -> list[Path]:
-    """Render every surface + the Library index to standalone HTML. Returns written paths."""
+    """Render every surface + the Library index to standalone HTML. Returns written paths.
+
+    Page-driven (SITE-01): identity comes from the append-only ledger
+    (``content/rev1/ids.json``) via the ``Site`` model, not from list position. Each
+    page is written to ``out / page.href`` (== ``{slug}.html`` == ``{surface.id}.html``
+    for the Rev1 corpus, L3 backward-compat — filenames stay byte-stable), and the
+    Library index is rendered from a ``Site`` so its row labels are the stable refs
+    (``R-001`` / ``EP01`` / ``A-001``), never a positional index.
+    """
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     surfaces = build_surfaces()
+    # The ledger is the source of truth for refs; load it, build the full Site, and
+    # persist any newly-assigned refs (append-only — existing entries are immutable).
+    ledger = Ledger.load("content/rev1/ids.json")
+    site = Site.from_surfaces(surfaces, ledger=ledger)
+    ledger.save()
     written: list[Path] = []
-    for s in surfaces:
-        p = out / f"{s.id}.html"
-        p.write_text(render_surface(s), encoding="utf-8")
+    for page in site.pages():
+        p = out / page.href
+        # Pass the resolved Site + this Page so the nav resolves to four real
+        # destinations and the breadcrumb/prev-next can find this page's neighbors.
+        p.write_text(render_surface(page.surface, site=site, page=page), encoding="utf-8")
         written.append(p)
+    # Route split (SITE-02 / N4): the marketing Home owns index.html; the Library archive
+    # moves to library.html. Per-surface {slug}.html filenames stay byte-stable (Phase-8 L3).
+    index = out / "index.html"
+    index.write_text(render_home(site), encoding="utf-8")
+    written.append(index)
+    # The onboarding path (LEARN-03) renders to its OWN page — an ordered track over
+    # already-gated surfaces (show-ep01 → report-datamodel → learning-datamodel), resolved
+    # against the full Site so each step links to its real {slug}.html with in-track prev/next.
+    path = _onboarding_path()
+    path_page = out / "onboarding-newcomer.html"
+    path_page.write_text(render_path(path, site=site), encoding="utf-8")
+    written.append(path_page)
+
     # Library lists one representative newsletter (the rest are its per-reader re-cuts).
     listed = [s for s in surfaces if not (s.kind == "newsletter" and s.id != "newsletter-jj")]
-    index = out / "index.html"
-    index.write_text(render_library(listed), encoding="utf-8")
-    written.append(index)
+    library = Site.from_surfaces(listed, ledger=ledger)
+    library_page = out / "library.html"
+    # Surface the onboarding track from the Library (per RESEARCH Open-Q2: a track is NOT a
+    # gate-state board column — it has no review state — so it is offered as a callout link
+    # above the board, NOT mixed into Draft/In Review/Published). We add this here, in the
+    # build (which owns content/rev1/), rather than in render.py: it is a deterministic,
+    # render-output-derived injection at a STABLE anchor (the end of the Library masthead),
+    # so the regen stays byte-stable and render.py keeps its disjoint ownership.
+    library_html = render_library(library)
+    library_html = library_html.replace(
+        _LIBRARY_MAST_ANCHOR,
+        _LIBRARY_MAST_ANCHOR + _onboarding_callout(path),
+        1,
+    )
+    library_page.write_text(library_html, encoding="utf-8")
+    written.append(library_page)
     return written
+
+
+# The stable anchor that closes the Library masthead in render.render_library's output. The
+# onboarding-track callout is injected immediately AFTER it (deterministic → byte-stable).
+_LIBRARY_MAST_ANCHOR = (
+    "One reviewed record, four surfaces — the Newsletter re-cuts per "
+    "reader from their own private corpus.</figcaption></figure></div>"
+)
+
+
+def _onboarding_callout(path: OnboardingPath) -> str:
+    """A small, no-JS Library callout linking to the onboarding track page.
+
+    Honest navigation only: it reuses the existing masthead/prose styling, adds no external
+    asset and no script, and points at the rendered ``onboarding-newcomer.html``. The track
+    is a learning path (no review state), so it lives ABOVE the gate-state board, not in it.
+    """
+    return (
+        '<div class="masthead" style="margin-top:8px">'
+        '<div class="sg-eyebrow">New here? &middot; an ordered track</div>'
+        '<div class="prose"><p>'
+        f'<a href="onboarding-newcomer.html">{path.title}</a> — '
+        f'{len(path.steps)} steps, in order: watch the build, read the decisions, '
+        'then read the newcomer&rsquo;s guide. Every step links to its already-reviewed surface.'
+        '</p></div></div>'
+    )

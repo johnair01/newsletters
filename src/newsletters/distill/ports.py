@@ -1,0 +1,131 @@
+"""The ``DistillPort`` contract — the one boundary every distill backend speaks through (SOCK-01).
+
+The boundary is deliberately MODALITY-AGNOSTIC (D-01): the same ``DistillPort`` ->
+``DistillationResult`` shape must accommodate all three distill modalities — author-by-hand,
+generic file extraction, agentic interview — so downstream review/render/promote never learns
+which one produced a result. Phase 1 builds only the author-by-hand backend (``ManualBackend``);
+the others slot into this identical contract in later phases.
+
+``DistillationResult`` is a WRAPPER around ``Distillation`` (it does not mutate it), so the
+Rev1 ``Distillation`` type and its tests stay stable (RESEARCH Open Q1). ``backend`` is an
+audit-trail string, NOT a behavior switch.
+
+The faithfulness seam (``FaithfulnessCheck`` / ``StructuralFaithfulness``) is injectable: the
+Phase-1 default checks only that a claim is traced (reusing ``Claim.is_traced``); Phase 3 can
+swap in span-containment without touching any backend.
+
+IMPORT-GRAPH NOTE: the ``from ..semantic import ...`` below is safe. It runs only when
+``distill/__init__.py`` imports this module, which happens AFTER ``semantic`` has finished
+initializing — because ``semantic`` no longer imports anything from the ``distill`` package
+(only from the leaf ``..locators``).
+"""
+
+from __future__ import annotations
+
+from typing import Optional, Protocol, runtime_checkable
+
+from pydantic import BaseModel, Field
+
+from ..semantic import Claim, Distillation, Source
+from .coverage import Coverage
+
+
+# --------------------------------------------------------------------------- #
+# The result wrapper — Distillation + Coverage manifest + audit trail
+# --------------------------------------------------------------------------- #
+
+
+class DistillationResult(BaseModel):
+    """What every backend returns: a traced ``Distillation`` plus its ``Coverage`` manifest."""
+
+    distillation: Distillation
+    coverage: Coverage = Field(default_factory=Coverage)
+    backend: str = ""  # audit trail (which backend produced this), NOT a behavior switch
+
+
+# --------------------------------------------------------------------------- #
+# The port — the runtime-checkable structural contract
+# --------------------------------------------------------------------------- #
+
+
+@runtime_checkable
+class DistillPort(Protocol):
+    """The one boundary every distill backend speaks through (SOCK-01).
+
+    ``@runtime_checkable`` enables the registry's shallow ``isinstance`` shape guard — it
+    checks ATTRIBUTE PRESENCE (``name`` + ``distill``) only, NOT signatures or return types.
+    The real malformed-backend guard is Plan 02's runtime conformance suite.
+    """
+
+    name: str
+
+    def distill(self, sources: list[Source]) -> DistillationResult: ...
+
+
+# --------------------------------------------------------------------------- #
+# The faithfulness seam — injectable, defaulted to structural (is_traced)
+# --------------------------------------------------------------------------- #
+
+
+@runtime_checkable
+class FaithfulnessCheck(Protocol):
+    """The injectable faithfulness predicate seam (Phase 3 swaps in span-containment).
+
+    ``@runtime_checkable`` (parity with ``DistillPort``) lets a test assert a concrete checker
+    satisfies the seam via ``isinstance(check, FaithfulnessCheck)`` — a shallow ATTRIBUTE-presence
+    guard (it confirms ``entails`` exists, not its signature). It changes no behavior of the
+    structural / span-containment checkers, both of which already duck-type the protocol.
+    """
+
+    def entails(self, claim: Claim) -> bool: ...
+
+
+class StructuralFaithfulness:
+    """The Phase-1 default: a claim is faithful iff it is traced (reuses ``Claim.is_traced``)."""
+
+    def entails(self, claim: Claim) -> bool:
+        return claim.is_traced
+
+
+# --------------------------------------------------------------------------- #
+# The single-place faithfulness enforcement hook (RESEARCH Pattern 5)
+# --------------------------------------------------------------------------- #
+
+
+def _enforce(
+    result: DistillationResult,
+    check: Optional[FaithfulnessCheck] = None,
+) -> DistillationResult:
+    """Apply the faithfulness rule to a result in exactly ONE place; return it unchanged if clean.
+
+    This is the SOLE site where faithfulness is enforced — it is deliberately NOT called
+    inside each backend, so the trust rule lives in one auditable spot ("one trust rule, one
+    place"). It runs ``check.entails(claim)`` over every claim in the wrapped ``Distillation``
+    and raises a teaching-style ``ValueError`` on the FIRST unfaithful claim.
+
+    The ``check`` parameter is the injection point: passing a different ``FaithfulnessCheck``
+    changes the trust rule with ZERO backend change. The DEFAULT is the Phase-3 (PROV-02)
+    deterministic ``SpanContainmentFaithfulness`` — so every backend now inherits span-containment
+    (D-3) where the Phase-1 default was structural (``StructuralFaithfulness``, traced-only).
+
+    ``check=None`` resolves to the span-containment default lazily inside the function: the
+    default checker lives in ``.faithfulness``, which imports FROM this module, so binding it as a
+    module-level default value here would create an import cycle. Resolving on first call keeps the
+    import graph acyclic and AI-free (``faithfulness`` imports only ``..semantic`` + stdlib).
+
+    HARD RULE — AI-optional core: this function imports no AI library; both the default
+    span-containment checker and ``StructuralFaithfulness`` are stdlib-only.
+    """
+    if check is None:
+        from .faithfulness import SpanContainmentFaithfulness
+
+        check = SpanContainmentFaithfulness()
+    for claim in result.distillation.claims:
+        if not check.entails(claim):
+            raise ValueError(
+                "Unfaithful claim rejected at the faithfulness seam: "
+                f"{claim.text[:60]!r} is not entailed by its evidence "
+                f"(checker={type(check).__name__}). Trace it, or move it to "
+                "Distillation.missing[]. No unsubstantiated claim passes the socket."
+            )
+    return result

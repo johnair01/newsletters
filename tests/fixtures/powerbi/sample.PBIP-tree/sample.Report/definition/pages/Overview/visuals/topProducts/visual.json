@@ -1,0 +1,55 @@
+{
+  "filterConfig": {
+    "filters": [
+      {
+        "filterType": "TopN",
+        "itemCount": 5,
+        "operator": "Top"
+      }
+    ]
+  },
+  "name": "topProducts",
+  "position": {
+    "height": 300,
+    "width": 400,
+    "x": 0,
+    "y": 320
+  },
+  "visual": {
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "maxRows": 30
+          }
+        }
+      ]
+    },
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "Sales"
+                        }
+                      },
+                      "Property": "Quantity"
+                    }
+                  },
+                  "Function": 0
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "visualType": "barChart"
+  }
+}

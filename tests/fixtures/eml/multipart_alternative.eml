@@ -1,0 +1,17 @@
+From: Ada Lovelace <ada@example.com>
+To: Team <team@example.com>
+Subject: Alternative parts
+Date: Wed, 17 Jun 2026 09:00:00 +0000
+Content-Type: multipart/alternative; boundary="ALTBOUND"
+
+--ALTBOUND
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+
+Plain wins over html.
+--ALTBOUND
+Content-Type: text/html; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+
+<html><body><p>Plain wins over html.</p></body></html>
+--ALTBOUND--

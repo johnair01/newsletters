@@ -1,0 +1,62 @@
+{
+  "article-semantic-spine": {
+    "date": null,
+    "issue": null,
+    "ref": "A-001",
+    "type": "article"
+  },
+  "learning-datamodel": {
+    "date": null,
+    "issue": null,
+    "ref": "L-001",
+    "type": "learning"
+  },
+  "newsletter-jj": {
+    "date": null,
+    "issue": null,
+    "ref": "",
+    "type": "newsletter"
+  },
+  "newsletter-nate": {
+    "date": null,
+    "issue": null,
+    "ref": "",
+    "type": "newsletter"
+  },
+  "newsletter-newcomer": {
+    "date": null,
+    "issue": null,
+    "ref": "",
+    "type": "newsletter"
+  },
+  "report-datamodel": {
+    "date": null,
+    "issue": null,
+    "ref": "R-002",
+    "type": "report"
+  },
+  "report-kickoff": {
+    "date": null,
+    "issue": null,
+    "ref": "R-001",
+    "type": "report"
+  },
+  "report-plan": {
+    "date": null,
+    "issue": null,
+    "ref": "R-004",
+    "type": "report"
+  },
+  "report-rev1": {
+    "date": null,
+    "issue": null,
+    "ref": "R-003",
+    "type": "report"
+  },
+  "show-ep01": {
+    "date": null,
+    "issue": null,
+    "ref": "EP01",
+    "type": "show"
+  }
+}

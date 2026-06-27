@@ -1,0 +1,18 @@
+From: Ada Lovelace <ada@example.com>
+To: Team <team@example.com>
+Subject: With attachment
+Date: Wed, 17 Jun 2026 09:00:00 +0000
+Content-Type: multipart/mixed; boundary="MIXBOUND"
+
+--MIXBOUND
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+
+See the attached report.
+--MIXBOUND
+Content-Type: application/pdf; name="report.pdf"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="report.pdf"
+
+JVBERi0x
+--MIXBOUND--

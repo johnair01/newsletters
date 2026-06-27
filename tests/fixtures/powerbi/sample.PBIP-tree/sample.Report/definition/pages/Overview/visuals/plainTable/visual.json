@@ -1,0 +1,43 @@
+{
+  "name": "plainTable",
+  "position": {
+    "height": 300,
+    "width": 400,
+    "x": 0,
+    "y": 0
+  },
+  "visual": {
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Sales"
+                    }
+                  },
+                  "Property": "Quantity"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "title": {
+      "properties": {
+        "text": {
+          "expr": {
+            "Literal": {
+              "Value": "'Sales by product'"
+            }
+          }
+        }
+      }
+    },
+    "visualType": "tableEx"
+  }
+}

@@ -1,0 +1,62 @@
+# import-linter config (PKG-04) — the static half of the AI-optional-core boundary.
+#
+# This `forbidden` contract fails `lint-imports` on ANY static `import` edge from the
+# `newsletters` core package to an AI/LLM package. CLAUDE.md hard rule: "AI/LLM deps live
+# behind an [ai] extra, lazy-imported inside the AI backend only; CI fails if any AI import
+# is reachable from core."
+#
+# LIMITATION (load-bearing — see .planning/notes/ai-optional-pydantic-plugin-leak.md):
+# This contract catches static import EDGES only. It CANNOT catch pydantic-plugin
+# auto-activation — pydantic auto-loads every installed `pydantic`-group plugin (e.g. logfire's
+# `logfire-plugin = logfire.integrations.pydantic:plugin`) on first import, with NO import edge
+# for a static checker to see. The complements that close this blind spot are:
+#   - tests/test_ai_optional.py::test_no_ai_pydantic_plugin_active (runtime entry-point guard)
+#   - the bare no-extras install CI job (PKG-03, Plan 02-02) where the AI packages are absent.
+# This contract is necessary-but-not-sufficient.
+
+[importlinter]
+root_package = newsletters
+# Required because the forbidden_modules below are EXTERNAL packages (not sub-packages of
+# newsletters): import-linter must analyse edges out to external packages to enforce this.
+include_external_packages = True
+
+[importlinter:contract:forbid-ai-in-core]
+name = Core (newsletters) must not import any AI/LLM package
+type = forbidden
+source_modules =
+    newsletters
+forbidden_modules =
+    pydantic_ai
+    langchain
+    langgraph
+    langsmith
+    logfire
+    openai
+    anthropic
+
+# import-linter config (PROB-03) — the STATIC half of the no-write-back boundary.
+#
+# This `forbidden` contract fails `lint-imports` on ANY static `import` edge from the
+# `newsletters.problem` lifecycle module to a network / external-system / subprocess package.
+# CLAUDE.md hard rule + Phase-13 PROB-03 hard constraint: the Problem entity is a LEGIBILITY
+# LAYER, NOT an execution tracker — problem-solving stays external/operator-owned, so `problem.py`
+# must never write back to Jira/ADO or reach any network/external surface.
+#
+# TWO-LAYER PLAYBOOK (mirrors the AI-optional core): this contract catches static import EDGES
+# only. Its runtime complement is the `sys.modules` subprocess guard
+# `tests/test_problem_boundary.py::test_problem_loads_no_external_module`, which proves none of
+# these modules is reachable on a real `import newsletters.problem`. Necessary-but-not-sufficient
+# alone — the pair is the durable proof.
+[importlinter:contract:forbid-external-write-in-problem]
+name = problem.py must not import any network/external-system package
+type = forbidden
+source_modules =
+    newsletters.problem
+forbidden_modules =
+    socket
+    http
+    urllib
+    ftplib
+    smtplib
+    subprocess
+    requests

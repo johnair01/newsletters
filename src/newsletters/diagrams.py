@@ -11,6 +11,19 @@ illustrated explainers.
 
 from __future__ import annotations
 
+from xml.sax.saxutils import quoteattr as _quoteattr
+
+
+def _xe(value: str) -> str:
+    """Escape a string for a single-quoted SVG/XML attribute (stdlib-only, no new dep).
+
+    ``quoteattr`` returns the value WITH surrounding quotes; we strip them because the
+    callers supply their own ``'…'`` delimiters. Defensive even though hrefs are slug-safe
+    (``{slug}.html``) — free text never reaches an attribute unescaped (T-09-08).
+    """
+    return _quoteattr(value, {'"': "&quot;"})[1:-1]
+
+
 # Surface accent colors (match templates.SignalColor.css_var)
 _SHOW = "var(--color-accent)"
 _REPORT = "var(--color-brand-primary)"
@@ -97,16 +110,27 @@ def two_layer() -> str:
     return _svg(u, "0 0 760 300", "".join(p))
 
 
-def fanout() -> str:
-    """One reviewed record fans out into the four surfaces."""
+def fanout(links: dict[str, str] | None = None) -> str:
+    """One reviewed record fans out into the four surfaces.
+
+    When ``links`` (a ``label -> href`` map) is supplied, each surface box is wrapped in an
+    SVG ``<a href=…>`` anchor so the diagram is navigable with NO JavaScript (SVG anchors are
+    valid SVG). ``None`` (the default) keeps the current static behavior — no anchors.
+    """
     u = "fo"
     p = [_eyebrow(24, 24, "ONE RECORD → FOUR SURFACES", _BRAND)]
     p.append(_box(24, 96, 220, 88, "One reviewed record", "SOURCE → CLAIM → DISTILLATION", _BRAND))
     rows = [("The Show", "BIWEEKLY", _SHOW, 20), ("The Report", "PER EVENT", _REPORT, 86),
             ("The Article", "ON DEMAND", _ARTICLE, 152), ("Newsletters", "WEEKLY · PER READER", _NEWS, 218)]
     for lbl, sub, acc, y in rows:
-        p.append(_box(470, y, 226, 48, lbl, "", acc))
-        p.append(_eyebrow(470 + 113, y + 40, sub, "var(--text-dim)", anchor="middle"))
+        box = (
+            _box(470, y, 226, 48, lbl, "", acc)
+            + _eyebrow(470 + 113, y + 40, sub, "var(--text-dim)", anchor="middle")
+        )
+        href = (links or {}).get(lbl)
+        if href:
+            box = f"<a href='{_xe(href)}'>{box}</a>"
+        p.append(box)
         p.append(_arrow(244, 140, 466, y + 24, u, dash=True))
     return _svg(u, "0 0 720 290", "".join(p))
 
@@ -116,7 +140,7 @@ def personalization() -> str:
     u = "pz"
     p = [_eyebrow(24, 24, "SAME RECORD · RE-CUT PER READER", _NEWS)]
     p.append(_box(24, 78, 210, 72, "The Weekly Signal", "ONE REVIEWED RECORD", _NEWS))
-    readers = [("JJ · Founder", "LEADS WITH: VISION", 18), ("Nate · Maintainer", "LEADS WITH: CORE", 84),
+    readers = [("JJ · Co-author", "LEADS WITH: VISION", 18), ("Nate · Co-author", "LEADS WITH: CORE", 84),
                ("New Contributor", "LEADS WITH: START HERE", 150)]
     for lbl, sub, y in readers:
         p.append(_box(456, y, 240, 50, lbl, sub, _NEWS))

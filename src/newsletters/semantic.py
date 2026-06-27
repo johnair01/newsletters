@@ -26,12 +26,14 @@ publish — agent-agnostic.
 
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Annotated, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from .locators import ExtractionRecord, FreeLocator, Locator
 from .templates import ReviewPolicy, SignalColor, SurfaceTemplate
 
 
@@ -52,13 +54,134 @@ class Source(BaseModel):
     context: str = Field("", description="Where this came from (tool, system, channel)")
     transcript: str = Field("", description="The raw material distilled from")
     embeddings: Optional[list[float]] = None
+    # The TYPED coverage carrier (R1, TASK ZERO). An adapter records, at parse() time, the raw
+    # content it could NOT faithfully extract (its ``unextracted[]`` determination) HERE, so the
+    # determination travels WITH the Source through ``model_dump_json``. A fresh adapter
+    # re-``distill()``ing a persisted Source reconstructs the SAME coverage — "no silent drops"
+    # holds across persistence, not just same-instance. Defaults to ``None`` so every Rev1/Phase-4
+    # Source (which has no ``extraction`` key) still validates and round-trips natively.
+    # NOTE: excluded from ``content_hash()`` (see below) — it is metadata ABOUT extraction, not the
+    # addressed content; preserving the hash keeps every existing Trace addressed and non-stale.
+    extraction: Optional[ExtractionRecord] = Field(
+        default=None,
+        description="Adapter coverage carrier (R1): the unextracted[] determination, carried "
+        "with the Source so coverage survives a JSON round-trip. NOT in content_hash().",
+    )
+
+    def content_hash(self) -> str:
+        """The SHA-256 hex digest of the FULL source content (``transcript``), stdlib only (D-1).
+
+        This is the content-address a ``Trace`` pins at capture time. STALE is computed by
+        comparing this *live* digest against the digest the Trace recorded — see
+        ``Trace.is_stale_against``. Deterministic: an empty transcript hashes to the SHA-256
+        of the empty byte string, no special-casing. No AI, no new dependency.
+
+        Addresses ``transcript`` ONLY: the ``extraction`` coverage carrier is deliberately
+        excluded — it is metadata about *what an adapter dropped*, not the content being
+        addressed. Folding it in would re-key every existing Trace and falsely mark them stale.
+        """
+        return hashlib.sha256(self.transcript.encode("utf-8")).hexdigest()
 
 
 class Trace(BaseModel):
-    """A pointer from a claim to its evidence: a ``Source`` and a locator within it."""
+    """A pointer from a claim to its evidence: a ``Source`` and a locator within it.
+
+    ``locator`` is a typed ``Locator`` discriminated union (D-06). A bare ``str`` still
+    coerces to ``FreeLocator(text=...)`` so the Rev1 capture path (``capture.py``) and
+    existing tests stay green — the widening is backward-compatible. ``span`` carries the
+    verbatim source snippet so "faithful, not suggestive" is *visible* at draft time (D-06).
+    """
 
     source_id: str
-    locator: str = ""
+    locator: Locator = Field(default_factory=FreeLocator)
+    span: str = ""
+    # --- content-address fields (D-1, OPTIONAL for backward-compat D-4) ----------
+    # These pin a Trace to the *content* of its Source, not a fragile position. They
+    # default to None so every Rev1 Trace (and the bare-string-locator coercion path)
+    # stays valid. A Trace with content_hash=None is "un-addressed" (``is_addressed``
+    # is False) and can never be STALE — it was never pinned.
+    content_hash: Optional[str] = Field(
+        default=None,
+        description="SHA-256 hex digest of the FULL Source content at capture time (D-1).",
+    )
+    start: Optional[int] = Field(
+        default=None, description="Character offset (inclusive) of the span in Source.transcript."
+    )
+    end: Optional[int] = Field(
+        default=None, description="Character offset (exclusive) of the span in Source.transcript."
+    )
+
+    @field_validator("locator", mode="before")
+    @classmethod
+    def _coerce_locator(cls, v: object) -> object:
+        """Coerce a bare ``str`` into ``FreeLocator(text=...)``; pass everything else through.
+
+        Idempotent: a ``FreeLocator``/``SessionLocator`` instance, or a discriminator dict
+        like ``{"kind": "free", "text": ...}``, passes through UNCHANGED (no double-wrap).
+        """
+        if isinstance(v, str):
+            return FreeLocator(text=v)
+        return v
+
+    @classmethod
+    def from_source(
+        cls,
+        source: "Source",
+        start: int,
+        end: int,
+        *,
+        locator: Optional[Locator] = None,
+    ) -> "Trace":
+        """Mint a content-addressed, self-verifying Trace from a live Source (D-1).
+
+        Pins ``content_hash = source.content_hash()``, the character ``start``/``end``
+        window, and ``span = source.transcript[start:end]`` so the stored span is
+        re-checkable against the offset window of the live source. This is the SINGLE
+        constructor later phases (the adapters, Plan 02's migration) use to mint
+        content-addressed traces — the pinning logic lives here and nowhere else.
+
+        Offsets are validated BEFORE slicing — faithful, not suggestive: a bad range
+        is refused with a teaching ValueError rather than silently clipped to an empty
+        or truncated span.
+        """
+        n = len(source.transcript)
+        if start < 0:
+            raise ValueError(
+                f"Trace.from_source: start={start} is negative; offsets are character "
+                f"positions into a {n}-char transcript and must be >= 0."
+            )
+        if end < start:
+            raise ValueError(
+                f"Trace.from_source: end={end} is before start={start}; the span window "
+                "is inverted. Pass start <= end."
+            )
+        if end > n:
+            raise ValueError(
+                f"Trace.from_source: end={end} runs past the transcript length ({n}); "
+                "refusing to clip rather than silently mis-attribute."
+            )
+        return cls(
+            source_id=source.id,
+            locator=locator if locator is not None else FreeLocator(),
+            span=source.transcript[start:end],
+            content_hash=source.content_hash(),
+            start=start,
+            end=end,
+        )
+
+    @property
+    def is_addressed(self) -> bool:
+        """True iff this Trace pinned a content hash (i.e. was minted content-addressed)."""
+        return self.content_hash is not None
+
+    def is_stale_against(self, source: "Source") -> bool:
+        """STALE is COMPUTED (D-2): the live source hash != the hash this Trace recorded.
+
+        An un-addressed Trace (``content_hash is None``) is NEVER stale — it was never
+        pinned, so there is nothing to drift against. This refuses a false positive and
+        never raises on the Rev1 path.
+        """
+        return self.is_addressed and source.content_hash() != self.content_hash
 
 
 class Claim(BaseModel):
@@ -72,6 +195,20 @@ class Claim(BaseModel):
     @property
     def is_traced(self) -> bool:
         return len(self.evidence) > 0
+
+    def is_stale(self, sources: dict[str, "Source"]) -> bool:
+        """STALE is COMPUTED (D-2): True iff ANY trace is stale against its live source.
+
+        ``sources`` is a ``{source_id: Source}`` lookup. A trace whose ``source_id`` is
+        absent from the lookup is skipped (not raised) — we cannot judge drift without
+        the live source, so we never claim a false STALE. Un-addressed traces are never
+        stale (see ``Trace.is_stale_against``).
+        """
+        return any(
+            t.is_stale_against(sources[t.source_id])
+            for t in self.evidence
+            if t.source_id in sources
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -169,6 +306,17 @@ class Distillation(BaseModel):
     @property
     def untraced_claims(self) -> list[Claim]:
         return [c for c in self.claims if not c.is_traced]
+
+    def stale_claims(self, sources: Optional[dict[str, "Source"]] = None) -> list["Claim"]:
+        """The claims that have drifted from their evidence — STALE is COMPUTED (D-2).
+
+        When ``sources`` is None the lookup is built from this Distillation's own
+        ``traces`` (the ``Source[]`` it carries), so a self-contained Distillation can
+        report its own drift. Returns ``[]`` when nothing drifted. No stored stale flag
+        anywhere — this is recomputed from live source hashes every call.
+        """
+        lookup = sources if sources is not None else {s.id: s for s in self.traces}
+        return [c for c in self.claims if c.is_stale(lookup)]
 
     def claims_for(self, audience: Optional[Corpus]) -> list[Claim]:
         """Claims ordered by a reader's emphasis — same facts, new emphasis."""
@@ -270,6 +418,34 @@ class DiagramBlock(BaseModel):
     caption: Optional[str] = None
 
 
+class GlossaryTerm(BaseModel):
+    """A glossary entry: a term mapped to its DEFINING reviewed, traced ``Claim``.
+
+    Faithfulness enforced *by the type*: ``definition`` is a ``Claim`` (carrying
+    ``evidence: list[Trace]``), never a bare ``str``. The defining claim's evidence IS the
+    definition — a term cannot be glossed with invented prose, only with a reviewed claim
+    that points back to its source. A term with no traceable defining claim is NOT glossed
+    here; the learning preset routes it to ``surface.missing[]`` (the honesty panel), never
+    a fabricated string. This is the LEARN-01 faithfulness crux, locked at construction time.
+    """
+
+    term: str
+    definition: Claim
+
+
+class GlossaryBlock(BaseModel):
+    """An in-context glossary block — each term traced to its defining ``Claim``.
+
+    A valid Surface block (its ``kind`` discriminator is ``"glossary"``), so it round-trips
+    through the typed ``Block`` union. Holds only ``GlossaryTerm``s, so every definition is a
+    traced claim by construction. The render branch is deliberately NOT here (that is Plan 04).
+    """
+
+    kind: Literal["glossary"] = "glossary"
+    heading: Optional[str] = "Glossary — every term traced to its definition"
+    terms: list[GlossaryTerm] = Field(default_factory=list)
+
+
 Block = Annotated[
     Union[
         ProseBlock,
@@ -282,6 +458,7 @@ Block = Annotated[
         FanoutBlock,
         RationaleBlock,
         DiagramBlock,
+        GlossaryBlock,
     ],
     Field(discriminator="kind"),
 ]
@@ -329,6 +506,18 @@ class Surface(BaseModel):
     eyebrow: str = ""
     blocks: list[Block] = Field(default_factory=list)
     traces: list[Source] = Field(default_factory=list)
+    # The PROV-03 carrier (L1): the surface-level mirror of ``Distillation.missing``. Carries the
+    # unsubstantiated/un-entailed material that must be SHOWN to the reviewer, populated at the
+    # capture/promote seam in a later plan. OPTIONAL and additive — defaults to ``[]`` so every
+    # existing Surface (which has no ``missing`` key) still validates and round-trips, mirroring the
+    # optional-additive style of ``Source.extraction`` (above). It carries PLAIN STRINGS ONLY — never
+    # a Corpus / Source / Distillation object — so invariant 3 (private corpus never serialized) is
+    # preserved, and it does NOT touch the publish/review gate (the carrier is pure).
+    missing: list[str] = Field(
+        default_factory=list,
+        description="PROV-03 carrier: unsubstantiated material to show the reviewer. Additive, "
+        "invariant-3-safe (str entries only); does not alter the publish gate.",
+    )
     audience_label: Optional[str] = None
     byline: list[str] = Field(default_factory=list)
     review: Review = Field(default_factory=Review)

@@ -65,7 +65,7 @@ in order:
 
 7. **For developers (`#developers`)** — accent `SectionDivider` "For developers · clone it,
    point it at your work"; two-column. Left: a GitHub repo lockup
-   (`nneibaue / newsletters · public`), the Source/Distillation/Surface explainer, "Clone the
+   (`johnair01 / newsletters · public`), the Source/Distillation/Surface explainer, "Clone the
    repo" + "Read the spec" buttons. Right: two `PromptBlock`s — `install` (`pip install
    newsletters`) and `synthesize.py` (the API example from `architecture.md` §2).
 
@@ -116,6 +116,100 @@ inherits the shape, not a blank page. Includes the live `GateBadge`, KPI strips,
 four-system reconciliation narrative, traced claims, and the fan-out to the other surfaces.
 This is the `Surface(kind="report")` made visible — the most data-dense view.
 
+## Learning — the reviewed record, re-cut for someone new
+
+**Signal color:** green. **Purpose:** take an *already-reviewed* record and re-cut it for a
+newcomer or a training cohort — the fifth surface and the most distilled re-cut (distance 4).
+The audience is the `product-spec.md` §"A new contributor": *"How we debug here + the reusable
+record + glossary"* — first month, needs orientation. It is a `Surface(kind="learning")` made
+visible, authored from the `learning` template (`L-NNN` id, the row above at line 176).
+
+**The faithfulness contract (the crux — read this first).** A teaching surface naturally wants
+to explain and simplify, but **faithful, not suggestive** (CLAUDE.md) forbids editorializing or
+inventing prose. The learning re-cut therefore **SELECTS, ORDERS, and LINKS already-reviewed,
+traced claims — it never authors new factual prose.** Every device below is a re-arrangement of
+the reviewed record, not new content:
+
+- **Progressive disclosure = ORDERING/LAYERING, not new content.** The three layers are ordered
+  DOM sections — **Start here** → **Prerequisites** → **Going deeper** — each populated with
+  existing traced claims (`ClaimsBlock`s). There is **no JavaScript** and no interactive toggles
+  (the static-faithful renderer, Phase 11); the layers are just deterministic ordering. The
+  order is derived from each claim's **`confidence` + `topics`** — a stable, total sort key, no
+  schema change, byte-stable on double-render (SITE-06).
+- **The in-context glossary = term → its DEFINING traced Claim.** Each glossary term renders a
+  typed `GlossaryBlock` whose definition **IS a reviewed `Claim` with a `Trace`**, surfaced in
+  context — never an invented `str` of prose. A term with **no traced defining claim is not
+  glossed**: it is routed to `surface.missing[]` and shown in the honesty panel, never fabricated.
+- **Prerequisite context = links, not exposition.** Prerequisite material is reached by **links
+  to prerequisite records/claims** (the provenance device), not by new explanatory text.
+- **Un-traceable → not taught.** Anything that cannot trace to a reviewed claim does not appear
+  as taught content; it surfaces in the **honesty** panel (the shared "What's not here / not
+  verified" device documented below). If it can't trace, it isn't taught.
+
+**Provenance — every concept links to its source (LEARN-02).** This surface makes the trace
+literal: every concept, glossary term, and onboarding step links back to its source claim/record.
+It is **pure reuse** of the Phase 9–11 devices — `link_for_source`, the claim/span rendering, the
+claim badges, and the honesty panel all run unchanged on the learning surface. No new provenance
+machinery; the same gate-visible review applies (claim beside its verbatim trace, badges for
+stale/unfaithful claims).
+
+**Placement / template fields.** `name="learning"`, `display_name="Learning"`, `signal_color`
+GREEN, `cadence=ON_DEMAND`, `scope=AudienceScope.INDIVIDUAL`, `review_policy` light, `distance=4`
+(the most-distilled re-cut), `personalized=True` (the `Corpus.emphasis` re-cut hook only — same
+facts, newcomer-shaped emphasis). Slots: `start_here / prerequisites / glossary / going_deeper`.
+Registered in `templates.py`; the Site collection, the `L-NNN` ledger, and the board/nav pick it
+up like the other four surfaces.
+
+### The OnboardingPath — an ordered learning track (LEARN-03)
+
+An **OnboardingPath** sequences several records/surfaces into an ordered learning track for a
+newcomer or cohort: `OnboardingPath(id, title, audience_label, steps: list[OnboardingStep(slug,
+label)])` — an **ORDERED list of slug refs**. Rendered as a sequenced track page with **prev**/
+next navigation *within the track* (reusing the Phase 9 prev/next device, resolving each step via
+`Site.by_slug`).
+
+Crucially, **an OnboardingPath is NOT a Surface and has NO own review gate.** It publishes nothing
+new — it is navigation *over surfaces that have already passed the gate*. Because it authors no
+claims and emits no published distillation, the no-auto-publish invariant is not implicated by the
+path itself; the gate lives on each surface it sequences. It lives in its own
+`src/newsletters/learning.py`, separate from the report/article/show templates, to keep its
+identity-only import boundary clean.
+
+---
+
+## The review view — every surface shows its work (PROV-03)
+
+Every rendered surface makes the review gate *visible*, not merely enforced. Two devices,
+both always present, neither behind a click:
+
+**Claim beside its verbatim trace (SC3).** In a `ClaimsBlock`, each claim renders its
+addressed `Trace.span` inline — the verbatim source snippet sits in a quoted mono
+`.claim-span` box directly under the claim text, *by default* (no toggle, no JavaScript).
+An un-addressed Rev1 trace (empty span) shows its evidence chip alone — never an empty box
+(faithful, not suggestive). A claim that has **drifted** from its live source carries an
+inline amber `STALE` badge; a claim whose addressed span does **not contain** the claim text
+carries an inline amber `unfaithful` badge (`SpanContainmentFaithfulness`). A clean
+addressed-entailed-non-stale claim carries no badge. So an unfaithful claim is visible
+*without a click*. The `{source_id: Source}` lookup the STALE check needs is derived from the
+surface's own `traces`, so no caller signature changes.
+
+**The "What's not here / not verified" honesty panel.** After the blocks, every surface
+renders one amber `.honesty` panel listing, never collapsed:
+
+- every `Surface.missing[]` entry — the *unsubstantiated / un-entailed* material; and
+- for every traced `Source` with an `extraction` record, each `unextracted[]` drop as
+  `locator.display` + `reason` — the *coverage gaps* an adapter could not read.
+
+When both lists are empty the same panel shell renders a positive "Fully traced — nothing
+outstanding" confirmation: the panel's *presence* is the proof on every surface. Uses
+`--color-amber` with a mono uppercase eyebrow; pure markup, no JS, every interpolation
+HTML-escaped (XSS-safe). The shipped Rev1 corpus is all-clean, so it renders the positive
+confirmation and no badges fire — the gate-fires proof lives in the renderer tests.
+
+**Block scope.** The claim-beside-span device applies to `ClaimsBlock` claims; the honesty
+panel applies to the surface as a whole regardless of its blocks. Both render identically in
+draft, in-review, and published state — review is shown at every gate, not only at publish.
+
 ---
 
 ## The Hub / Library (reference)
@@ -125,6 +219,32 @@ ties surfaces together / the archive. Useful as the **Library** view (durable ar
 published Articles and records) and as a model for cross-surface navigation
 (`.hub-body 248px 1fr`, sticky aside, `.hub-moment` and `.hub-surface` rows). Treat as the
 listing/archive surface in the build.
+
+### ID conventions (stable, content-derived — never positional)
+
+Every surface in the Library carries two stable identifiers, both independent of its position
+in any list. The Library renders the **`ref`** in each row's lead slot (it used to render a
+positional `01..NN`, which renumbered whenever surfaces were reordered — the rot point).
+
+| Surface type | `ref` format | Example | Notes |
+|--------------|--------------|---------|-------|
+| Report | `R-NNN` (3-digit) | `R-001` | sequential per type |
+| Article | `A-NNN` (3-digit) | `A-001` | sequential per type |
+| Show / episode | `EPNN` (2-digit) | `EP01` | sequential per type |
+| Newsletter | keyed by `issue` + `date` | issue 02 · 2026-06-18 | **cadenced** — no sequential ref |
+| Learning | `L-NNN` (3-digit) | `L-001` | sequential per type |
+
+- **`slug`** — the content-derived canonical link key (a deterministic `slugify` of the title;
+  for the Rev1 corpus it defaults to the existing `Surface.id` for backward-compatibility, so no
+  committed `*.html` link rots). It is the URL: `href == f"{slug}.html"`.
+- **`ref`** — the human, per-type identifier above, **assigned once from the append-only ledger**
+  (`content/rev1/ids.json`) and **never renumbered** when surfaces are reordered or inserted.
+  Newsletters are cadenced: their identity is `issue` + `date`, not a sequential ref.
+
+**Why content-stable, not positional:** identity must be deterministic and durable — a link,
+a citation, or a board reference to `R-002` must keep pointing at the same record no matter how
+many surfaces are added before it. The full `Site → Collection → Page` content model and the
+ledger mechanics are documented in `docs/architecture.md`.
 
 ## The Proposal (reference)
 

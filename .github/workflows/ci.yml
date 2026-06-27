@@ -1,0 +1,120 @@
+# Standing AI-optional invariant (PKG-03 bare-install source-of-truth + PKG-04 import-linter).
+# Every subsequent phase must keep this green. The bare-install job is the canonical defense
+# because it catches BOTH static imports AND pydantic-plugin activation — see
+# .planning/notes/ai-optional-pydantic-plugin-leak.md.
+#
+# Two independent jobs:
+#   bare-install (PKG-03) — `pip install .[test]` with NO [ai]/[dev]/[panel]; AI packages are
+#     simply absent, so neither a static AI import nor a pydantic-group AI plugin can fire. Runs
+#     the FULL deterministic pipeline (capture -> review -> render via `newsletters build`) plus
+#     the spine + AI-optional tests under that bare interpreter. This is the runtime source-of-truth.
+#   import-linter (PKG-04) — `pip install .[dev]`; `lint-imports` fails on any static core->AI edge.
+#     The fast complementary STATIC check (necessary-but-not-sufficient; misses plugin activation).
+
+name: CI — AI-optional invariant
+
+on: [push, pull_request]
+
+jobs:
+  bare-install:
+    # PKG-03 (canonical): bare no-extras install proves the deterministic spine runs with ZERO AI.
+    name: bare-install full-pipeline (PKG-03)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the package with NO AI extras (only the pytest test-runner)
+        # `[test]` adds ONLY pytest (a test runner, not an AI dep), preserving the zero-AI runtime
+        # property while letting the pipeline tests execute. Do NOT add [ai]/[dev]/[panel].
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[test]"
+
+      - name: Assert no AI package is importable on the bare install
+        # Belt-and-suspenders: proves the bare install really is AI-free, not just that our code
+        # avoids AI. Each AI module MUST raise ImportError.
+        run: |
+          python - <<'PY'
+          import importlib
+          ai = ("logfire", "pydantic_ai", "openai", "anthropic", "langsmith", "langchain", "langgraph")
+          importable = []
+          for mod in ai:
+              try:
+                  importlib.import_module(mod)
+                  importable.append(mod)
+              except ImportError:
+                  pass
+          assert not importable, f"AI package(s) installed on the bare interpreter: {importable}"
+          print("bare install is AI-free (none of {} importable)".format(ai))
+          PY
+
+      - name: Run the FULL deterministic pipeline (capture -> review -> render)
+        # `newsletters build` -> build_site runs capture -> build_report -> promote -> render
+        # end-to-end and writes HTML. Assert it wrote index.html.
+        run: |
+          newsletters build --out "$RUNNER_TEMP/site"
+          test -f "$RUNNER_TEMP/site/index.html" || { echo "pipeline did not write index.html"; exit 1; }
+          echo "full pipeline rendered site -> $RUNNER_TEMP/site"
+
+      - name: Run the spine + AI-optional tests under the bare interpreter
+        # With AI packages absent, test_no_ai_pydantic_plugin_active passes for the RIGHT reason
+        # (no pydantic-group AI plugin to activate) — the leak-note's source-of-truth condition,
+        # unlike in an ambient-AI dev venv where it xfails.
+        run: |
+          python -m pytest tests/test_semantic.py tests/test_distill_socket.py tests/test_ai_optional.py -q
+
+      - name: Assert no AI module is reachable from core
+        # Final gate: importing core must not pull any AI module into sys.modules.
+        run: |
+          python -c "import sys, newsletters; bad=[m for m in ('logfire','pydantic_ai','openai','anthropic','langsmith','langchain','langgraph') if m in sys.modules]; assert not bad, bad; print('core ai-free on bare install')"
+
+  merge-block:
+    # PROV-04 (enforcement): an unsafe PUBLISHED surface cannot merge. A SEPARATE job from
+    # bare-install so it gives an independently-red merge-block signal (RESEARCH A2). It runs the
+    # `newsletters check` checker on the SAME bare `.[test]` install (stdlib + Pydantic + Typer,
+    # AI-free — keeping PKG-03/PKG-04 the source of truth, L5). The job's value is the EXIT CODE:
+    # any STALE / un-entailed / open-missing[] published claim fails the build.
+    name: merge-block gate (PROV-04)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install with NO AI extras (bare .[test] runtime)
+        # Same bare runtime as bare-install — `[test]` adds ONLY pytest, no AI dep. Do NOT add
+        # [ai]/[dev]/[panel]: the merge-block checker is stdlib + Pydantic + Typer only.
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[test]"
+
+      - name: Run the merge-block checker on the corpus (AI-free)
+        # `newsletters check` runs review_blockers across the corpus's PUBLISHED surfaces and exits
+        # nonzero on any blocker — so an unsafe surface fails the build and cannot merge.
+        run: newsletters check
+
+  import-linter:
+    # PKG-04 (static contract, standing every push): forbid any core->AI import edge.
+    name: import-linter contract (PKG-04)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dev extra (brings import-linter)
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev]"
+
+      - name: Run lint-imports (the forbidden core->AI contract)
+        # Run from the repo root so it finds .importlinter; fails on any core->AI import edge.
+        run: lint-imports
