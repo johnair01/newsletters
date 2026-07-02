@@ -127,10 +127,23 @@ class SectionBinding(BaseModel):
     ``missing`` carries human-facing honesty-panel strings for declared-but-absent slots;
     ``unextracted`` is the typed coverage carrier for scalars that were read but not
     verbatim-locatable (each with a reason code).
+
+    ``kpi_endpoints`` is the ADDITIVE per-KPI period-endpoint pairing Phase 2's composer needs to
+    derive Δ from two INDEPENDENTLY content-addressed endpoints (never a text-match, never a guess).
+    Element ``i`` corresponds 1:1 to ``kpi_items[i]`` (``len(kpi_endpoints) == len(kpi_items)`` by
+    construction); its inner list holds that KPI's traced endpoint ``Claim``s in FILE ORDER — one
+    entry for a single ``value:`` KPI, two+ for a ``values:`` list KPI (start before close). These
+    are REFERENCES to ``Claim``s already present in ``claims`` (the SAME objects, appended by
+    reference), so the read-anchored coverage identity is unaffected — no endpoint is re-minted. A
+    malformed/absent/non-locatable endpoint contributes NO reference (never a placeholder), so a KPI
+    whose endpoints were disclosed to ``unextracted[]``/``missing[]`` carries fewer references than
+    it declares — a delta can never be derived from an invented endpoint. ``delta``/``dir`` remain
+    ``None`` here and are computed downstream in Phase 2 from these paired endpoints.
     """
 
     heading: str
     kpi_items: list[KpiItem] = Field(default_factory=list)
+    kpi_endpoints: list[list[Claim]] = Field(default_factory=list)
     claims: list[Claim] = Field(default_factory=list)
     missing: list[str] = Field(default_factory=list)
     unextracted: list[Unextracted] = Field(default_factory=list)
@@ -269,29 +282,37 @@ def _mint_scalar(
     minter: _Minter,
     claims: list[Claim],
     unextracted: list[Unextracted],
-) -> tuple[str, bool]:
-    """Mint ONE recognized scalar slot and return ``(display_token, is_scalar)``.
+) -> tuple[str, bool, Claim | None]:
+    """Mint ONE recognized scalar slot and return ``(display_token, is_scalar, minted_claim_or_none)``.
 
     A container value is walked generically (all its leaves minted) and reported as non-scalar
-    (``("", False)``); a ``None`` slot is absent and reported non-scalar without minting; a scalar
-    is routed via the minter and its raw display token returned. The display token is the parsed
-    value's string form — this is the real parsed value (never a fabricated one); its provenance is
-    handled by the claim/unextracted routing, not by the display string.
+    (``("", False, None)``); a ``None`` slot is absent and reported non-scalar without minting; a
+    scalar is routed via the minter and its raw display token returned. The display token is the
+    parsed value's string form — this is the real parsed value (never a fabricated one); its
+    provenance is handled by the claim/unextracted routing, not by the display string.
+
+    The third element is the SAME ``Claim`` object just appended to ``claims`` on a verbatim hit —
+    handed back BY REFERENCE so callers (``_bind_kpis``) can pair a KPI's endpoints without
+    re-minting — or ``None`` when the scalar was disclosed to ``unextracted[]`` (non-locatable /
+    type-coerced / block scalar / anchor-alias). A ``None`` return therefore means "no traceable
+    endpoint Claim for this slot" — the caller records no reference, never a placeholder.
     """
     if value is None:
-        return "", False
+        return "", False, None
     if isinstance(value, (dict, list)):
         _walk_generic(value, minter, claims, unextracted)
-        return "", False
+        return "", False, None
     token = value if isinstance(value, str) else str(value)
-    _route(minter.mint(value), claims, unextracted)
-    return token, True
+    minted = minter.mint(value)
+    _route(minted, claims, unextracted)
+    return token, True, (minted if isinstance(minted, Claim) else None)
 
 
 def _bind_kpis(
     kpis: object,
     minter: _Minter,
     kpi_items: list[KpiItem],
+    kpi_endpoints: list[list[Claim]],
     claims: list[Claim],
     unextracted: list[Unextracted],
     missing: list[str],
@@ -304,6 +325,15 @@ def _bind_kpis(
     the LAST (close) endpoint. ``delta``/``dir`` are left ``None`` — NO Δ is computed here. Any KPI
     scalar that is not a recognized label/value slot is still minted generically (zero silent
     drops); a declared-but-absent slot is disclosed in ``missing[]``, never fabricated.
+
+    ADDITIVE (Phase 2 endpoint pairing): a per-KPI ``endpoints`` accumulator collects — BY
+    REFERENCE, never re-minted — each KPI's traced endpoint ``Claim``s in file order (the single
+    ``value:`` Claim, or each ``values:`` list endpoint's Claim), and is appended to
+    ``kpi_endpoints`` in LOCKSTEP with each ``kpi_items.append`` so ``len(kpi_endpoints) ==
+    len(kpi_items)`` always. A non-locatable / type-coerced / mapping-shaped endpoint contributes NO
+    reference (its scalar is still routed to ``unextracted[]``/walked generically) — never a
+    placeholder — so a KPI can carry fewer references than it declares, and a delta is only ever
+    derivable from genuinely traced endpoints.
     """
     if not isinstance(kpis, list):
         _walk_generic(kpis, minter, claims, unextracted)
@@ -317,9 +347,10 @@ def _bind_kpis(
         label = ""
         value_display = ""
         value_present = False
+        endpoints: list[Claim] = []
         for key, val in entry.items():
             if key == _LABEL_KEY:
-                token, ok = _mint_scalar(val, minter, claims, unextracted)
+                token, ok, _ = _mint_scalar(val, minter, claims, unextracted)
                 if ok:
                     label = token
                 elif val is None:
@@ -327,9 +358,12 @@ def _bind_kpis(
                         f"KPI declares '{_LABEL_KEY}' but its value is absent"
                     )
             elif key == _VALUE_KEY:
-                token, ok = _mint_scalar(val, minter, claims, unextracted)
+                token, ok, minted = _mint_scalar(val, minter, claims, unextracted)
                 if ok:
                     value_display, value_present = token, True
+                    if minted is not None:
+                        # By REFERENCE: the SAME Claim already appended to `claims`.
+                        endpoints.append(minted)
                 elif val is None:
                     missing.append(
                         f"KPI declares '{_VALUE_KEY}' but its value is absent"
@@ -337,9 +371,14 @@ def _bind_kpis(
             elif key == _VALUES_KEY and isinstance(val, list):
                 # Period endpoints: each its OWN traced value; display the last (close) endpoint.
                 for endpoint in val:
-                    token, ok = _mint_scalar(endpoint, minter, claims, unextracted)
+                    token, ok, minted = _mint_scalar(
+                        endpoint, minter, claims, unextracted
+                    )
                     if ok:
                         value_display, value_present = token, True
+                        if minted is not None:
+                            # By REFERENCE (start before close): same objects as in `claims`.
+                            endpoints.append(minted)
             elif key == _VALUES_KEY:
                 # Declared-but-malformed endpoints (not a list): every scalar is still traced
                 # (zero silent drops), but the slot is unusable for display — DISCLOSE it,
@@ -360,6 +399,8 @@ def _bind_kpis(
             )
         # delta/dir left None — Phase 2 computes Δ from the two traced endpoints (non-goal here).
         kpi_items.append(KpiItem(label=label, value=value_display))
+        # Lockstep with kpi_items: element i is kpi_items[i]'s ordered endpoint Claim references.
+        kpi_endpoints.append(endpoints)
 
 
 def _bind_lane(lane: object, minter: _Minter) -> SectionBinding:
@@ -374,6 +415,7 @@ def _bind_lane(lane: object, minter: _Minter) -> SectionBinding:
     """
     heading = ""
     kpi_items: list[KpiItem] = []
+    kpi_endpoints: list[list[Claim]] = []
     claims: list[Claim] = []
     unextracted: list[Unextracted] = []
     missing: list[str] = []
@@ -393,7 +435,15 @@ def _bind_lane(lane: object, minter: _Minter) -> SectionBinding:
                     heading = str(value)
                     _walk_generic(value, minter, claims, unextracted)
             elif key == _KPIS_KEY:
-                _bind_kpis(value, minter, kpi_items, claims, unextracted, missing)
+                _bind_kpis(
+                    value,
+                    minter,
+                    kpi_items,
+                    kpi_endpoints,
+                    claims,
+                    unextracted,
+                    missing,
+                )
             else:
                 _walk_generic(value, minter, claims, unextracted)
         if _HEADING_KEY not in lane:
@@ -405,6 +455,7 @@ def _bind_lane(lane: object, minter: _Minter) -> SectionBinding:
     return SectionBinding(
         heading=heading,
         kpi_items=kpi_items,
+        kpi_endpoints=kpi_endpoints,
         claims=claims,
         missing=missing,
         unextracted=unextracted,
