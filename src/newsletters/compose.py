@@ -25,9 +25,12 @@ trust risk concentrates (deltas, ordering, prose), so its four properties are en
   absent/non-numeric → ``(delta=None, dir=None)`` + a ``missing[]`` note (NEVER a fabricated 0).
   ``Δ == 0`` is a distinct, honest "no change" (``dir=None``, delta rendered as the computed zero).
 
-NON-GOALS (deferred to Plan 02-03, same file, next wave): the owner-quote slot, the fanout stub, and
-the ``R-NNN`` identity ledger (``from .site import Ledger``). This plan lands ``compute_delta`` and
-``compose_module_report`` core only.
+IDENTITY & STRUCTURE (Plan 02-03, same file): the sourced-or-omit owner-quote slot, the fan-out
+stub (declared kinds, every ``href=None``), and the stable ``R-NNN`` identity via the REUSED,
+append-only ``site.Ledger`` against the module's OWN ``content/module/ids.json`` (read/assign-only —
+compose never ``save()``s; the caller owns persistence). None of these author a fact: the quote is
+rendered only from a traced claim, the fan-out is a declared stub, and the ref comes solely from
+``Ledger.ref_for``. The surface still ships ``Draft``.
 """
 
 from __future__ import annotations
@@ -49,6 +52,7 @@ from .semantic import (
     Review,
     Surface,
 )
+from .site import Ledger, slugify
 from .swimlane import SectionBinding, SwimlaneLoad
 from .templates import REPORT
 
@@ -153,16 +157,17 @@ def compute_delta(
 # ``created`` EXPLICITLY so the output is byte-stable.
 # --------------------------------------------------------------------------- #
 
-_NONWORD_RE = re.compile(r"[^a-z0-9]+")
-
 
 def _slug(source_id: str) -> str:
-    """Derive a deterministic, config-derived slug from the load's ``Source.id`` (data, not hardcoded)."""
+    """Derive a deterministic, config-derived slug from the load's ``Source.id`` (data, not hardcoded).
+
+    Reuses ``site.slugify`` (never a forked slug rule) over the config identity's filename stem, so
+    the composed surface's slug is the SAME key ``site.Site.from_surfaces`` reads later in Phase 3.
+    """
     stem = source_id.rsplit("/", 1)[-1]
     if "." in stem:
         stem = stem.rsplit(".", 1)[0]
-    slug = _NONWORD_RE.sub("-", stem.lower()).strip("-")
-    return slug or "module"
+    return slugify(stem) or "module"
 
 
 def _title(source_id: str) -> str:
@@ -268,6 +273,8 @@ def compose_module_report(
     author: str = "operator",
     quote: Optional[Claim] = None,
     owner: Optional[str] = None,
+    ledger: Optional[Ledger] = None,
+    ledger_path: str = "content/module/ids.json",
 ) -> Surface:
     """Compose one deterministic ``Surface(REPORT, Draft)`` from a module's ``SectionBinding[]``.
 
@@ -284,11 +291,29 @@ def compose_module_report(
     and ``owner`` (the owner id used as its attribution) drive the sourced-or-omit quote slot: a
     ``QuoteBlock`` is emitted ONLY when ``quote`` is content-addressed; otherwise the omission is
     disclosed in ``missing[]`` and the slot stays empty (never a fabricated quote). A fan-out stub
-    (declared kinds, every ``href=None``) is always appended. The ``ledger`` parameter (the R-NNN
-    identity authority) is added in Task 2 of this plan (same file).
+    (declared kinds, every ``href=None``) is always appended.
+
+    ``ledger`` (defaulting to ``Ledger.load(ledger_path)`` over the module's OWN
+    ``content/module/ids.json``) is the sequential-ref identity authority: the surface slug is
+    recorded via the reused, append-only ``site.Ledger.ref_for`` (immutable on re-sight; the first
+    report gets the first ordinal), the SOLE ref source — compose never formats a ref itself, never
+    a count-based ordinal. compose does NOT call ``ledger.save()``; persistence is the CALLER's job
+    (Phase 3), keeping compose disk-write-free.
     """
     blocks: list = []
     missing: list[str] = []
+
+    # Stable identity: the config-derived slug is BOTH the Surface id and the ledger key, so the
+    # ref Site.from_surfaces reads in Phase 3 is the one assigned here. The ref itself comes ONLY
+    # from the reused, append-only site.Ledger (never formatted inline, never a count-based ordinal)
+    # and lives in the ledger, never in authored prose (a bare ref in prose would trip the numeral guard).
+    # compose is READ/ASSIGN-only on the in-memory ledger: it does NOT call ledger.save() —
+    # persistence is the CALLER's job (Phase 3's build_module_site mirrors build_work_site:
+    # Ledger.load → compose → ledger.save()), keeping compose disk-write-free so tests stay isolated.
+    slug = f"report-{_slug(load.source.id)}"
+    if ledger is None:
+        ledger = Ledger.load(ledger_path)
+    ledger.ref_for(slug, "report")  # append-only assign/read; immutable on re-sight.
 
     # A connective ProseBlock (COMP-03): transitions only — NO numerals, NO facts. Emitted only when
     # there is something to introduce, so an empty module stays honestly bare.
@@ -348,7 +373,7 @@ def compose_module_report(
     blocks.append(_fanout_stub())
 
     return Surface(
-        id=f"report-{_slug(load.source.id)}",
+        id=slug,
         template=REPORT,
         title=_title(load.source.id),
         eyebrow="Report · module scope",
