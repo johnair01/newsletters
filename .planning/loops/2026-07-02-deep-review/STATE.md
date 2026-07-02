@@ -1,12 +1,12 @@
 ---
 loop: 2026-07-02-deep-review
-round: 1
+round: 2
 total_rounds: 10
 pace: continuous
 interval: null
 branch: loop/2026-07-02-deep-review
 base: claude/swimlane-report-composer-1i8vxt (at fd96ea0, includes PRs #4-#8)
-next_action: "Round 2 — Phase 2 (composer) deep review → 02-VERIFICATION/VALIDATION/LEARNINGS"
+next_action: "Round 3 — Phase 3 (module-a worked example) deep review → 03-triad + accepted-gap records"
 ---
 
 # Deep-review loop — round log
@@ -21,3 +21,4 @@ next_action: "Round 2 — Phase 2 (composer) deep review → 02-VERIFICATION/VAL
 | # | focus | artifact(s) | commit | reported | status |
 |---|-------|-------------|--------|----------|--------|
 | 1 | Phase 1 loader | 01-{VERIFICATION,VALIDATION,LEARNINGS}.md | (this commit) | yes | passed 5/5; finding: 2 stale docstrings in swimlane.py (post-efb635a) → backlog, not fixed in-loop |
+| 2 | Phase 2 composer | 02-{VERIFICATION,VALIDATION,LEARNINGS}.md | (this commit) | yes | passed 4/4; Holes A+B closure re-proven by named tests; finding: zero-endpoint arm unguarded (fixture models point-in-time as 1-element) → backlog |
