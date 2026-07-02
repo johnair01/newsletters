@@ -340,6 +340,14 @@ def _bind_kpis(
                     token, ok = _mint_scalar(endpoint, minter, claims, unextracted)
                     if ok:
                         value_display, value_present = token, True
+            elif key == _VALUES_KEY:
+                # Declared-but-malformed endpoints (not a list): every scalar is still traced
+                # (zero silent drops), but the slot is unusable for display — DISCLOSE it,
+                # mirroring the declared-but-absent policy. Never an empty value with no note.
+                _walk_generic(val, minter, claims, unextracted)
+                missing.append(
+                    f"KPI declares '{_VALUES_KEY}' but not as a list of period endpoints"
+                )
             else:
                 # Any other KPI scalar (description, status, …) is still traced — never dropped.
                 _walk_generic(val, minter, claims, unextracted)
