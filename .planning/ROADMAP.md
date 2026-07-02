@@ -64,7 +64,11 @@ inputs — no `models.py` change, no fixture names in `src/`, zero silent drops.
   3. The read-anchored coverage identity holds: every scalar **read** is either content-addressed or routed to `unextracted[]`/`missing` — `len(claims) + len(unextracted) == scalars walked`, with no silent drops on the trap fixture (duplicates/quotes/coercion/anchors/block scalars).
   4. The abstraction-guard test **fails the suite** if any fixture/org-specific name (lane, module, owner id) appears in `src/newsletters/` — lane sets are proven config, not code.
   5. `pip install .` (bare) imports the spine with `import yaml` unreachable; PyYAML lives behind a `[config]` extra, lazy-imported inside `swimlane.py` only.
-**Plans**: TBD
+**Plans**: 4 plans
+  - [ ] 01-01-PLAN.md — Lazy PyYAML boundary + `[config]` extra (LANE-04)
+  - [ ] 01-02-PLAN.md — Swim-lane loader `swimlane.py`: config YAML → Source + traced SectionBinding[] (LANE-01, LANE-02)
+  - [ ] 01-03-PLAN.md — Trap fixture + `test_swimlane.py`: coverage identity, Hole-B adversarial, determinism (LANE-01, LANE-02)
+  - [ ] 01-04-PLAN.md — Abstraction-guard test + bare-install yaml-unreachable tests (LANE-03, LANE-04)
 
 ### Phase 2: Module-scope Report composer
 **Goal**: Given traced bindings, the composer assembles one `Surface(REPORT, Draft)` per module —
@@ -112,7 +116,7 @@ phases produce.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Swim-lane binding + traced YAML loader | 0/TBD | Not started | - |
+| 1. Swim-lane binding + traced YAML loader | 0/4 | Planned | - |
 | 2. Module-scope Report composer | 0/TBD | Not started | - |
 | 3. Worked synthetic Module Report | 0/TBD | Not started | - |
 | 4. Signals-voice PR/summary | 0/TBD | Not started | - |
