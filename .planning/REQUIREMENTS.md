@@ -64,12 +64,12 @@ shape must fit without touching source. Enforced by test.
 
 ### Signals-Voice PR Bodies (VOICE)
 
-- [ ] **VOICE-01**: The `ship` workflow's PR-body generation + `summary-standard.md` template
+- [x] **VOICE-01**: The `ship` workflow's PR-body generation + `summary-standard.md` template
   produce Signals dispatches with exactly: The signal / What we learned / What's verified
   (verbatim gate output) / What's not here yet / How to verify — generated FROM the diff + gate
   output, no AI framing, no hype
 
-- [ ] **VOICE-02**: The voice change is proven by a test/snapshot and weakens no existing check
+- [x] **VOICE-02**: The voice change is proven by a test/snapshot and weakens no existing check
 
 ## Deferred (un-scheduled — §7 of the milestone seed; recorded, not built)
 
@@ -110,8 +110,8 @@ shape must fit without touching source. Enforced by test.
 | COMP-04 | Phase 2 | Complete |
 | MODA-01 | Phase 3 | Complete |
 | MODA-02 | Phase 3 | Complete |
-| VOICE-01 | Phase 4 | Pending |
-| VOICE-02 | Phase 4 | Pending |
+| VOICE-01 | Phase 4 | Complete |
+| VOICE-02 | Phase 4 | Complete |
 
 **Coverage:**
 
