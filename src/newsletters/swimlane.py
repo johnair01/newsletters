@@ -358,12 +358,14 @@ def _bind_kpis(
                         f"KPI declares '{_LABEL_KEY}' but its value is absent"
                     )
             elif key == _VALUE_KEY:
-                token, ok, minted = _mint_scalar(val, minter, claims, unextracted)
+                token, ok, _ = _mint_scalar(val, minter, claims, unextracted)
                 if ok:
                     value_display, value_present = token, True
-                    if minted is not None:
-                        # By REFERENCE: the SAME Claim already appended to `claims`.
-                        endpoints.append(minted)
+                    # NOT appended to `endpoints`: the point-in-time ``value:`` form
+                    # promises no movement, so it must not masquerade as a declared
+                    # period endpoint — pairing carries the movement (``values:``) form
+                    # ONLY, so the composer can disclose a declared-but-single endpoint
+                    # without falsely flagging point-in-time KPIs (COMP-02 / faithful).
                 elif val is None:
                     missing.append(
                         f"KPI declares '{_VALUE_KEY}' but its value is absent"
