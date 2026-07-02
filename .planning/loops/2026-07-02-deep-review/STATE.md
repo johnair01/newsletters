@@ -1,12 +1,12 @@
 ---
 loop: 2026-07-02-deep-review
-round: 0
+round: 1
 total_rounds: 10
 pace: continuous
 interval: null
 branch: loop/2026-07-02-deep-review
 base: claude/swimlane-report-composer-1i8vxt (at fd96ea0, includes PRs #4-#8)
-next_action: "Round 1 — Phase 1 (traced YAML loader) deep review → 01-VERIFICATION/VALIDATION/LEARNINGS"
+next_action: "Round 2 — Phase 2 (composer) deep review → 02-VERIFICATION/VALIDATION/LEARNINGS"
 ---
 
 # Deep-review loop — round log
@@ -20,3 +20,4 @@ next_action: "Round 1 — Phase 1 (traced YAML loader) deep review → 01-VERIFI
 
 | # | focus | artifact(s) | commit | reported | status |
 |---|-------|-------------|--------|----------|--------|
+| 1 | Phase 1 loader | 01-{VERIFICATION,VALIDATION,LEARNINGS}.md | (this commit) | yes | passed 5/5; finding: 2 stale docstrings in swimlane.py (post-efb635a) → backlog, not fixed in-loop |
