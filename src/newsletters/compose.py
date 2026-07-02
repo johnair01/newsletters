@@ -36,6 +36,21 @@ import re
 from decimal import Decimal, InvalidOperation
 from typing import Literal, Optional
 
+from .adapters._timestamps import EPOCH_ZERO
+from .semantic import (
+    Claim,
+    ClaimsBlock,
+    KpiItem,
+    KpiStripBlock,
+    ProseBlock,
+    Review,
+    Surface,
+)
+from .swimlane import SectionBinding, SwimlaneLoad
+from .templates import REPORT
+
+__all__ = ["compute_delta", "compose_module_report"]
+
 # --------------------------------------------------------------------------- #
 # compute_delta — the pure Δ derivation (COMP-02).
 #
@@ -122,3 +137,151 @@ def compute_delta(
         body = "+" + body  # negatives already carry their sign; zero stays bare
     unit = start_unit if (start_unit and start_unit == close_unit) else ""
     return (body + unit if unit else body), direction
+
+
+# --------------------------------------------------------------------------- #
+# compose_module_report — kind-agnostic per-section assembly (COMP-01/03).
+#
+# The composer consumes ``SwimlaneLoad.bindings`` (``SectionBinding[]``) with NO knowledge that
+# lanes exist — it iterates them in FILE ORDER as generic sections (prove the seam by composing any
+# other ``SectionBinding`` kind with zero composer change). It SELECTS already-traced content and
+# ROUTES everything unprovable to a module-level ``missing[]`` (never fabricates), mirroring the
+# traced-or-missing policy of ``worksurface.build_work_report`` — but, unlike that analog, it passes
+# ``created`` EXPLICITLY so the output is byte-stable.
+# --------------------------------------------------------------------------- #
+
+_NONWORD_RE = re.compile(r"[^a-z0-9]+")
+
+
+def _slug(source_id: str) -> str:
+    """Derive a deterministic, config-derived slug from the load's ``Source.id`` (data, not hardcoded)."""
+    stem = source_id.rsplit("/", 1)[-1]
+    if "." in stem:
+        stem = stem.rsplit(".", 1)[0]
+    slug = _NONWORD_RE.sub("-", stem.lower()).strip("-")
+    return slug or "module"
+
+
+def _title(source_id: str) -> str:
+    """A structural, config-derived module label (no computed numerals authored)."""
+    stem = source_id.rsplit("/", 1)[-1]
+    if "." in stem:
+        stem = stem.rsplit(".", 1)[0]
+    label = stem.replace("-", " ").replace("_", " ").strip()
+    return label.title() if label else "Module"
+
+
+def _dedup_in_order(items: list[str]) -> list[str]:
+    """Order-preserving union (file order preserved; NO ``set()`` -> no non-total ordering)."""
+    out: list[str] = []
+    for item in items:
+        if item not in out:
+            out.append(item)
+    return out
+
+
+def _addressed(claim: Claim) -> bool:
+    """True iff the claim is traced AND every trace is content-addressed (the trust gate)."""
+    return claim.is_traced and all(trace.is_addressed for trace in claim.evidence)
+
+
+def _compose_kpi_item(
+    item: KpiItem, endpoints: list[Claim], missing: list[str]
+) -> KpiItem:
+    """Emit one display ``KpiItem`` — deriving Δ ONLY from two content-addressed numeric endpoints.
+
+    * ≥2 endpoints, both content-addressed AND numeric -> ``delta``/``dir`` from ``compute_delta``.
+    * ≥2 endpoints that are not both computable -> ``delta=None`` + a ``missing[]`` note (a declared
+      movement that could not be computed — NEVER a fabricated 0).
+    * a single (or zero) endpoint -> a point-in-time value, emitted value-only with NO note.
+    """
+    delta: Optional[str] = None
+    direction: Optional[Literal["up", "down"]] = None
+    if len(endpoints) >= 2:
+        first, last = endpoints[0], endpoints[-1]
+        if _addressed(first) and _addressed(last):
+            delta, direction = compute_delta(first.text, last.text)
+        if delta is None:
+            missing.append(
+                f"KPI {item.label!r} declares a movement whose two endpoints are not both "
+                "content-addressed numeric values — no delta derived (never a fabricated 0)"
+            )
+    return KpiItem(label=item.label, value=item.value, delta=delta, dir=direction)
+
+
+def compose_module_report(load: SwimlaneLoad, *, author: str = "operator") -> Surface:
+    """Compose one deterministic ``Surface(REPORT, Draft)`` from a module's ``SectionBinding[]``.
+
+    Per COMP-01 the composer treats each binding as a generic section (kind-agnostic seam): in FILE
+    ORDER it emits one ``KpiStripBlock`` (with a compose-time Δ per KPI) then one ``ClaimsBlock`` of
+    the section's already-traced claims. Per COMP-03 everything unprovable — an untraced/unaddressed
+    claim, an uncomputable movement, a KPI-less section, an empty section set — is routed to the
+    module-level ``Surface.missing[]`` (the honesty panel), never fabricated. The surface ships
+    ``Draft`` (no ``publish()``, no gate advance) with ``created=EPOCH_ZERO`` and
+    ``traces=[load.source]`` so two composes of the same load are byte-identical and Phase-3
+    claim-beside-trace rendering works.
+
+    ``author`` names the byline/review author. The ``ledger`` parameter and the quote/fanout blocks
+    are added in Plan 02-03 (same file) — the signature is kept extensible.
+    """
+    blocks: list = []
+    missing: list[str] = []
+
+    # A connective ProseBlock (COMP-03): transitions only — NO numerals, NO facts. Emitted only when
+    # there is something to introduce, so an empty module stays honestly bare.
+    if load.bindings:
+        blocks.append(
+            ProseBlock(
+                heading="How this module is tracking",
+                text=(
+                    "Each section below reports only what its record can prove; anything the "
+                    "record cannot substantiate is listed in the honesty panel."
+                ),
+            )
+        )
+
+    for (
+        binding
+    ) in load.bindings:  # FILE ORDER — never a set / non-total sort (Pitfall 6)
+        endpoints_by_kpi = binding.kpi_endpoints
+        items: list[KpiItem] = []
+        for index, kpi in enumerate(binding.kpi_items):
+            endpoints = endpoints_by_kpi[index] if index < len(endpoints_by_kpi) else []
+            items.append(_compose_kpi_item(kpi, endpoints, missing))
+
+        if binding.kpi_items:
+            blocks.append(KpiStripBlock(heading=binding.heading, items=items))
+        else:
+            missing.append(
+                f"section {binding.heading!r} declares no KPIs — strip omitted"
+            )
+
+        # Traced-or-missing: SELECT content-addressed claims; route the rest to missing[].
+        kept: list[Claim] = []
+        for claim in binding.claims:
+            if _addressed(claim):
+                kept.append(claim)
+            else:
+                missing.append(claim.text)
+        blocks.append(ClaimsBlock(claims=kept))
+
+        # Union in every section's own declared gaps (file order).
+        missing.extend(binding.missing)
+
+    if not load.bindings:
+        missing.append(
+            "module config declares no sections — nothing to compose (Draft with no blocks)"
+        )
+
+    return Surface(
+        id=f"report-{_slug(load.source.id)}",
+        template=REPORT,
+        title=_title(load.source.id),
+        eyebrow="Report · module scope",
+        blocks=blocks,
+        traces=[load.source],
+        missing=_dedup_in_order(missing),
+        byline=[author],
+        review=Review(policy=REPORT.review_policy, author=author),
+        created=EPOCH_ZERO,
+    )
