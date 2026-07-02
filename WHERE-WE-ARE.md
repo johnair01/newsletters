@@ -7,6 +7,32 @@
 
 ## Where we are right now
 
+**2026-07-02 (morning) — MILESTONE v1.1 CORE COMPLETE: all 4 phases shipped, verified, and
+squash-merged to the integration branch (`claude/swimlane-report-composer-1i8vxt`). `main`
+untouched. 622 tests green; every enforced gate re-run independently on the merged result.**
+The composer JJ asked for exists and is config-driven end to end: **Phase 1** (PR #4) — the
+traced YAML loader `swimlane.py`: every scalar content-addressed to the raw file text or
+disclosed, PyYAML behind `[config]`, the abstraction guard enforcing "models in code, specifics
+in config" (it fired on three real leaks during the night — the principle is a test, not a
+convention). **Phase 2** (PR #5) — `compose.py`: one Draft `Surface(REPORT)` per module,
+compose-time Δ from two traced endpoints (declared-but-single endpoint disclosed; point-in-time
+`value:` never falsely flagged — the endpoint accumulator carries the movement form only),
+sourced-or-omit quote, fanout stub, `R-NNN` via reused Ledger, both research gate-holes closed
+by adversarial tests with zero edits to existing gates. **Phase 3** (PR #6) — the worked
+synthetic `module-a` report rendered at `content/module/site/report-module-a.html` (36
+claim-beside-trace rows, populated honesty panel, R-001, own ledger), `newsletters check
+--corpus module` proven to fire on a planted blocker; method-docs sub-task skipped honestly
+(`_incoming/` absent). **Phase 4** (PR #7) — `/gsd ship` PR bodies are now Signals dispatches
+(five sections, verbatim gate output, no fact-asserting fallbacks), guarded by test against
+installer reversion. **One stall JJ caught live:** a backgrounded CI-wait that could never
+succeed (container restart + dead unauthenticated curl + watching a docs-only SHA that never
+triggered CI) — rules hardened in `RETRO.md` 2026-07-02: background monitors notify, never
+sequence. **Next: JJ's morning review of PRs #4–#7 (merged into the integration branch) and
+the integration→main decision, which JJ owns.** After that, the §7 deferrals (DEF-01..12 in
+REQUIREMENTS/ROADMAP) are the menu — the owner-audit workflow (DEF-04) or the quarter-editorial
+re-cut (DEF-05) are the natural next loops; the DistillPort AI backend (DEF-11) stays
+eval-first and deliberately last.
+
 **2026-07-02 — MILESTONE v1.1 STARTED: Swim-Lane Module Report (Stage A locked with JJ; Stage B
 running overnight).** v1.0 is complete and archived (Phases 1–13 shipped; Phase 14 → DEF-12). The
 new milestone builds the **missing composer**: a config-driven machine that cuts one owned module
