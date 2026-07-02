@@ -17,16 +17,19 @@ shape must fit without touching source. Enforced by test.
 
 ### Swim-Lane Binding & Traced YAML Loader (LANE)
 
-- [ ] **LANE-01**: An operator can declare a module's swim lanes in YAML config, and the loader
+- [x] **LANE-01**: An operator can declare a module's swim lanes in YAML config, and the loader
   binds each configured lane to its `FunctionalGroup` + `Kpi`s/`Objective`s at the parsed-dict
   level — no change to `models.py`, no hardcoded lane names in `src/`
-- [ ] **LANE-02**: Every value the loader reads becomes a `Claim`/`KpiItem` content-addressed to
+
+- [x] **LANE-02**: Every value the loader reads becomes a `Claim`/`KpiItem` content-addressed to
   its raw YAML source text via `Trace.from_source` (the YAML file text IS `Source.transcript`);
   anything readable-but-unlocatable routes to `unextracted[]`/`missing` — zero silent drops,
   anchored to scalars READ, not units emitted
-- [ ] **LANE-03**: An abstraction-guard test fails the suite if any fixture/org-specific name
+
+- [x] **LANE-03**: An abstraction-guard test fails the suite if any fixture/org-specific name
   (lane, module, owner id) appears in `src/newsletters/` — lane sets are config, proven generic
-- [ ] **LANE-04**: PyYAML lives behind a `[config]` extra with a lazy loader boundary (mirroring
+
+- [x] **LANE-04**: PyYAML lives behind a `[config]` extra with a lazy loader boundary (mirroring
   `[excel]`/`[pptx]`); bare `pip install .` still runs the spine with zero YAML dependency
 
 ### Module-Scope Report Composer (COMP)
@@ -34,13 +37,16 @@ shape must fit without touching source. Enforced by test.
 - [ ] **COMP-01**: The composer assembles one `Surface(REPORT)` per module from an arbitrary
   configured lane set — per lane a `KpiStripBlock` + `ClaimsBlock` via a kind-agnostic section
   seam (project/interview report kinds can slot in later with zero composer change)
+
 - [ ] **COMP-02**: Start→close movement is computed at compose time from two independently-traced
   endpoints into `KpiItem.delta`; if either endpoint is absent, `delta=None` + a `missing[]`
   note — never a fabricated `0`; reproducibility proven by test; NO `Kpi` start/baseline field
+
 - [ ] **COMP-03**: The composer SELECTS/ORDERS/LINKS traced claims only: a test fails if it emits
   any claim with zero traces or any un-content-addressed trace (closes the entailment free-pass
   hole), and the connective prose slot carries no numerals/facts not drawn from a traced claim
   (closes the ClaimsBlock-only gate hole) — `faithfulness.py`/`coverage.py` untouched
+
 - [ ] **COMP-04**: The composed report carries a stable `R-NNN` ref from its own append-only
   `content/module/ids.json` ledger, lands in `Draft`, includes an owner/manager quote slot and a
   `fanout` stub; no-auto-publish proven by test on the composed surface
@@ -51,6 +57,7 @@ shape must fit without touching source. Enforced by test.
   `module-a`, `owner-*`, `eng-NN`, `toolset-N`; nothing resembling real org/tool/metric/site/
   program nomenclature) composes and renders into `content/`, visible in the Library,
   gate-visible: claim beside verbatim trace + populated honesty panel
+
 - [ ] **MODA-02**: `newsletters check --corpus module` runs the SAME unforked merge-block gate on
   the module corpus, and the byte-stable double-render invariant (SITE-06) holds over the new
   output
@@ -61,6 +68,7 @@ shape must fit without touching source. Enforced by test.
   produce Signals dispatches with exactly: The signal / What we learned / What's verified
   (verbatim gate output) / What's not here yet / How to verify — generated FROM the diff + gate
   output, no AI framing, no hype
+
 - [ ] **VOICE-02**: The voice change is proven by a test/snapshot and weakens no existing check
 
 ## Deferred (un-scheduled — §7 of the milestone seed; recorded, not built)
@@ -92,10 +100,10 @@ shape must fit without touching source. Enforced by test.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LANE-01 | Phase 1 | Pending |
-| LANE-02 | Phase 1 | Pending |
-| LANE-03 | Phase 1 | Pending |
-| LANE-04 | Phase 1 | Pending |
+| LANE-01 | Phase 1 | Complete |
+| LANE-02 | Phase 1 | Complete |
+| LANE-03 | Phase 1 | Complete |
+| LANE-04 | Phase 1 | Complete |
 | COMP-01 | Phase 2 | Pending |
 | COMP-02 | Phase 2 | Pending |
 | COMP-03 | Phase 2 | Pending |
@@ -106,6 +114,7 @@ shape must fit without touching source. Enforced by test.
 | VOICE-02 | Phase 4 | Pending |
 
 **Coverage:**
+
 - v1.1 requirements: 12 total
 - Mapped to phases: 12
 - Unmapped: 0 ✓

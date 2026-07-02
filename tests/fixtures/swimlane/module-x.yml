@@ -1,0 +1,40 @@
+# SYNTHETIC TEST DATA — fabricated ids only (no real org/tool/metric/site/program names).
+# A small, WELL-FORMED module config that exercises the full lane / KPI / objective shape the
+# swim-lane loader (src/newsletters/swimlane.py) must generalize over: a module id, an area id,
+# a lane list where each lane carries a heading, an id, a functional-group binding, an owner id,
+# member ids, KPI entries (label + period values or a single value), and objective refs.
+# Every scalar here is uniquely and verbatim-locatable, so the loader mints each as a claim with
+# zero unextracted[] — the clean-path counterpart to module-trap.yml. For tests only.
+module: module-x
+area: area-1
+lanes:
+- heading: Lane A
+  id: lane-a
+  group: group-1
+  owner: owner-1
+  members:
+  - eng-01
+  - eng-02
+  kpis:
+  - label: Metric One
+    values:
+    - '10'
+    - '20'
+  - label: Metric Two
+    value: '42'
+  objectives:
+  - objective-1
+- heading: Lane B
+  id: lane-b
+  group: group-2
+  owner: owner-2
+  members:
+  - eng-03
+  kpis:
+  - label: Metric Three
+    values:
+    - '5'
+    - '8'
+  objectives:
+  - objective-2
+  - objective-3

@@ -41,6 +41,12 @@ excel = ["openpyxl"]
 # extra and never reachable from core. python-pptx ships no type stubs and we do NOT add a
 # types-* package (mirror the Excel Any-typing decision).
 pptx = ["python-pptx"]
+# YAML module-config loader dep (LANE-04) — PyYAML is NON-AI, MIT, pure-Python-capable, and
+# spec-named for the swim-lane config path. It lives behind an extra and is lazy-imported inside
+# the config loader only (mirror the [ai]/[excel]/[pptx] discipline), so bare `pip install .` still
+# runs the deterministic capture -> review -> render spine with zero PyYAML and zero AI. Config
+# text is parsed with yaml.safe_load ONLY (never yaml.load; config is data, not code).
+config = ["PyYAML>=6.0.3"]
 panel = ["panel", "holoviews", "bokeh", "numpy", "pandas"]
 # import-linter (PKG-04): the static forbidden-contract tool enforcing core has no AI import edge.
 dev = ["pytest", "black", "ipdb", "ipython", "isort", "mypy", "import-linter"]

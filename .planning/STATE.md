@@ -1,16 +1,17 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.1
-milestone_name: Swim-Lane Module Report
-status: planning
-last_updated: "2026-07-02T03:20:00.000Z"
-last_activity: 2026-07-02
+milestone_name: milestone
+status: executing
+stopped_at: "Completed 01-03-PLAN.md (swim-lane loader honesty & determinism proofs). Next: 01-04 (abstraction-guard + bare-install [config] gate)."
+last_updated: "2026-07-02T04:21:46.294Z"
+last_activity: 2026-07-02 — Phase 1 Plan 03 executed (swim-lane loader honesty & determinism proofs; LANE-01/LANE-02)
 progress:
   total_phases: 4
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  completed_phases: 1
+  total_plans: 4
+  completed_plans: 4
+  percent: 25
 ---
 
 # Project State
@@ -25,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-02)
 ## Current Position
 
 Phase: 1 of 4 (Swim-lane binding + traced YAML loader)
-Plan: — of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-07-02 — ROADMAP.md created for milestone v1.1 (4 phases, 12/12 requirements mapped)
+Plan: 4 of 4 in current phase (01-04 remaining: abstraction-guard + bare-install gate)
+Status: In progress — 01-01/01-02/01-03 done; 01-03 tests green (5 passed), full suite 579 passed
+Last activity: 2026-07-02 — Phase 1 Plan 03 executed (swim-lane loader honesty & determinism proofs; LANE-01/LANE-02)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [████████░░] 75%
 
 **Circuit breaker:** Phase 1 gates the whole milestone. If it does not finish cleanly green on the
 enforced gate set (pytest, lint-imports, `newsletters check` all corpora, byte-stable double-render,
@@ -39,23 +40,28 @@ bare-install CI; mypy/black/isort held to no-NEW-failures vs the 2026-07-02 base
 
 **Velocity:**
 
-- Total plans completed (v1.1): 0
+- Total plans completed (v1.1): 3
 - v1.0 (Phases 1–14) shipped 2026-06; per-plan history archived in git.
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1 | 0 | - | - |
+| 1 | 3 | ~48min | ~16min |
 | 2 | 0 | - | - |
 | 3 | 0 | - | - |
 | 4 | 0 | - | - |
 
 **Recent Trend:**
 
-- No v1.1 plans executed yet.
+- Phase 01 P01/P02/P03 complete: lazy PyYAML boundary → swimlane loader → executable honesty/determinism proofs.
 
 *Updated after each plan completion*
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 01 P03 | 20min | 3 tasks | 3 files |
+| Phase 01 P04 | 25 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -69,6 +75,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Research]: Two-module split — `swimlane.py` (loader, only new I/O + YAML edge) and `compose.py` (pure in-memory composer) — confirmed default; gives the Phase-1/Phase-2 testable boundary.
 - [Research]: Worked example lands as a third `module` corpus with its OWN `content/module/ids.json` ledger (not an extension of `work`), preserving the sample/real/config boundary.
 - [Research]: The two structural faithfulness holes are closed by NEW additive tests — Hole B (un-addressed traces) upstream in Phase 1, Hole A (un-gated non-`ClaimsBlock` numerals) in Phase 2 — never by editing `faithfulness.py`/`coverage.py`.
+- [Phase ?]: Abstraction guard uses word-bounded, case-sensitive denylist matching so generic structural keys (lanes/owner/module) never false-positive; only concrete config values trip it (LANE-03)
+- [Phase ?]: New optional extras get the full [excel]-parallel gate set (extra-declared, no-top-level-import, imports-with-dep-blocked, teaching-error, returns-module, module-AI-free); applied for [config]/PyYAML (LANE-04)
 
 ### Pending Todos
 
@@ -97,6 +105,6 @@ Items acknowledged and carried forward (v1.1 seed §7 — recorded, not built). 
 
 ## Session Continuity
 
-Last session: 2026-07-02T03:20:00.000Z
-Stopped at: ROADMAP.md + STATE.md written for milestone v1.1; ready to plan Phase 1.
+Last session: 2026-07-02T04:20:57.950Z
+Stopped at: Completed 01-03-PLAN.md (swim-lane loader honesty & determinism proofs). Next: 01-04 (abstraction-guard + bare-install [config] gate).
 Resume file: None

@@ -1,0 +1,38 @@
+# SYNTHETIC TEST DATA — fabricated ids only (no real org/tool/metric/site/program names).
+# The ADVERSARIAL trap fixture for tests/test_swimlane.py. It deliberately packs every
+# scalar-location trap so the loader's HONEST routing (a content-addressed claim, or an
+# unextracted[] disclosure carrying a reason code) is PROVABLE, never merely asserted:
+#   - an anchor/alias pair: the alias resolves to a value whose only occurrence is EARLIER
+#     than the forward cursor, so there is no distinct forward span to address.
+#   - a multi-line block scalar: the folded/dedented logical value is not a verbatim substring
+#     of the raw (indented) text, so span-containment cannot hold.
+#   - a YAML-coerced scalar (yes -> True): the coerced str() form is not verbatim in the text.
+#   - a value REPEATED across two KPIs: the forward-only cursor must give the two occurrences
+#     DISTINCT offsets (never re-point at the first).
+#   - single- and double-quoted scalars: locate verbatim INSIDE the quotes.
+#   - a mapping-shaped `values:` slot: declared, but not a list of period endpoints — its
+#     endpoints are still traced, but the slot is disclosed in missing[] and yields no display.
+module: module-trap
+area: area-trap
+lanes:
+- heading: Lane Trap One
+  id: lane-t1
+  owner: &shared-owner owner-anchored
+  reviewer: *shared-owner
+  members:
+  - 'single-quoted-id'
+  - "double-quoted-id"
+  note: |
+    block scalar line one
+    block scalar line two
+  kpis:
+  - label: coerced flag
+    value: yes
+  - label: duplicate first
+    value: shared-value
+  - label: duplicate second
+    value: shared-value
+  - label: mapping values trap
+    values:
+      start: 111
+      close: 222
