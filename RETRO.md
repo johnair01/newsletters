@@ -46,6 +46,38 @@
   locally, a docs-only head commit does not block the merge* — verify the post-merge run on the
   integration branch instead.
 
+**Friction observed (deep-review loop, rounds 1–8)**
+
+4. **The milestone shipped functionally but was never formally closed per GSD.** All 4 phases were
+   built, verified, and merged (PRs #4–#8) — but there were **no per-phase VERIFICATION/VALIDATION/
+   LEARNINGS**, no `MILESTONES.md`, no retrospective, no archive, no tag, and STATE/ROADMAP/PROJECT
+   carried internal contradictions (STATE frozen mid-Phase-2 with a "3 plans" metrics table; ROADMAP
+   Phase-3 checkboxes unticked and Phase-4 "Plans: TBD"; the ROADMAP five-section criterion vs the
+   shipped six-section dispatch). "Green tests + merged PRs" felt like "done", so the GSD close ritual
+   — the part that produces the *learning* artifacts — was silently skipped. Shipped ≠ closed.
+5. **A self-verifying builder cannot see its own self-consistent blind spots.** The overnight run
+   verified every phase against its own plan and passed — yet the drift above (and the R5 "weakest
+   link", the R7 unguarded arms, the R8 ontology drift) was invisible to that inline verification
+   *because it was self-consistent with the builder's own frame*. It took a **fresh-context, adversarial
+   deep-review loop** — reading the live repo with standing lenses (delta-to-reality / drift / total-
+   history honesty) rather than re-checking intent — to surface what the builder could not see about
+   itself. The code enforces its ontology in tests, but the tests prove enums/verbs disjoint, not the
+   *prose*; only an outside read caught the compass still saying "promotion chain".
+
+**Rules hardened**
+
+- *A milestone is not done when the code is green — it is done when it is CLOSED per GSD.* Before
+  declaring a milestone complete: per-phase VERIFICATION/VALIDATION/LEARNINGS exist, the compass
+  (STATE/ROADMAP/PROJECT/WHERE-WE-ARE) is internally consistent with the live repo, and the
+  `audit-milestone → complete-milestone` ritual (archive + RETROSPECTIVE + tag) has run. "Merged PRs"
+  is a build signal, not a close signal. (This loop is the retroactive execution of that rule.)
+- *Independent, fresh-context review catches what inline verification structurally cannot.* Self-
+  verification checks the work against the builder's own frame, so self-consistent blind spots survive
+  it. For anything load-bearing (trust invariants, ontology, the promise ledger), run a fresh-context
+  review that reads the LIVE object with adversarial lenses — the value it buys is *independence, not
+  correctness*. (Generalises "the agent says green ≠ green" from executors to the builder's own
+  verification pass.)
+
 ## 2026-06-19 — Session: autonomous Phases 8–13 (the cut to UAT)
 
 **Friction observed**

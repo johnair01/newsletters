@@ -7,6 +7,29 @@
 
 ## Where we are right now
 
+**2026-07-02 (after the morning) — CLIENT-READABLE REVIEWS SHIPPED, then a 10-round DEEP-REVIEW
+LOOP to close v1.1 honestly.** Two things happened after the milestone's code was done. First, JJ's
+morning review landed a hard truth — the Signals-dispatch PR bodies were hype-free but still
+unreadable to the person they were for ("I don't understand what the shit is going on") — so **PR #8**
+added a mandatory plain-terms **"Start here"** section (what we built / why it matters / how to
+review) and deployed the rendered report corpora to Pages, so review means clicking an artifact, not
+diffing. Second, the milestone was **functionally done but never formally closed per GSD** (no
+per-phase VERIFICATION/VALIDATION/**LEARNINGS**, no milestone archive/tag, and STATE/ROADMAP/PROJECT
+carried internal contradictions). The fix is a **10-round deep-review /loop** (PRs #9–#15) where each
+round's deep review *is* the capture vehicle — reviewing Phase N produces its honest triad. Rounds so
+far: **1–4** the per-phase retroactive triads (all verified; accepted gaps recorded, not fabricated);
+**5** the 12 trust invariants mapped as one system (weakest link named: the Option-A structural
+faithfulness fallback passes an un-addressed trace with no content check); **6** the 16 GSD config
+toggles reconciled (4 honored / 2 backfilled / 6 accepted / 5 maintainer recommendations — lesson:
+independence, not correctness, is what a fresh-context review buys); **7** the whole suite read as a
+promise ledger (62 promises, 11 unguarded arms, 2 vacuous guards → backlog **B1–B20**, all one-test
+remedies); **8** (this round) ontology & semantic drift across total history + these compass fixes.
+The standing lenses every round: delta-to-reality, semantic drift, total-history honesty. **Next:
+Round 9 — the collaboration contract (roles as hats: Editor-in-Chief / Bureau Chief / maintainer /
+…, `docs/collaboration.md` + a presence guard mirroring the voice guard); Round 10 — the formal GSD
+close (`audit-milestone` → `complete-milestone`: MILESTONES.md, archive, RETROSPECTIVE, tag v1.1 on
+the integration branch — the maintainer merges to `main`).**
+
 **2026-07-02 (morning) — MILESTONE v1.1 CORE COMPLETE: all 4 phases shipped, verified, and
 squash-merged to the integration branch (`claude/swimlane-report-composer-1i8vxt`). `main`
 untouched. 622 tests green; every enforced gate re-run independently on the merged result.**
@@ -348,6 +371,15 @@ end-to-end; Wave 2 adds the conformance suite + the hard-rule tests.
 - **The engine is one promotion chain** — Sources → Report → Article → Newsletter, each human-gated.
   Grounded in five worked contexts (work quality-events, work weeklies-by-swim-lane, interns, PulseIQ,
   Newsletters itself). See `PROJECT.md` → How it's used.
+  > 🔤 **Ontology annotation (deep-review R8, 2026-07-02 — history preserved, not rewritten):** the
+  > canonical term for this axis-2 device is now **fan-out**, *not* "promotion chain" — one reviewed
+  > record **fans out** into audience-tuned surfaces (report / article / newsletter / show / learning).
+  > "promotion" was reserved *away* from this axis when A2 added the third state axis (the Problem
+  > lifecycle ladder, `transition`), so "promote/promotion" would not collide across axes; SITE-05
+  > renamed the site device to fan-out (Phase 9). "Promotion" now belongs only to the human-gated
+  > grammar steps `Claim → KPI` / `Report → Article`. See the three-axes seed
+  > (`.planning/seeds/promotion-terminology-guard.md`) and the drift ledger
+  > (`.planning/reviews/2026-07-02-deep-review/08-ontology-and-drift.md`, D2).
 - **The distill socket has three modalities** — author by hand / generic low-token extraction /
   agentic interview — all emitting one reviewed `Distillation` (Phase-1 decision; see
   `.planning/phases/01-distill-socket-contract/01-CONTEXT.md`).

@@ -110,9 +110,9 @@ byte-stable.
 
 **Plans**: 3 plans
 
-  - [ ] 03-01-PLAN.md — Synthetic `module-a` config + `modulesite.py` builder (build_module_surfaces/build_module_site) + committed R-001 render (MODA-01)
-  - [ ] 03-02-PLAN.md — Additive `--corpus module` CLI routing + gate-both-ways proof (clean exit 0 / planted blocker nonzero) (MODA-02)
-  - [ ] 03-03-PLAN.md — End-to-end `test_modulesite.py`: traced+addressed, honesty panel, R-001 stable, byte-stable, no-external-call, committed==fresh-build, synthetic-name check (MODA-01, MODA-02)
+  - [x] 03-01-PLAN.md — Synthetic `module-a` config + `modulesite.py` builder (build_module_surfaces/build_module_site) + committed R-001 render (MODA-01)
+  - [x] 03-02-PLAN.md — Additive `--corpus module` CLI routing + gate-both-ways proof (clean exit 0 / planted blocker nonzero) (MODA-02)
+  - [x] 03-03-PLAN.md — End-to-end `test_modulesite.py`: traced+addressed, honesty panel, R-001 stable, byte-stable, no-external-call, committed==fresh-build, synthetic-name check (MODA-01, MODA-02)
 
 **UI hint**: yes
 
@@ -126,11 +126,13 @@ phases produce.
 **Requirements**: VOICE-01, VOICE-02
 **Success Criteria** (what must be TRUE):
 
-  1. PR-body generation + `summary-standard.md` produce dispatches with exactly the sections: The signal / What we learned / What's verified (verbatim gate output) / What's not here yet / How to verify — generated **from** the diff + gate output, with no AI framing and no hype.
+  1. PR-body generation + `summary-standard.md` produce dispatches with exactly the sections: **Start here** (plain-terms, client-readable — what we built / why it matters / how to review, rendered artifact first) / The signal / What we learned / What's verified (verbatim gate output) / What's not here yet / How to verify — six sections, generated **from** the diff + gate output, with no AI framing and no hype. *(amended #8 — the "Start here" section was added in PR #8 after the original five-section criterion; the contract, guard, and tests all ship six.)*
   2. Gate output appears **byte-verbatim** in the body (never paraphrased or softened), and the same numeral-free-unless-sourced rule applies to dispatch prose.
   3. The voice change is proven by a test/snapshot and **weakens no existing check** (no gate edited or relaxed).
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+  - [x] 04-PLAN.md — Signals-voice PR bodies + `summary-standard.md` (inline execution, JJ present): the six-section dispatch, verbatim gate output, no fact-asserting fallbacks, guarded by `test_signals_voice.py` (VOICE-01, VOICE-02)
 
 ## Progress
 
