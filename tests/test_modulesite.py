@@ -175,3 +175,187 @@ def test_no_external_calls(tmp_path: Path) -> None:
     fonts_dir = tmp_path / "fonts"
     assert fonts_dir.is_dir(), "build_module_site did not emit the self-hosted fonts/ dir"
     assert any(fonts_dir.glob("*.woff2")), "no woff2 fonts in the module output fonts/ dir"
+
+
+# --------------------------------------------------------------------------- #
+# Plan 03-03 Task 2 — determinism, ledger-stability, committed==fresh-build, and
+# the synthetic-name confidentiality check over the committed corpus.
+# --------------------------------------------------------------------------- #
+
+
+def test_byte_stable_double_render(tmp_path: Path) -> None:
+    """SITE-06 / MODA-02: build_module_site is byte-stable across two renders (no datetime.now()).
+
+    Two independent builds into separate dirs must produce the IDENTICAL file set and byte-identical
+    contents for EVERY file (HTML + self-hosted fonts). Shared-ledger caveat: both builds re-save the
+    committed ``content/module/ids.json`` (idempotent — R-001 already recorded, append-only,
+    byte-stable save), so the double render is stable and leaves the committed ledger unchanged.
+    """
+    a, b = tmp_path / "a", tmp_path / "b"
+    build_module_site(a)
+    build_module_site(b)
+
+    files_a = sorted(p.relative_to(a) for p in a.rglob("*") if p.is_file())
+    files_b = sorted(p.relative_to(b) for p in b.rglob("*") if p.is_file())
+    assert files_a == files_b, "the two module renders produced a different file set"
+    for rel in files_a:
+        assert (a / rel).read_bytes() == (b / rel).read_bytes(), (
+            f"{rel} is not byte-identical across renders (nondeterminism in the module output)"
+        )
+
+
+def test_r001_stable_across_rebuild(tmp_path: Path) -> None:
+    """R-001 is stable across a rebuild — the append-only ledger never renumbers on re-sight.
+
+    Uses a FRESH tmp ``ids.json`` (never the committed path) so nothing leaks: a fresh ledger assigns
+    the first report ``R-001``; reloading that populated ledger and rebuilding returns the SAME ref.
+    The stability is PROVEN by rebuild (append-only immutability), not by asserting a literal twice.
+    """
+    ids = tmp_path / "ids.json"
+
+    ledger = Ledger.load(ids)  # fresh / empty
+    site = Site.from_surfaces(build_module_surfaces(), ledger=ledger)
+    ledger.save()
+    first_ref = site.pages()[0].ref
+    assert first_ref == "R-001", (
+        f"a fresh ledger must assign the first report ref R-001, got {first_ref!r}"
+    )
+
+    reloaded = Ledger.load(ids)  # re-sight the same, now-populated, ledger
+    site_again = Site.from_surfaces(build_module_surfaces(), ledger=reloaded)
+    reloaded.save()
+    assert site_again.pages()[0].ref == first_ref, (
+        "the append-only ledger renumbered R-001 on rebuild — it must be immutable on re-sight"
+    )
+
+
+def test_committed_equals_fresh_build(tmp_path: Path) -> None:
+    """The committed content/module/ == a fresh build (the committed==fresh-build norm, Phase 11/12).
+
+    A fresh build into ``tmp_path`` must reproduce every committed ``content/module/site/`` file
+    (HTML + fonts) BYTE-for-BYTE — this is WHY Plan 01 committed a byte-stable render. Shared-ledger
+    caveat: ``build_module_site`` writes its ledger to the FIXED committed
+    ``content/module/ids.json`` (not ``tmp_path``); the committed ledger already holds R-001 and the
+    save is byte-stable, so we snapshot its bytes and assert the build leaves it UNCHANGED
+    (committed==fresh at the ledger layer, and no accidental mutation of a tracked file).
+    """
+    committed_site = REPO_ROOT / "content" / "module" / "site"
+    committed_ledger = REPO_ROOT / "content" / "module" / "ids.json"
+    assert committed_site.is_dir(), "committed content/module/site/ is missing (Plan 01 output)"
+
+    ledger_before = committed_ledger.read_bytes()
+    build_module_site(tmp_path)
+    assert committed_ledger.read_bytes() == ledger_before, (
+        "the fresh build mutated the committed ledger — the rebuild must be idempotent (R-001 held)"
+    )
+
+    committed_files = sorted(
+        p for p in committed_site.rglob("*") if p.is_file()
+    )
+    assert committed_files, "no committed module site files to compare against"
+    for src in committed_files:
+        rel = src.relative_to(committed_site)
+        built = tmp_path / rel
+        assert built.exists(), f"fresh build is missing committed file {rel}"
+        assert built.read_bytes() == src.read_bytes(), (
+            f"{rel} differs between the committed corpus and a fresh build"
+        )
+
+
+def test_no_datetime_now_reachable() -> None:
+    """Determinism (Pitfall 5): the composed surface + its source carry EPOCH_ZERO, no wall clock.
+
+    ``Surface.created`` and every ``Source.timestamp`` are the fixed ``EPOCH_ZERO`` sentinel — proof
+    that no ``datetime.now()`` is reachable through the module build (the byte-stability precondition).
+    """
+    surface = build_module_surfaces()[0]
+    assert surface.created == EPOCH_ZERO, (
+        "Surface.created must be EPOCH_ZERO (no datetime.now() in the module build)"
+    )
+    assert surface.traces, "the surface must carry its config source trace"
+    for src in surface.traces:
+        assert src.timestamp == EPOCH_ZERO, (
+            "Source.timestamp must be EPOCH_ZERO (the loader must not read the wall clock)"
+        )
+
+
+# --------------------------------------------------------------------------- #
+# Confidentiality (T-03-03 / Pitfall 8): committed public content carries ONLY
+# fabricated synthetic names. The denylist is a GENERIC real-name-SHAPE set (not a
+# list of secrets): representative real-looking org/crew/metric tokens — here the
+# repo's own Star-Trek sample-team names stand in as canonical "real-looking"
+# nomenclature — plus an email-address shape. The allowlist positively asserts the
+# fabricated scheme is the naming actually used.
+# --------------------------------------------------------------------------- #
+
+# Representative real-looking nomenclature that must NEVER appear in committed public content.
+# Multi-word / distinctive tokens only, so a substring scan cannot false-positive on ordinary
+# words or the design-system's font-family names.
+_REAL_LOOKING_LITERALS = frozenset(
+    {
+        "Jean-Luc Picard",
+        "William Riker",
+        "Geordi La Forge",
+        "Beverly Crusher",
+        "Starfleet Division",
+        "USS Enterprise",
+        "Warp Core Stability",
+        "Dilithium Efficiency Index",
+        "starfleet.int",
+    }
+)
+
+# A real-name SHAPE: an email address (the committed corpus declares none — its presence would be a
+# confidentiality leak). Bounded so CSS at-rules (@font-face / @media) never match (no word char
+# precedes their '@').
+_EMAIL_RE = re.compile(r"\b[\w.-]+@[\w.-]+\.[A-Za-z]{2,}\b")
+
+# The fabricated worked-example scheme (seed §5) — the naming that SHOULD be present.
+_FABRICATED_MARKERS = ("module-a", "area-bem", "owner-", "eng-", "toolset-")
+
+
+def _scan_real_looking(text: str) -> set[str]:
+    """Return the real-looking nomenclature found in ``text`` (empty == clean/synthetic)."""
+    hits = {tok for tok in _REAL_LOOKING_LITERALS if tok in text}
+    hits.update(_EMAIL_RE.findall(text))
+    return hits
+
+
+def test_committed_content_is_synthetic() -> None:
+    """T-03-03: every committed content/module/ file carries only synthetic fabricated names.
+
+    Scans the committed config (``*.yml``), the rendered ``site/*.html``, and the ledger
+    (``ids.json``) against the real-name-shape denylist and asserts NONE appear; then positively
+    asserts the fabricated scheme markers ARE the naming used. A planted-leak self-check proves the
+    SAME scanner fires on a real-looking name/email — so the clean pass is non-vacuous (Phase-7 norm:
+    prove it blocks, not just passes).
+    """
+    module_dir = REPO_ROOT / "content" / "module"
+    files = (
+        sorted(module_dir.glob("*.yml"))
+        + sorted((module_dir / "site").glob("*.html"))
+        + [module_dir / "ids.json"]
+    )
+
+    corpus = ""
+    for f in files:
+        assert f.exists(), f"expected committed module content file {f.relative_to(REPO_ROOT)}"
+        text = f.read_text(encoding="utf-8")
+        corpus += text
+        leaks = _scan_real_looking(text)
+        assert not leaks, (
+            f"real-looking nomenclature in committed {f.relative_to(REPO_ROOT)}: {sorted(leaks)} "
+            "— committed public content must be synthetic (T-03-03 / Pitfall 8)"
+        )
+
+    for marker in _FABRICATED_MARKERS:
+        assert marker in corpus, (
+            f"expected the fabricated scheme marker {marker!r} in committed content — the corpus "
+            "must use the synthetic naming scheme"
+        )
+
+    # Non-vacuous: the SAME scanner catches a planted real-looking name + email.
+    planted = "owner: Jean-Luc Picard\ncontact: ops@starfleet.int\n"
+    planted_hits = _scan_real_looking(planted)
+    assert "Jean-Luc Picard" in planted_hits, planted_hits
+    assert any("@" in h for h in planted_hits), planted_hits
