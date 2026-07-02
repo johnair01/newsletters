@@ -45,7 +45,7 @@ errors). Cleanup of that debt is out of scope for this milestone.
 
 ## Phases
 
-- [ ] **Phase 1: Swim-lane binding + traced YAML loader** - config → content-addressed traced `Claim`/`KpiItem`s, honest routing, abstraction guard (`swimlane.py`)
+- [x] **Phase 1: Swim-lane binding + traced YAML loader** - config → content-addressed traced `Claim`/`KpiItem`s, honest routing, abstraction guard (`swimlane.py`) (completed 2026-07-02)
 - [ ] **Phase 2: Module-scope Report composer** - traced bindings → `Surface(REPORT, Draft)`, compose-time Δ, faithfulness holes closed by new tests (`compose.py`)
 - [ ] **Phase 3: Worked synthetic Module Report** - `module-a` config renders into the Library as a third `module` corpus with its own ledger
 - [ ] **Phase 4: Signals-voice PR/summary** - `ship` workflow PR bodies read as evidence-first Signals dispatches
@@ -72,7 +72,7 @@ inputs — no `models.py` change, no fixture names in `src/`, zero silent drops.
   - [x] 01-01-PLAN.md — Lazy PyYAML boundary + `[config]` extra (LANE-04)
   - [x] 01-02-PLAN.md — Swim-lane loader `swimlane.py`: config YAML → Source + traced SectionBinding[] (LANE-01, LANE-02)
   - [x] 01-03-PLAN.md — Trap fixture + `test_swimlane.py`: coverage identity, Hole-B adversarial, determinism (LANE-01, LANE-02)
-  - [ ] 01-04-PLAN.md — Abstraction-guard test + bare-install yaml-unreachable tests (LANE-03, LANE-04)
+  - [x] 01-04-PLAN.md — Abstraction-guard test + bare-install yaml-unreachable tests (LANE-03, LANE-04)
 
 ### Phase 2: Module-scope Report composer
 
@@ -129,7 +129,7 @@ phases produce.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Swim-lane binding + traced YAML loader | 3/4 | In Progress|  |
+| 1. Swim-lane binding + traced YAML loader | 4/4 | Complete   | 2026-07-02 |
 | 2. Module-scope Report composer | 0/TBD | Not started | - |
 | 3. Worked synthetic Module Report | 0/TBD | Not started | - |
 | 4. Signals-voice PR/summary | 0/TBD | Not started | - |

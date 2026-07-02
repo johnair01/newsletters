@@ -26,10 +26,10 @@ shape must fit without touching source. Enforced by test.
   anything readable-but-unlocatable routes to `unextracted[]`/`missing` — zero silent drops,
   anchored to scalars READ, not units emitted
 
-- [ ] **LANE-03**: An abstraction-guard test fails the suite if any fixture/org-specific name
+- [x] **LANE-03**: An abstraction-guard test fails the suite if any fixture/org-specific name
   (lane, module, owner id) appears in `src/newsletters/` — lane sets are config, proven generic
 
-- [ ] **LANE-04**: PyYAML lives behind a `[config]` extra with a lazy loader boundary (mirroring
+- [x] **LANE-04**: PyYAML lives behind a `[config]` extra with a lazy loader boundary (mirroring
   `[excel]`/`[pptx]`); bare `pip install .` still runs the spine with zero YAML dependency
 
 ### Module-Scope Report Composer (COMP)
@@ -102,8 +102,8 @@ shape must fit without touching source. Enforced by test.
 |-------------|-------|--------|
 | LANE-01 | Phase 1 | Complete |
 | LANE-02 | Phase 1 | Complete |
-| LANE-03 | Phase 1 | Pending |
-| LANE-04 | Phase 1 | Pending |
+| LANE-03 | Phase 1 | Complete |
+| LANE-04 | Phase 1 | Complete |
 | COMP-01 | Phase 2 | Pending |
 | COMP-02 | Phase 2 | Pending |
 | COMP-03 | Phase 2 | Pending |
