@@ -46,7 +46,7 @@ errors). Cleanup of that debt is out of scope for this milestone.
 ## Phases
 
 - [x] **Phase 1: Swim-lane binding + traced YAML loader** - config → content-addressed traced `Claim`/`KpiItem`s, honest routing, abstraction guard (`swimlane.py`) (completed 2026-07-02)
-- [ ] **Phase 2: Module-scope Report composer** - traced bindings → `Surface(REPORT, Draft)`, compose-time Δ, faithfulness holes closed by new tests (`compose.py`)
+- [x] **Phase 2: Module-scope Report composer** - traced bindings → `Surface(REPORT, Draft)`, compose-time Δ, faithfulness holes closed by new tests (`compose.py`)
 - [ ] **Phase 3: Worked synthetic Module Report** - `module-a` config renders into the Library as a third `module` corpus with its own ledger
 - [ ] **Phase 4: Signals-voice PR/summary** - `ship` workflow PR bodies read as evidence-first Signals dispatches
 
@@ -88,7 +88,12 @@ selecting/ordering/linking traced material only, never authoring facts.
   3. A test fails if the composer emits any claim with zero traces or any un-content-addressed trace (closes Hole B), and a numeral-free-prose guard fails if any non-`ClaimsBlock` block's text carries a digit run not drawn from a traced claim (closes Hole A) — `faithfulness.py`/`coverage.py` untouched.
   4. The composed surface carries a stable `R-NNN` from `Ledger.ref_for` against its own `content/module/ids.json`, lands in `Draft` with an owner/manager quote slot and a `fanout` stub, and a no-auto-publish test proves it cannot reach `Published` without the gate.
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+  - [x] 02-01-PLAN.md — Additive `SectionBinding.kpi_endpoints` endpoint-pairing (references, not re-mints); Phase-1 gates stay green (COMP-01, COMP-02)
+  - [x] 02-02-PLAN.md — `compose.py` core: pure `compute_delta` + `compose_module_report` (per-lane strip+claims, deterministic Draft Surface, missing union) (COMP-01, COMP-02, COMP-03)
+  - [ ] 02-03-PLAN.md — `compose.py` identity: sourced-or-omit quote, fanout stub, stable `R-NNN` via reused append-only `site.Ledger` (COMP-04)
+  - [ ] 02-04-PLAN.md — `tests/test_compose.py` trust-guard suite: Holes A+B, delta-reproducibility, determinism, no-auto-publish, seam, edge cases (COMP-01..04)
 
 ### Phase 3: Worked synthetic Module Report
 
@@ -130,7 +135,7 @@ phases produce.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Swim-lane binding + traced YAML loader | 4/4 | Complete   | 2026-07-02 |
-| 2. Module-scope Report composer | 0/TBD | Not started | - |
+| 2. Module-scope Report composer | 4/4 | Complete | 2026-07-02 |
 | 3. Worked synthetic Module Report | 0/TBD | Not started | - |
 | 4. Signals-voice PR/summary | 0/TBD | Not started | - |
 
