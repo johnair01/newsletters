@@ -1,12 +1,12 @@
 ---
 loop: 2026-07-02-deep-review
-round: 5
+round: 6
 total_rounds: 10
 pace: continuous
 interval: null
 branch: loop/2026-07-02-deep-review
 base: claude/swimlane-report-composer-1i8vxt (at fd96ea0, includes PRs #4-#8)
-next_action: "Round 6 — GSD machinery + config-toggle reconciliation → 06-gsd-config-reconciliation.md"
+next_action: "Round 7 — tests-as-promises inventory → 07-tests-as-promises.md"
 ---
 
 # Deep-review loop — round log
@@ -33,3 +33,4 @@ next_action: "Round 6 — GSD machinery + config-toggle reconciliation → 06-gs
 | 3 | Phase 3 module-a | 03-{VERIFICATION,VALIDATION,LEARNINGS}.md | PR #10 (494c19e) | yes | passed 3/3; accepted gaps recorded; guard-out-enforced-the-plan; 3 new edges backlogged |
 | 4 | Phase 4 voice | 04-{VERIFICATION,VALIDATION,LEARNINGS}.md | PR #11 (dbda32d) | yes | passed 3/3; hype-vs-audience two-axis lesson; ROADMAP 5-vs-6 drift + vacuous config arm + PR#9 footer near-miss flagged |
 | 5 | Trust invariants (cross-phase) | reviews/05-trust-invariants.md | PR #12 (6f16ea5) | yes | 12 invariants mapped; weakest link = Option-A structural fallback; DEF-11 admission reqs recorded; compass 'promotion chain' drift flagged for R8 |
+| 6 | GSD/config reconciliation | reviews/06-gsd-config-reconciliation.md | PR #13 (dd01f35) | yes | 16 toggles: 4 honored / 2 backfilled / 6 accepted / 5 recommendations; independence-not-correctness lesson |
