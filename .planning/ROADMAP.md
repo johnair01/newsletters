@@ -53,50 +53,61 @@ errors). Cleanup of that debt is out of scope for this milestone.
 ## Phase Details
 
 ### Phase 1: Swim-lane binding + traced YAML loader
+
 **Goal**: An operator can declare a module's swim lanes in YAML, and a deterministic, lazy-loaded
 loader binds each lane to its `FunctionalGroup`/`Kpi`s/`Objective`s as content-addressed traced
 inputs — no `models.py` change, no fixture names in `src/`, zero silent drops.
 **Depends on**: Nothing (first phase). **Gates the whole milestone — circuit breaker applies.**
 **Requirements**: LANE-01, LANE-02, LANE-03, LANE-04
 **Success Criteria** (what must be TRUE):
+
   1. Loading an arbitrary configured lane set produces one `SectionBinding` per lane bound to its `FunctionalGroup`+`Kpi`s/`Objective`s at the parsed-dict level, with zero changes to `models.py` (proven by test).
   2. Every value the loader reads becomes a `Claim`/`KpiItem` minted **only** via `Trace.from_source` against the raw file text (`Source.transcript == path.read_text()` verbatim), and `trace.is_addressed is True` for every one (adversarial test proves an un-addressed trace is caught, not silently passed — closes Hole B upstream).
   3. The read-anchored coverage identity holds: every scalar **read** is either content-addressed or routed to `unextracted[]`/`missing` — `len(claims) + len(unextracted) == scalars walked`, with no silent drops on the trap fixture (duplicates/quotes/coercion/anchors/block scalars).
   4. The abstraction-guard test **fails the suite** if any fixture/org-specific name (lane, module, owner id) appears in `src/newsletters/` — lane sets are proven config, not code.
   5. `pip install .` (bare) imports the spine with `import yaml` unreachable; PyYAML lives behind a `[config]` extra, lazy-imported inside `swimlane.py` only.
+
 **Plans**: 4 plans
-  - [ ] 01-01-PLAN.md — Lazy PyYAML boundary + `[config]` extra (LANE-04)
-  - [ ] 01-02-PLAN.md — Swim-lane loader `swimlane.py`: config YAML → Source + traced SectionBinding[] (LANE-01, LANE-02)
-  - [ ] 01-03-PLAN.md — Trap fixture + `test_swimlane.py`: coverage identity, Hole-B adversarial, determinism (LANE-01, LANE-02)
+
+  - [x] 01-01-PLAN.md — Lazy PyYAML boundary + `[config]` extra (LANE-04)
+  - [x] 01-02-PLAN.md — Swim-lane loader `swimlane.py`: config YAML → Source + traced SectionBinding[] (LANE-01, LANE-02)
+  - [x] 01-03-PLAN.md — Trap fixture + `test_swimlane.py`: coverage identity, Hole-B adversarial, determinism (LANE-01, LANE-02)
   - [ ] 01-04-PLAN.md — Abstraction-guard test + bare-install yaml-unreachable tests (LANE-03, LANE-04)
 
 ### Phase 2: Module-scope Report composer
+
 **Goal**: Given traced bindings, the composer assembles one `Surface(REPORT, Draft)` per module —
 per-lane KPI strip (Δ at compose time) + traced claims, honest `missing[]` routing, stable `R-NNN` —
 selecting/ordering/linking traced material only, never authoring facts.
 **Depends on**: Phase 1 (consumes its `SectionBinding[]` output).
 **Requirements**: COMP-01, COMP-02, COMP-03, COMP-04
 **Success Criteria** (what must be TRUE):
+
   1. The composer builds one `Surface(REPORT)` from an arbitrary configured lane set via a kind-agnostic `SectionBinding` seam (per lane: `KpiStripBlock` + `ClaimsBlock`) — project/interview report kinds could slot in with zero composer change (proven by a seam/second-kind test).
   2. Start→close Δ is computed by one pure `compute_delta(start, close)` from two independently content-addressed endpoints into `KpiItem.delta`; a reproducibility test recomputes every rendered delta and asserts byte-equality; if either endpoint is absent, `delta=None`/`dir=None` + a `missing[]` note — never a fabricated `0`; no `Kpi` start/baseline field is added.
   3. A test fails if the composer emits any claim with zero traces or any un-content-addressed trace (closes Hole B), and a numeral-free-prose guard fails if any non-`ClaimsBlock` block's text carries a digit run not drawn from a traced claim (closes Hole A) — `faithfulness.py`/`coverage.py` untouched.
   4. The composed surface carries a stable `R-NNN` from `Ledger.ref_for` against its own `content/module/ids.json`, lands in `Draft` with an owner/manager quote slot and a `fanout` stub, and a no-auto-publish test proves it cannot reach `Published` without the gate.
+
 **Plans**: TBD
 
 ### Phase 3: Worked synthetic Module Report
+
 **Goal**: A committed synthetic `module-a` config composes and renders end-to-end (loader → composer
 → ledger → render → Library) as a third `module` corpus with its own ledger, gate-visible and
 byte-stable.
 **Depends on**: Phase 2 (needs a working composer).
 **Requirements**: MODA-01, MODA-02
 **Success Criteria** (what must be TRUE):
+
   1. A synthetic `module-a` config (fabricated naming only — `area-bem`, `module-a`, `owner-*`, `eng-NN`, `toolset-N`; nothing resembling real org/tool/metric nomenclature) composes and renders into `content/`, is visible in the Library with claim-beside-verbatim-trace and a populated honesty panel, and passes the synthetic-name check on committed content.
   2. `newsletters check --corpus module` runs the **same unforked** merge-block gate on the `module` corpus (exit 0 clean; nonzero on a planted blocker) against a dedicated `content/module/ids.json` ledger whose first entry is `R-001`.
   3. The SITE-06 byte-stable double-render invariant holds over the new `module` output (regenerates identically from `render.py`).
+
 **Plans**: TBD
 **UI hint**: yes
 
 ### Phase 4: Signals-voice PR/summary
+
 **Goal**: The `ship` workflow generates PR/summary bodies that read as faithful, evidence-first
 Signals dispatches — built from the diff + verbatim gate output, weakening no gate.
 **Depends on**: Independent of Phases 1–3 (edits the ship workflow/script, not the composer);
@@ -104,9 +115,11 @@ Signals dispatches — built from the diff + verbatim gate output, weakening no 
 phases produce.
 **Requirements**: VOICE-01, VOICE-02
 **Success Criteria** (what must be TRUE):
+
   1. PR-body generation + `summary-standard.md` produce dispatches with exactly the sections: The signal / What we learned / What's verified (verbatim gate output) / What's not here yet / How to verify — generated **from** the diff + gate output, with no AI framing and no hype.
   2. Gate output appears **byte-verbatim** in the body (never paraphrased or softened), and the same numeral-free-unless-sourced rule applies to dispatch prose.
   3. The voice change is proven by a test/snapshot and **weakens no existing check** (no gate edited or relaxed).
+
 **Plans**: TBD
 
 ## Progress
@@ -116,7 +129,7 @@ phases produce.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Swim-lane binding + traced YAML loader | 0/4 | Planned | - |
+| 1. Swim-lane binding + traced YAML loader | 3/4 | In Progress|  |
 | 2. Module-scope Report composer | 0/TBD | Not started | - |
 | 3. Worked synthetic Module Report | 0/TBD | Not started | - |
 | 4. Signals-voice PR/summary | 0/TBD | Not started | - |
