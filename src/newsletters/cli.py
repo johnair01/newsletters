@@ -20,13 +20,17 @@ class CorpusName(str, Enum):
       existing ``build`` / ``check`` behavior is unchanged (backward-compat).
     * ``work`` — the REAL hand-authored work corpus (``worksurface.py``): the install/dogfood
       flow over an actual codebase, rendered to ``content/work/site``.
+    * ``module`` — the synthetic worked-example corpus (``modulesite.py``): the swim-lane
+      module-a config composed + rendered to ``content/module/site`` — running the SAME
+      corpus-agnostic merge-block gate as rev1/work.
 
-    Both corpora run the SAME corpus-agnostic merge-block gate (``review.review_blockers``) — the
+    All corpora run the SAME corpus-agnostic merge-block gate (``review.review_blockers``) — the
     selector routes the BUILDER, never forks the gate (T-11-13).
     """
 
     rev1 = "rev1"
     work = "work"
+    module = "module"
 
 
 # Per-corpus default output dirs for ``build`` (the work corpus keeps its OWN site dir, separate
@@ -34,6 +38,7 @@ class CorpusName(str, Enum):
 _DEFAULT_OUT: dict[CorpusName, str] = {
     CorpusName.rev1: "content/rev1/site",
     CorpusName.work: "content/work/site",
+    CorpusName.module: "content/module/site",
 }
 
 
@@ -54,7 +59,8 @@ def build(
         CorpusName.rev1,
         "--corpus",
         case_sensitive=False,
-        help="Which corpus to render: rev1 (the sample, default) or work (the real codebase).",
+        help="Which corpus to render: rev1 (the sample, default), work (the real codebase), "
+        "or module (the synthetic worked example).",
     ),
     out: str | None = typer.Option(
         None,
@@ -77,6 +83,11 @@ def build(
 
         written = build_work_site(target)
         index_name = "library.html"
+    elif corpus is CorpusName.module:
+        from .modulesite import build_module_site
+
+        written = build_module_site(target)
+        index_name = "library.html"
     else:
         from .dogfood import build_site
 
@@ -95,7 +106,8 @@ def check(
         CorpusName.rev1,
         "--corpus",
         case_sensitive=False,
-        help="Which corpus to gate: rev1 (the sample, default) or work (the real codebase).",
+        help="Which corpus to gate: rev1 (the sample, default), work (the real codebase), "
+        "or module (the synthetic worked example).",
     ),
 ) -> None:
     """Merge-block a corpus (PROV-04): fail nonzero on any unsafe PUBLISHED surface.
@@ -110,9 +122,10 @@ def check(
       the build fails so an unsafe surface cannot merge.
 
     ``--corpus rev1`` (default) gates the Rev1 dogfood sample (UNCHANGED behavior); ``--corpus
-    work`` gates the real work corpus. EITHER way the SAME corpus-agnostic ``review_blockers`` is
-    run over the selected corpus — the selector routes the builder, it does NOT fork the gate
-    (T-11-13), so the work corpus passes the IDENTICAL trust gate.
+    work`` gates the real work corpus; ``--corpus module`` gates the synthetic worked-example
+    corpus. ANY way the SAME corpus-agnostic ``review_blockers`` is run over the selected corpus —
+    the selector routes the builder, it does NOT fork the gate (T-11-13), so every corpus passes
+    the IDENTICAL trust gate.
 
     Draft / In-Review surfaces are exempt — publication is the trust boundary (``review_blockers``
     returns ``[]`` for them). Lazy-imports only the AI-free checker + corpus builder, so the bare
@@ -124,6 +137,10 @@ def check(
         from . import worksurface
 
         surfaces = worksurface.build_work_surfaces()
+    elif corpus is CorpusName.module:
+        from . import modulesite
+
+        surfaces = modulesite.build_module_surfaces()
     else:
         from . import dogfood
 
