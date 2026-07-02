@@ -4,6 +4,34 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
+## 2026-07-02 — Session: v1.1 overnight run (Phases 1–3 shipped; one stall JJ caught live)
+
+**Friction observed**
+
+1. **A background CI-wait stalled the run — three compounding mistakes in one decision.** After
+   shipping PR #6's body I gated the merge on a *backgrounded* poll loop: (a) the container
+   restarted and killed it — the EXACT failure class already hardened in the 2026-06-18 entry
+   ("a completion notification is not liveness"), violated again; (b) the loop used
+   unauthenticated `curl` to api.github.com, which returns empty in this environment, so it
+   could never succeed; (c) the head commit was docs-only and never triggered CI at all —
+   zero check runs would ever appear. JJ caught the silence and flagged it. The gates had
+   already been independently re-run locally; only the merge click was pending.
+2. **Recurring smaller class, positive note:** the abstraction guard (LANE-03) fired three times
+   tonight on genuine leaks (a planned default path, a CLI docstring, a planted self-test) — a
+   rule encoded as a test did its job repeatedly where a convention would have silently rotted.
+
+**Rules hardened**
+
+- *Never gate forward progress on a background wait.* At a decision point, check external state
+  SYNCHRONOUSLY through the authenticated channel (GitHub MCP tools here — plain curl to
+  api.github.com is dead in this environment), act on what you find, and move on. Background
+  monitors are for *notification*, never for *sequencing*.
+- *Before waiting on CI, confirm CI was actually triggered for that SHA* (docs-only commits may
+  not trigger it). Waiting on a run that doesn't exist looks identical to a slow run.
+- *When local enforced gates are green and CI's jobs are a strict subset of what was re-run
+  locally, a docs-only head commit does not block the merge* — verify the post-merge run on the
+  integration branch instead.
+
 ## 2026-06-19 — Session: autonomous Phases 8–13 (the cut to UAT)
 
 **Friction observed**
