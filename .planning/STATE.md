@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 02-02-PLAN.md (Wave 2: compose.py core — compute_delta + compose_module_report)"
+stopped_at: "v1.1 core complete (4/4 phases, 12/12 plans, PRs #4–#8 merged to integration); deep-review loop in progress (round 8 of 10) — formal milestone close is Round 10"
 last_updated: "2026-07-02T05:04:19.428Z"
-last_activity: 2026-07-02 — Phase 1 Plan 03 executed (swim-lane loader honesty & determinism proofs; LANE-01/LANE-02)
+last_activity: 2026-07-02 — deep-review loop Round 8 (ontology & drift + compass fixes)
 progress:
   total_phases: 4
   completed_phases: 4
@@ -21,44 +21,39 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-02)
 
 **Core value:** Make work legible and trustworthy — every published claim traces to evidence; nothing publishes without a human. The deterministic, auditable trust layer is what makes legibility believable; AI is an optional accelerator, never an authority.
-**Current focus:** Phase 1 — Swim-lane binding + traced YAML loader (`swimlane.py`)
+**Current focus:** v1.1 core complete (all 4 phases); deep-review loop (round 8 of 10) reconciling artifacts + compass ahead of the formal Round-10 milestone close.
 
 ## Current Position
 
 Phase: 4 of 4 — COMPLETE (all phases executed + independently verified)
-Plan: 1 of 1
-Status: Milestone v1.1 core complete — Phase 4 shipping (PR #7); morning handoff pending
-Last activity: 2026-07-02 — Signals-voice dispatch installed in ship workflow, 622 tests green
+Plan: 12 of 12 complete
+Status: Milestone v1.1 core complete — PRs #4–#8 merged to the integration branch; deep-review loop running (round 8 of 10); formal GSD close at Round 10
+Last activity: 2026-07-02 — deep-review Round 8 (ontology & drift + compass fixes)
 
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed (v1.1): 3
+- Total plans completed (v1.1): 12 across 4 phases (Phase 1: 4, Phase 2: 4, Phase 3: 3, Phase 4: 1).
 - v1.0 (Phases 1–14) shipped 2026-06; per-plan history archived in git.
 
 **By Phase:**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 1 | 3 | ~48min | ~16min |
-| 2 | 0 | - | - |
-| 3 | 0 | - | - |
-| 4 | 0 | - | - |
+| Phase | Plans | Status |
+|-------|-------|--------|
+| 1 | 4 | Complete |
+| 2 | 4 | Complete |
+| 3 | 3 | Complete |
+| 4 | 1 | Complete |
 
 **Recent Trend:**
 
-- Phase 01 P01/P02/P03 complete: lazy PyYAML boundary → swimlane loader → executable honesty/determinism proofs.
+- All 4 phases complete + independently verified; deep-review loop (10 rounds) now backfilling
+  VERIFICATION/VALIDATION/LEARNINGS + reconciling the compass ahead of the formal Round-10 close.
 
-*Updated after each plan completion*
-
-| Plan | Duration | Tasks | Files |
-|------|----------|-------|-------|
-| Phase 01 P03 | 20min | 3 tasks | 3 files |
-| Phase 01 P04 | 25 | 2 tasks | 2 files |
-| Phase 02 P01 | 5min | 2 tasks | 2 files |
-| Phase 02 P02 | 25min | 2 tasks | 1 files |
+*Updated after each plan completion (per-plan durations for Phases 1–2 archived in git; the
+overnight autonomous run outpaced this table — see the deep-review triads for the honest per-phase record).*
 
 ## Accumulated Context
 
@@ -81,9 +76,10 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ### Pending Todos
 
-[From .planning/todos/pending/ — ideas captured during sessions]
+[Ideas captured during sessions. No `.planning/todos/pending/` directory exists; the deep-review
+backlog B1–B20 lives in `reviews/2026-07-02-deep-review/07-tests-as-promises.md`.]
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
@@ -106,6 +102,6 @@ Items acknowledged and carried forward (v1.1 seed §7 — recorded, not built). 
 
 ## Session Continuity
 
-Last session: 2026-07-02T05:04:19.419Z
-Stopped at: Completed 02-02-PLAN.md (Wave 2: compose.py core — compute_delta + compose_module_report)
-Resume file: None
+Last session: 2026-07-02 — deep-review loop Round 8
+Stopped at: v1.1 core complete (4/4 phases); deep-review loop round 8 of 10 (formal close at Round 10)
+Resume file: .planning/loops/2026-07-02-deep-review/STATE.md (loop memory — read PLAN.md then that file)
