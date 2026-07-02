@@ -47,7 +47,7 @@ shape must fit without touching source. Enforced by test.
   hole), and the connective prose slot carries no numerals/facts not drawn from a traced claim
   (closes the ClaimsBlock-only gate hole) — `faithfulness.py`/`coverage.py` untouched
 
-- [ ] **COMP-04**: The composed report carries a stable `R-NNN` ref from its own append-only
+- [x] **COMP-04**: The composed report carries a stable `R-NNN` ref from its own append-only
   `content/module/ids.json` ledger, lands in `Draft`, includes an owner/manager quote slot and a
   `fanout` stub; no-auto-publish proven by test on the composed surface
 
@@ -107,7 +107,7 @@ shape must fit without touching source. Enforced by test.
 | COMP-01 | Phase 2 | Complete |
 | COMP-02 | Phase 2 | Complete |
 | COMP-03 | Phase 2 | Complete |
-| COMP-04 | Phase 2 | Pending |
+| COMP-04 | Phase 2 | Complete |
 | MODA-01 | Phase 3 | Pending |
 | MODA-02 | Phase 3 | Pending |
 | VOICE-01 | Phase 4 | Pending |

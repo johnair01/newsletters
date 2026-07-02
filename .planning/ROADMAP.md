@@ -46,7 +46,7 @@ errors). Cleanup of that debt is out of scope for this milestone.
 ## Phases
 
 - [x] **Phase 1: Swim-lane binding + traced YAML loader** - config → content-addressed traced `Claim`/`KpiItem`s, honest routing, abstraction guard (`swimlane.py`) (completed 2026-07-02)
-- [ ] **Phase 2: Module-scope Report composer** - traced bindings → `Surface(REPORT, Draft)`, compose-time Δ, faithfulness holes closed by new tests (`compose.py`)
+- [x] **Phase 2: Module-scope Report composer** - traced bindings → `Surface(REPORT, Draft)`, compose-time Δ, faithfulness holes closed by new tests (`compose.py`)
 - [ ] **Phase 3: Worked synthetic Module Report** - `module-a` config renders into the Library as a third `module` corpus with its own ledger
 - [ ] **Phase 4: Signals-voice PR/summary** - `ship` workflow PR bodies read as evidence-first Signals dispatches
 
@@ -135,7 +135,7 @@ phases produce.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Swim-lane binding + traced YAML loader | 4/4 | Complete   | 2026-07-02 |
-| 2. Module-scope Report composer | 2/4 | In Progress|  |
+| 2. Module-scope Report composer | 4/4 | Complete | 2026-07-02 |
 | 3. Worked synthetic Module Report | 0/TBD | Not started | - |
 | 4. Signals-voice PR/summary | 0/TBD | Not started | - |
 
