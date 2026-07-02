@@ -1,12 +1,12 @@
 ---
 loop: 2026-07-02-deep-review
-round: 8
+round: 9
 total_rounds: 10
 pace: continuous
 interval: null
 branch: loop/2026-07-02-deep-review
 base: claude/swimlane-report-composer-1i8vxt (at fd96ea0, includes PRs #4-#8)
-next_action: "Round 9 — collaboration contract → CLAUDE.md roles + docs/collaboration.md + guard test"
+next_action: "Round 10 — audit-milestone -> complete-milestone -> tag v1.1 -> final synthesis; loop terminates"
 ---
 
 # Deep-review loop — round log
@@ -36,3 +36,4 @@ next_action: "Round 9 — collaboration contract → CLAUDE.md roles + docs/coll
 | 6 | GSD/config reconciliation | reviews/06-gsd-config-reconciliation.md | PR #13 (dd01f35) | yes | 16 toggles: 4 honored / 2 backfilled / 6 accepted / 5 recommendations; independence-not-correctness lesson |
 | 7 | Tests-as-promises | reviews/07-tests-as-promises.md | PR #14 (96ddfc8) | yes | 62 promises, 11 unguarded, 2 vacuous guards, B1-B20 backlog consolidated; quote-path Hole B un-proven (B18) |
 | 8 | Ontology & drift + compass | reviews/08-ontology-and-drift.md + 4 compass fixes | PR #15 (c5fe1b3) | yes | 11 drift terms D1-D11; speed-artifact lesson; 4-way phase-numbering collision -> maintainer |
+| 9 | Collaboration contract | docs/collaboration.md + CLAUDE.md roles + guard test | PR #16 (0e7849e) | yes | roles-as-hats canonical; 8 learned rules; guard teeth proven RED-able; 626 tests |
