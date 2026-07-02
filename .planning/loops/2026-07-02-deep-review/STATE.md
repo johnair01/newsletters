@@ -1,12 +1,12 @@
 ---
 loop: 2026-07-02-deep-review
-round: 7
+round: 8
 total_rounds: 10
 pace: continuous
 interval: null
 branch: loop/2026-07-02-deep-review
 base: claude/swimlane-report-composer-1i8vxt (at fd96ea0, includes PRs #4-#8)
-next_action: "Round 8 — ontology, semantic drift & compass coherence (full history) → 08-ontology-and-drift.md + in-place fixes"
+next_action: "Round 9 — collaboration contract → CLAUDE.md roles + docs/collaboration.md + guard test"
 ---
 
 # Deep-review loop — round log
@@ -35,3 +35,4 @@ next_action: "Round 8 — ontology, semantic drift & compass coherence (full his
 | 5 | Trust invariants (cross-phase) | reviews/05-trust-invariants.md | PR #12 (6f16ea5) | yes | 12 invariants mapped; weakest link = Option-A structural fallback; DEF-11 admission reqs recorded; compass 'promotion chain' drift flagged for R8 |
 | 6 | GSD/config reconciliation | reviews/06-gsd-config-reconciliation.md | PR #13 (dd01f35) | yes | 16 toggles: 4 honored / 2 backfilled / 6 accepted / 5 recommendations; independence-not-correctness lesson |
 | 7 | Tests-as-promises | reviews/07-tests-as-promises.md | PR #14 (96ddfc8) | yes | 62 promises, 11 unguarded, 2 vacuous guards, B1-B20 backlog consolidated; quote-path Hole B un-proven (B18) |
+| 8 | Ontology & drift + compass | reviews/08-ontology-and-drift.md + 4 compass fixes | PR #15 (c5fe1b3) | yes | 11 drift terms D1-D11; speed-artifact lesson; 4-way phase-numbering collision -> maintainer |
