@@ -92,8 +92,8 @@ selecting/ordering/linking traced material only, never authoring facts.
 
   - [x] 02-01-PLAN.md — Additive `SectionBinding.kpi_endpoints` endpoint-pairing (references, not re-mints); Phase-1 gates stay green (COMP-01, COMP-02)
   - [x] 02-02-PLAN.md — `compose.py` core: pure `compute_delta` + `compose_module_report` (per-lane strip+claims, deterministic Draft Surface, missing union) (COMP-01, COMP-02, COMP-03)
-  - [ ] 02-03-PLAN.md — `compose.py` identity: sourced-or-omit quote, fanout stub, stable `R-NNN` via reused append-only `site.Ledger` (COMP-04)
-  - [ ] 02-04-PLAN.md — `tests/test_compose.py` trust-guard suite: Holes A+B, delta-reproducibility, determinism, no-auto-publish, seam, edge cases (COMP-01..04)
+  - [x] 02-03-PLAN.md — `compose.py` identity: sourced-or-omit quote, fanout stub, stable `R-NNN` via reused append-only `site.Ledger` (COMP-04)
+  - [x] 02-04-PLAN.md — `tests/test_compose.py` trust-guard suite: Holes A+B, delta-reproducibility, determinism, no-auto-publish, seam, edge cases (COMP-01..04)
 
 ### Phase 3: Worked synthetic Module Report
 
@@ -108,7 +108,12 @@ byte-stable.
   2. `newsletters check --corpus module` runs the **same unforked** merge-block gate on the `module` corpus (exit 0 clean; nonzero on a planted blocker) against a dedicated `content/module/ids.json` ledger whose first entry is `R-001`.
   3. The SITE-06 byte-stable double-render invariant holds over the new `module` output (regenerates identically from `render.py`).
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+  - [ ] 03-01-PLAN.md — Synthetic `module-a` config + `modulesite.py` builder (build_module_surfaces/build_module_site) + committed R-001 render (MODA-01)
+  - [ ] 03-02-PLAN.md — Additive `--corpus module` CLI routing + gate-both-ways proof (clean exit 0 / planted blocker nonzero) (MODA-02)
+  - [ ] 03-03-PLAN.md — End-to-end `test_modulesite.py`: traced+addressed, honesty panel, R-001 stable, byte-stable, no-external-call, committed==fresh-build, synthetic-name check (MODA-01, MODA-02)
+
 **UI hint**: yes
 
 ### Phase 4: Signals-voice PR/summary
@@ -136,7 +141,7 @@ phases produce.
 |-------|----------------|--------|-----------|
 | 1. Swim-lane binding + traced YAML loader | 4/4 | Complete   | 2026-07-02 |
 | 2. Module-scope Report composer | 4/4 | Complete | 2026-07-02 |
-| 3. Worked synthetic Module Report | 0/TBD | Not started | - |
+| 3. Worked synthetic Module Report | 0/3 | Planned | - |
 | 4. Signals-voice PR/summary | 0/TBD | Not started | - |
 
 ## Deferred — un-scheduled
