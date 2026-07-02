@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 02-01-PLAN.md (Wave 1: SectionBinding.kpi_endpoints)"
-last_updated: "2026-07-02T04:52:11.690Z"
+stopped_at: "Completed 02-02-PLAN.md (Wave 2: compose.py core — compute_delta + compose_module_report)"
+last_updated: "2026-07-02T05:04:19.428Z"
 last_activity: 2026-07-02 — Phase 1 Plan 03 executed (swim-lane loader honesty & determinism proofs; LANE-01/LANE-02)
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 8
-  completed_plans: 5
+  completed_plans: 6
   percent: 25
 ---
 
@@ -63,6 +63,7 @@ bare-install CI; mypy/black/isort held to no-NEW-failures vs the 2026-07-02 base
 | Phase 01 P03 | 20min | 3 tasks | 3 files |
 | Phase 01 P04 | 25 | 2 tasks | 2 files |
 | Phase 02 P01 | 5min | 2 tasks | 2 files |
+| Phase 02 P02 | 25min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: New optional extras get the full [excel]-parallel gate set (extra-declared, no-top-level-import, imports-with-dep-blocked, teaching-error, returns-module, module-AI-free); applied for [config]/PyYAML (LANE-04)
 - [Phase 02]: 02-01: SectionBinding.kpi_endpoints (list[list[Claim]]) pairs each KPI's traced period endpoints by REFERENCE — coverage identity intact, no re-mint
 - [Phase 02]: 02-01: _mint_scalar returns the minted Claim (or None) so endpoints pair without re-minting; non-locatable endpoints contribute no reference (no fabricated delta)
+- [Phase 02]: 02-02: compute_delta is the single pure Δ derivation (Decimal + one regex); either endpoint absent/non-numeric -> (None,None) + missing[] note, Δ==0 -> dir=None, never a fabricated 0
+- [Phase 02]: 02-02: compose_module_report builds a byte-stable Draft REPORT Surface (created=EPOCH_ZERO explicit) from SectionBinding[] via the kind-agnostic seam; traced-or-missing routing; missing[] order-preserving union
 
 ### Pending Todos
 
@@ -108,6 +111,6 @@ Items acknowledged and carried forward (v1.1 seed §7 — recorded, not built). 
 
 ## Session Continuity
 
-Last session: 2026-07-02T04:52:11.682Z
-Stopped at: Completed 02-01-PLAN.md (Wave 1: SectionBinding.kpi_endpoints)
+Last session: 2026-07-02T05:04:19.419Z
+Stopped at: Completed 02-02-PLAN.md (Wave 2: compose.py core — compute_delta + compose_module_report)
 Resume file: None

@@ -34,15 +34,15 @@ shape must fit without touching source. Enforced by test.
 
 ### Module-Scope Report Composer (COMP)
 
-- [ ] **COMP-01**: The composer assembles one `Surface(REPORT)` per module from an arbitrary
+- [x] **COMP-01**: The composer assembles one `Surface(REPORT)` per module from an arbitrary
   configured lane set — per lane a `KpiStripBlock` + `ClaimsBlock` via a kind-agnostic section
   seam (project/interview report kinds can slot in later with zero composer change)
 
-- [ ] **COMP-02**: Start→close movement is computed at compose time from two independently-traced
+- [x] **COMP-02**: Start→close movement is computed at compose time from two independently-traced
   endpoints into `KpiItem.delta`; if either endpoint is absent, `delta=None` + a `missing[]`
   note — never a fabricated `0`; reproducibility proven by test; NO `Kpi` start/baseline field
 
-- [ ] **COMP-03**: The composer SELECTS/ORDERS/LINKS traced claims only: a test fails if it emits
+- [x] **COMP-03**: The composer SELECTS/ORDERS/LINKS traced claims only: a test fails if it emits
   any claim with zero traces or any un-content-addressed trace (closes the entailment free-pass
   hole), and the connective prose slot carries no numerals/facts not drawn from a traced claim
   (closes the ClaimsBlock-only gate hole) — `faithfulness.py`/`coverage.py` untouched
@@ -104,9 +104,9 @@ shape must fit without touching source. Enforced by test.
 | LANE-02 | Phase 1 | Complete |
 | LANE-03 | Phase 1 | Complete |
 | LANE-04 | Phase 1 | Complete |
-| COMP-01 | Phase 2 | Pending |
-| COMP-02 | Phase 2 | Pending |
-| COMP-03 | Phase 2 | Pending |
+| COMP-01 | Phase 2 | Complete |
+| COMP-02 | Phase 2 | Complete |
+| COMP-03 | Phase 2 | Complete |
 | COMP-04 | Phase 2 | Pending |
 | MODA-01 | Phase 3 | Pending |
 | MODA-02 | Phase 3 | Pending |
