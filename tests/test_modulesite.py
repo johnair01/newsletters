@@ -86,13 +86,17 @@ def test_every_claim_traced_and_addressed() -> None:
                 "missing[], never left on a ClaimsBlock"
             )
             for trace in claim.evidence:
-                assert trace.is_addressed, (
-                    f"claim {claim.text[:40]!r} carries an un-addressed trace (Hole B free pass)"
-                )
+                assert (
+                    trace.is_addressed
+                ), f"claim {claim.text[:40]!r} carries an un-addressed trace (Hole B free pass)"
             claim_count += 1
 
-    assert claim_count >= 1, "no kept claim on any ClaimsBlock — the body is empty (Pitfall 11)"
-    assert surface.missing, "the honesty panel is empty — the worked example must disclose real gaps"
+    assert (
+        claim_count >= 1
+    ), "no kept claim on any ClaimsBlock — the body is empty (Pitfall 11)"
+    assert (
+        surface.missing
+    ), "the honesty panel is empty — the worked example must disclose real gaps"
 
 
 def test_single_endpoint_disclosure_visible_in_html(tmp_path: Path) -> None:
@@ -113,11 +117,13 @@ def test_single_endpoint_disclosure_visible_in_html(tmp_path: Path) -> None:
 
     page = _build_and_read_report(tmp_path)
     assert 'class="honesty"' in page, "no honesty panel rendered on the module report"
-    assert 'class="claim-span"' in page, "no verbatim claim-span (claim-beside-trace) rendered"
+    assert (
+        'class="claim-span"' in page
+    ), "no verbatim claim-span (claim-beside-trace) rendered"
     for entry in disclosures:
-        assert html.escape(entry) in page, (
-            "the single-endpoint disclosure is not visible in the rendered honesty panel"
-        )
+        assert (
+            html.escape(entry) in page
+        ), "the single-endpoint disclosure is not visible in the rendered honesty panel"
 
 
 def test_owner_quote_rendered_from_sourced_path(tmp_path: Path) -> None:
@@ -128,11 +134,15 @@ def test_owner_quote_rendered_from_sourced_path(tmp_path: Path) -> None:
     """
     surface = build_module_surfaces()[0]
     quotes = [b for b in surface.blocks if isinstance(b, QuoteBlock)]
-    assert quotes, "the sourced-or-omit path must render a traced owner quote for this corpus"
+    assert (
+        quotes
+    ), "the sourced-or-omit path must render a traced owner quote for this corpus"
     quote_text = quotes[0].text
 
     page = _build_and_read_report(tmp_path)
-    assert html.escape(quote_text) in page, "the sourced owner quote is not rendered in the report"
+    assert (
+        html.escape(quote_text) in page
+    ), "the sourced owner quote is not rendered in the report"
 
 
 def test_no_external_calls(tmp_path: Path) -> None:
@@ -157,24 +167,30 @@ def test_no_external_calls(tmp_path: Path) -> None:
         "src='http",
     )
     css_url_fetch = re.compile(r"url\(\s*['\"]?https?://")
-    link_href_http = re.compile(r"<link\b[^>]*\bhref\s*=\s*['\"]https?://", re.IGNORECASE)
+    link_href_http = re.compile(
+        r"<link\b[^>]*\bhref\s*=\s*['\"]https?://", re.IGNORECASE
+    )
 
     for page in pages:
         text = page.read_text(encoding="utf-8")
         for needle in forbidden:
-            assert needle not in text, (
-                f"{page.name} bakes an auto-loading external resource: {needle!r}"
-            )
-        assert not css_url_fetch.search(text), (
-            f"{page.name} has a CSS url(http...) fetch — module fonts must be self-hosted"
-        )
-        assert not link_href_http.search(text), (
-            f'{page.name} has a <link href="http..."> auto-loaded resource'
-        )
+            assert (
+                needle not in text
+            ), f"{page.name} bakes an auto-loading external resource: {needle!r}"
+        assert not css_url_fetch.search(
+            text
+        ), f"{page.name} has a CSS url(http...) fetch — module fonts must be self-hosted"
+        assert not link_href_http.search(
+            text
+        ), f'{page.name} has a <link href="http..."> auto-loaded resource'
 
     fonts_dir = tmp_path / "fonts"
-    assert fonts_dir.is_dir(), "build_module_site did not emit the self-hosted fonts/ dir"
-    assert any(fonts_dir.glob("*.woff2")), "no woff2 fonts in the module output fonts/ dir"
+    assert (
+        fonts_dir.is_dir()
+    ), "build_module_site did not emit the self-hosted fonts/ dir"
+    assert any(
+        fonts_dir.glob("*.woff2")
+    ), "no woff2 fonts in the module output fonts/ dir"
 
 
 # --------------------------------------------------------------------------- #
@@ -199,9 +215,9 @@ def test_byte_stable_double_render(tmp_path: Path) -> None:
     files_b = sorted(p.relative_to(b) for p in b.rglob("*") if p.is_file())
     assert files_a == files_b, "the two module renders produced a different file set"
     for rel in files_a:
-        assert (a / rel).read_bytes() == (b / rel).read_bytes(), (
-            f"{rel} is not byte-identical across renders (nondeterminism in the module output)"
-        )
+        assert (a / rel).read_bytes() == (
+            b / rel
+        ).read_bytes(), f"{rel} is not byte-identical across renders (nondeterminism in the module output)"
 
 
 def test_r001_stable_across_rebuild(tmp_path: Path) -> None:
@@ -217,16 +233,16 @@ def test_r001_stable_across_rebuild(tmp_path: Path) -> None:
     site = Site.from_surfaces(build_module_surfaces(), ledger=ledger)
     ledger.save()
     first_ref = site.pages()[0].ref
-    assert first_ref == "R-001", (
-        f"a fresh ledger must assign the first report ref R-001, got {first_ref!r}"
-    )
+    assert (
+        first_ref == "R-001"
+    ), f"a fresh ledger must assign the first report ref R-001, got {first_ref!r}"
 
     reloaded = Ledger.load(ids)  # re-sight the same, now-populated, ledger
     site_again = Site.from_surfaces(build_module_surfaces(), ledger=reloaded)
     reloaded.save()
-    assert site_again.pages()[0].ref == first_ref, (
-        "the append-only ledger renumbered R-001 on rebuild — it must be immutable on re-sight"
-    )
+    assert (
+        site_again.pages()[0].ref == first_ref
+    ), "the append-only ledger renumbered R-001 on rebuild — it must be immutable on re-sight"
 
 
 def test_committed_equals_fresh_build(tmp_path: Path) -> None:
@@ -241,25 +257,25 @@ def test_committed_equals_fresh_build(tmp_path: Path) -> None:
     """
     committed_site = REPO_ROOT / "content" / "module" / "site"
     committed_ledger = REPO_ROOT / "content" / "module" / "ids.json"
-    assert committed_site.is_dir(), "committed content/module/site/ is missing (Plan 01 output)"
+    assert (
+        committed_site.is_dir()
+    ), "committed content/module/site/ is missing (Plan 01 output)"
 
     ledger_before = committed_ledger.read_bytes()
     build_module_site(tmp_path)
-    assert committed_ledger.read_bytes() == ledger_before, (
-        "the fresh build mutated the committed ledger — the rebuild must be idempotent (R-001 held)"
-    )
+    assert (
+        committed_ledger.read_bytes() == ledger_before
+    ), "the fresh build mutated the committed ledger — the rebuild must be idempotent (R-001 held)"
 
-    committed_files = sorted(
-        p for p in committed_site.rglob("*") if p.is_file()
-    )
+    committed_files = sorted(p for p in committed_site.rglob("*") if p.is_file())
     assert committed_files, "no committed module site files to compare against"
     for src in committed_files:
         rel = src.relative_to(committed_site)
         built = tmp_path / rel
         assert built.exists(), f"fresh build is missing committed file {rel}"
-        assert built.read_bytes() == src.read_bytes(), (
-            f"{rel} differs between the committed corpus and a fresh build"
-        )
+        assert (
+            built.read_bytes() == src.read_bytes()
+        ), f"{rel} differs between the committed corpus and a fresh build"
 
 
 def test_no_datetime_now_reachable() -> None:
@@ -269,14 +285,14 @@ def test_no_datetime_now_reachable() -> None:
     that no ``datetime.now()`` is reachable through the module build (the byte-stability precondition).
     """
     surface = build_module_surfaces()[0]
-    assert surface.created == EPOCH_ZERO, (
-        "Surface.created must be EPOCH_ZERO (no datetime.now() in the module build)"
-    )
+    assert (
+        surface.created == EPOCH_ZERO
+    ), "Surface.created must be EPOCH_ZERO (no datetime.now() in the module build)"
     assert surface.traces, "the surface must carry its config source trace"
     for src in surface.traces:
-        assert src.timestamp == EPOCH_ZERO, (
-            "Source.timestamp must be EPOCH_ZERO (the loader must not read the wall clock)"
-        )
+        assert (
+            src.timestamp == EPOCH_ZERO
+        ), "Source.timestamp must be EPOCH_ZERO (the loader must not read the wall clock)"
 
 
 # --------------------------------------------------------------------------- #
@@ -339,7 +355,9 @@ def test_committed_content_is_synthetic() -> None:
 
     corpus = ""
     for f in files:
-        assert f.exists(), f"expected committed module content file {f.relative_to(REPO_ROOT)}"
+        assert (
+            f.exists()
+        ), f"expected committed module content file {f.relative_to(REPO_ROOT)}"
         text = f.read_text(encoding="utf-8")
         corpus += text
         leaks = _scan_real_looking(text)
