@@ -264,32 +264,139 @@ def _walk_generic(
         _route(minter.mint(node), claims, unextracted)
 
 
+def _mint_scalar(
+    value: object,
+    minter: _Minter,
+    claims: list[Claim],
+    unextracted: list[Unextracted],
+) -> tuple[str, bool]:
+    """Mint ONE recognized scalar slot and return ``(display_token, is_scalar)``.
+
+    A container value is walked generically (all its leaves minted) and reported as non-scalar
+    (``("", False)``); a ``None`` slot is absent and reported non-scalar without minting; a scalar
+    is routed via the minter and its raw display token returned. The display token is the parsed
+    value's string form — this is the real parsed value (never a fabricated one); its provenance is
+    handled by the claim/unextracted routing, not by the display string.
+    """
+    if value is None:
+        return "", False
+    if isinstance(value, (dict, list)):
+        _walk_generic(value, minter, claims, unextracted)
+        return "", False
+    token = value if isinstance(value, str) else str(value)
+    _route(minter.mint(value), claims, unextracted)
+    return token, True
+
+
+def _bind_kpis(
+    kpis: object,
+    minter: _Minter,
+    kpi_items: list[KpiItem],
+    claims: list[Claim],
+    unextracted: list[Unextracted],
+    missing: list[str],
+) -> None:
+    """Build one ``KpiItem`` per KPI entry, minting each KPI scalar exactly once (LANE-01).
+
+    Each KPI entry's ``label`` and ``value`` (or ``values`` period endpoints) are drawn from the
+    traced scalars; EVERY declared period endpoint is minted as its OWN independently-traced value
+    (so Phase 2 can compute Δ from two traced endpoints) while the displayed ``KpiItem.value`` shows
+    the LAST (close) endpoint. ``delta``/``dir`` are left ``None`` — NO Δ is computed here. Any KPI
+    scalar that is not a recognized label/value slot is still minted generically (zero silent
+    drops); a declared-but-absent slot is disclosed in ``missing[]``, never fabricated.
+    """
+    if not isinstance(kpis, list):
+        _walk_generic(kpis, minter, claims, unextracted)
+        return
+
+    for entry in kpis:
+        if not isinstance(entry, dict):
+            _walk_generic(entry, minter, claims, unextracted)
+            continue
+
+        label = ""
+        value_display = ""
+        value_present = False
+        for key, val in entry.items():
+            if key == _LABEL_KEY:
+                token, ok = _mint_scalar(val, minter, claims, unextracted)
+                if ok:
+                    label = token
+                elif val is None:
+                    missing.append(
+                        f"KPI declares '{_LABEL_KEY}' but its value is absent"
+                    )
+            elif key == _VALUE_KEY:
+                token, ok = _mint_scalar(val, minter, claims, unextracted)
+                if ok:
+                    value_display, value_present = token, True
+                elif val is None:
+                    missing.append(
+                        f"KPI declares '{_VALUE_KEY}' but its value is absent"
+                    )
+            elif key == _VALUES_KEY and isinstance(val, list):
+                # Period endpoints: each its OWN traced value; display the last (close) endpoint.
+                for endpoint in val:
+                    token, ok = _mint_scalar(endpoint, minter, claims, unextracted)
+                    if ok:
+                        value_display, value_present = token, True
+            else:
+                # Any other KPI scalar (description, status, …) is still traced — never dropped.
+                _walk_generic(val, minter, claims, unextracted)
+
+        if not value_present and _VALUE_KEY not in entry and _VALUES_KEY not in entry:
+            missing.append(
+                f"KPI '{label}' has no '{_VALUE_KEY}'/'{_VALUES_KEY}' slot"
+                if label
+                else f"a KPI entry has no '{_VALUE_KEY}'/'{_VALUES_KEY}' slot"
+            )
+        # delta/dir left None — Phase 2 computes Δ from the two traced endpoints (non-goal here).
+        kpi_items.append(KpiItem(label=label, value=value_display))
+
+
 def _bind_lane(lane: object, minter: _Minter) -> SectionBinding:
     """Bind one configured lane to a SectionBinding at the parsed-dict level (LANE-01).
 
-    Task-2 scope: capture the lane ``heading`` and mint EVERY other lane scalar generically so the
-    coverage identity holds. The KPI display projection (``kpi_items``) is layered in by Task 3 —
-    the SAME scalars, additionally projected for display (minted once, never double-counted).
+    Iterates the lane mapping in FILE ORDER: the ``heading`` scalar becomes the display heading (and
+    its own traced claim); the ``kpis`` subtree becomes ``kpi_items`` (see :func:`_bind_kpis`);
+    every other lane scalar (owner, members, objectives, description, …) is minted generically. NO
+    ``models.FunctionalGroup``/``Kpi`` is imported or instantiated — the binding is purely at the
+    parsed-dict level. Each scalar is minted EXACTLY once, so the read-anchored coverage identity
+    holds after grouping.
     """
     heading = ""
+    kpi_items: list[KpiItem] = []
     claims: list[Claim] = []
     unextracted: list[Unextracted] = []
     missing: list[str] = []
 
     if isinstance(lane, dict):
         for key, value in lane.items():
-            if key == _HEADING_KEY and isinstance(value, str):
-                heading = value
-                _route(minter.mint(value), claims, unextracted)
+            if key == _HEADING_KEY:
+                if isinstance(value, str):
+                    heading = value
+                    _route(minter.mint(value), claims, unextracted)
+                elif value is None:
+                    missing.append(
+                        f"lane declares '{_HEADING_KEY}' but its value is absent"
+                    )
+                else:
+                    # Non-string heading (coerced): display its str form; mint it generically.
+                    heading = str(value)
+                    _walk_generic(value, minter, claims, unextracted)
+            elif key == _KPIS_KEY:
+                _bind_kpis(value, minter, kpi_items, claims, unextracted, missing)
             else:
                 _walk_generic(value, minter, claims, unextracted)
+        if _HEADING_KEY not in lane:
+            missing.append(f"lane has no '{_HEADING_KEY}' slot")
     else:
         # A non-mapping lane entry: mint its scalars honestly, empty heading.
         _walk_generic(lane, minter, claims, unextracted)
 
     return SectionBinding(
         heading=heading,
-        kpi_items=[],
+        kpi_items=kpi_items,
         claims=claims,
         missing=missing,
         unextracted=unextracted,
