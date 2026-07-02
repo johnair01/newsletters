@@ -39,6 +39,18 @@ receive shipped code.
   [`RETRO.md`](RETRO.md) — name mistakes, don't paper over them. A recurring friction you haven't
   hardened is a bug. (This rule generates the others.)
 
+### Roles (hats, not people — full contract in [`docs/collaboration.md`](docs/collaboration.md))
+
+- **Editor-in-Chief** (here: JJ) — owns intent, sets pace, approves through the review gate.
+  Stop authority, always. Nobody is "the user."
+- **Bureau Chief** (here: Claude) — owns execution coordination, keeps time, runs the reporter
+  agents, reports in plain terms. The reviewer is a client being taught; if the deliverable is
+  visual, deploy it — one click, never "read the diff."
+- **Maintainer** (here: JJ) — owns `main`, tags, releases, config policy.
+- **Reporters** (subagents) draft under assignment; contributor / operator / reviewer / author /
+  reader as the product defines them. **Everybody learns everywhere all the time** — frictions
+  → RETRO rules, lessons → LEARNINGS files, durable agreements → guard tests.
+
 ## Execution discipline (learned the hard way — layered on GSD)
 
 - **"The agent says green" ≠ green.** After any GSD subagent or executor reports success,
