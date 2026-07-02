@@ -416,3 +416,138 @@ def test_determinism_with_repeated_value_across_lanes() -> None:
     # Ordering is stable and total (file order) — no set()/non-total sort collapsed the duplicate.
     kpi_headings = [b.heading for b in first.blocks if isinstance(b, KpiStripBlock)]
     assert kpi_headings == ["Alpha", "Beta"]
+
+
+# --------------------------------------------------------------------------- #
+# Task 3 — kind-agnostic seam (a NON-lane SectionBinding), edge cases (zero-KPI
+# lane, empty lane set, unowned/sourced quote), and the gate-untouched proof.
+# --------------------------------------------------------------------------- #
+
+
+def _single_section_load(binding: SectionBinding, *, source_id: str) -> SwimlaneLoad:
+    """Wrap one hand-built SectionBinding as a SwimlaneLoad over a crafted source."""
+    src = Source(
+        id=source_id,
+        context=f"module-config:{source_id}",
+        transcript="",
+        timestamp=EPOCH_ZERO,
+    )
+    return SwimlaneLoad(source=src, bindings=[binding])
+
+
+def test_kind_agnostic_seam_second_kind() -> None:
+    """COMP-01: a NON-lane SectionBinding composes into a valid Draft surface with ZERO change.
+
+    A "risk register" is a different conceptual kind than a swim lane, yet it is carried by the SAME
+    generic ``SectionBinding`` — proving the composer keys on ``SectionBinding[]``, not on "lanes".
+    """
+    src = Source(
+        id="content/module/risks.yml",
+        context="module-config:content/module/risks.yml",
+        transcript="risk one The auth token rotation is currently unowned",
+        timestamp=EPOCH_ZERO,
+    )
+    cur = _Cursor(src)
+    finding = cur.claim("The auth token rotation is currently unowned")
+    # A non-lane section: a heading + a traced finding, and NO KPIs (a different purpose).
+    binding = SectionBinding(heading="Risk register", claims=[finding])
+    load = SwimlaneLoad(source=src, bindings=[binding])
+
+    surface = _compose(load)
+
+    assert surface.gate is ReviewState.DRAFT
+    assert surface.kind == REPORT.name
+    # The section's traced claim survives onto a ClaimsBlock (read from the SAME input).
+    kept = {c.text for c in _claimsblock_claims(surface)}
+    assert finding.text in kept
+    # No KPIs on this kind -> no KpiStripBlock; the omission is disclosed, never fabricated.
+    assert not any(isinstance(b, KpiStripBlock) for b in surface.blocks)
+    assert any("Risk register" in m and "no KPIs" in m for m in surface.missing)
+
+
+def test_zero_kpi_lane_omits_strip_but_keeps_claims() -> None:
+    """Edge case: a KPI-less section omits the strip (disclosed in missing[]) but keeps its claims."""
+    src = Source(
+        id="content/module/nokpi.yml",
+        context="module-config:content/module/nokpi.yml",
+        transcript="finding The onboarding path was documented this week",
+        timestamp=EPOCH_ZERO,
+    )
+    cur = _Cursor(src)
+    finding = cur.claim("The onboarding path was documented this week")
+    binding = SectionBinding(heading="Enablement", kpi_items=[], claims=[finding])
+    load = SwimlaneLoad(source=src, bindings=[binding])
+
+    surface = _compose(load)
+
+    assert not any(isinstance(b, KpiStripBlock) for b in surface.blocks)
+    assert finding.text in {c.text for c in _claimsblock_claims(surface)}
+    assert any("Enablement" in m and "no KPIs" in m for m in surface.missing)
+
+
+def test_empty_lane_set_is_a_valid_draft_with_populated_missing() -> None:
+    """Edge case: an empty binding set returns a valid Draft REPORT Surface (never None/raising)."""
+    src = Source(
+        id="content/module/empty.yml",
+        context="module-config:content/module/empty.yml",
+        transcript="",
+        timestamp=EPOCH_ZERO,
+    )
+    load = SwimlaneLoad(source=src, bindings=[])
+
+    surface = _compose(load)
+
+    assert surface is not None
+    assert surface.gate is ReviewState.DRAFT
+    assert surface.kind == REPORT.name
+    assert surface.missing, "an empty module must still disclose its emptiness"
+    assert any("no sections" in m for m in surface.missing)
+    # No claims fabricated out of nothing.
+    assert _claimsblock_claims(surface) == []
+
+
+def test_unowned_and_sourced_quote_honesty() -> None:
+    """Edge case: sourced-or-omit quote — omitted+disclosed, or rendered verbatim from a traced claim."""
+    load, quote = _build_load()
+
+    # (a) no quote provided -> no QuoteBlock; the omission is disclosed in missing[].
+    no_quote = _compose(load)
+    assert not any(isinstance(b, QuoteBlock) for b in no_quote.blocks)
+    assert any("quote" in m.lower() for m in no_quote.missing)
+
+    # (b) a traced quote with an owner -> a QuoteBlock attributed to the owner, verbatim.
+    owned = _compose(load, quote=quote, owner="platform-lead")
+    owned_quotes = [b for b in owned.blocks if isinstance(b, QuoteBlock)]
+    assert len(owned_quotes) == 1
+    assert (
+        owned_quotes[0].text == quote.text
+    )  # verbatim from the traced claim, never fabricated
+    assert owned_quotes[0].attr == "platform-lead"
+
+    # (c) a traced quote on an UNOWNED lane -> an honesty attribution, not an invented name.
+    unowned = _compose(load, quote=quote, owner=None)
+    unowned_quotes = [b for b in unowned.blocks if isinstance(b, QuoteBlock)]
+    assert len(unowned_quotes) == 1
+    assert unowned_quotes[0].attr == "unassigned"
+
+
+def test_faithfulness_coverage_semantic_templates_site_are_untouched() -> None:
+    """Pitfall 11 / T-02-16: this suite weakens NO gate — the protected files are byte-untouched."""
+    gate_files = [
+        "src/newsletters/distill/faithfulness.py",
+        "src/newsletters/distill/coverage.py",
+        "src/newsletters/semantic.py",
+        "src/newsletters/templates.py",
+        "src/newsletters/site.py",
+    ]
+    repo_root = Path(__file__).resolve().parent.parent
+    result = subprocess.run(
+        ["git", "diff", "HEAD", "--exit-code", "--", *gate_files],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, (
+        "a forbidden gate file was modified — a RED guard is fixed in the composer, "
+        f"never by relaxing a gate:\n{result.stdout}"
+    )
