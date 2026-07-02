@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 01-03-PLAN.md (swim-lane loader honesty & determinism proofs). Next: 01-04 (abstraction-guard + bare-install [config] gate)."
-last_updated: "2026-07-02T04:21:46.294Z"
+stopped_at: "Completed 02-01-PLAN.md (Wave 1: SectionBinding.kpi_endpoints)"
+last_updated: "2026-07-02T04:52:11.690Z"
 last_activity: 2026-07-02 — Phase 1 Plan 03 executed (swim-lane loader honesty & determinism proofs; LANE-01/LANE-02)
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 8
+  completed_plans: 5
   percent: 25
 ---
 
@@ -62,6 +62,7 @@ bare-install CI; mypy/black/isort held to no-NEW-failures vs the 2026-07-02 base
 |------|----------|-------|-------|
 | Phase 01 P03 | 20min | 3 tasks | 3 files |
 | Phase 01 P04 | 25 | 2 tasks | 2 files |
+| Phase 02 P01 | 5min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Research]: The two structural faithfulness holes are closed by NEW additive tests — Hole B (un-addressed traces) upstream in Phase 1, Hole A (un-gated non-`ClaimsBlock` numerals) in Phase 2 — never by editing `faithfulness.py`/`coverage.py`.
 - [Phase ?]: Abstraction guard uses word-bounded, case-sensitive denylist matching so generic structural keys (lanes/owner/module) never false-positive; only concrete config values trip it (LANE-03)
 - [Phase ?]: New optional extras get the full [excel]-parallel gate set (extra-declared, no-top-level-import, imports-with-dep-blocked, teaching-error, returns-module, module-AI-free); applied for [config]/PyYAML (LANE-04)
+- [Phase 02]: 02-01: SectionBinding.kpi_endpoints (list[list[Claim]]) pairs each KPI's traced period endpoints by REFERENCE — coverage identity intact, no re-mint
+- [Phase 02]: 02-01: _mint_scalar returns the minted Claim (or None) so endpoints pair without re-minting; non-locatable endpoints contribute no reference (no fabricated delta)
 
 ### Pending Todos
 
@@ -105,6 +108,6 @@ Items acknowledged and carried forward (v1.1 seed §7 — recorded, not built). 
 
 ## Session Continuity
 
-Last session: 2026-07-02T04:20:57.950Z
-Stopped at: Completed 01-03-PLAN.md (swim-lane loader honesty & determinism proofs). Next: 01-04 (abstraction-guard + bare-install [config] gate).
+Last session: 2026-07-02T04:52:11.682Z
+Stopped at: Completed 02-01-PLAN.md (Wave 1: SectionBinding.kpi_endpoints)
 Resume file: None
