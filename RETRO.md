@@ -4,6 +4,25 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
+## 2026-07-02 (late) — Pages deploy: a workflow change cannot see a repo-settings gate
+
+**Friction observed**
+
+PR #8 extended the Pages workflow to publish the report corpora and to deploy from the
+integration branch — the build succeeded, but the DEPLOY job was rejected: the
+`github-pages` environment's protection rule (Settings → Environments, a repo setting,
+invisible to the workflow file and to CI) only allows deployments from approved branches.
+The /reports/ URLs 404'd while every gate we could see was green; found only when the
+Editor-in-Chief asked for the preview.
+
+**Rule hardened**
+
+- *An outward-facing deploy has TWO gates: the workflow (in-repo, we can change it) and
+  the environment protection rule (repo settings, maintainer-only).* When shipping a
+  deploy-from-a-new-branch change, verify the environment allowlist covers that branch —
+  or state plainly in the PR that the maintainer must allow it / merge to an allowed
+  branch before the deploy can land. "The workflow is correct" ≠ "the deploy will run."
+
 ## 2026-07-02 — Session: v1.1 overnight run (Phases 1–3 shipped; one stall JJ caught live)
 
 **Friction observed**
