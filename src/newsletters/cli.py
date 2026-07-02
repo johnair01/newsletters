@@ -21,7 +21,7 @@ class CorpusName(str, Enum):
     * ``work`` — the REAL hand-authored work corpus (``worksurface.py``): the install/dogfood
       flow over an actual codebase, rendered to ``content/work/site``.
     * ``module`` — the synthetic worked-example corpus (``modulesite.py``): the swim-lane
-      module-a config composed + rendered to ``content/module/site`` — running the SAME
+      config composed + rendered to ``content/module/site`` — running the SAME
       corpus-agnostic merge-block gate as rev1/work.
 
     All corpora run the SAME corpus-agnostic merge-block gate (``review.review_blockers``) — the
