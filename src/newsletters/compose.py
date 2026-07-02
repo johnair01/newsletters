@@ -40,9 +40,12 @@ from .adapters._timestamps import EPOCH_ZERO
 from .semantic import (
     Claim,
     ClaimsBlock,
+    FanoutBlock,
+    FanoutLink,
     KpiItem,
     KpiStripBlock,
     ProseBlock,
+    QuoteBlock,
     Review,
     Surface,
 )
@@ -209,7 +212,63 @@ def _compose_kpi_item(
     return KpiItem(label=item.label, value=item.value, delta=delta, dir=direction)
 
 
-def compose_module_report(load: SwimlaneLoad, *, author: str = "operator") -> Surface:
+# --------------------------------------------------------------------------- #
+# The owner-quote slot (sourced-or-omit) and the fan-out stub (COMP-04 identity/
+# structure). Both author NO facts: the quote is rendered ONLY from a claim that
+# was already traced from config (verbatim text, owner id as attribution); the
+# fan-out is a declared stub whose targets do not exist yet (every href=None).
+# --------------------------------------------------------------------------- #
+
+# The audience surfaces this module report declares it will fan out into. STRUCTURAL,
+# numeral-free descriptive labels only (the numeral-free-prose guard, 02-04) — never a
+# computed fact. ``href`` stays None: the targets do not exist yet, so a fan-out link is
+# a declared intent, never a dead/fabricated link (T-02-12; mirrors worksurface's stub).
+_FANOUT_STUB: tuple[tuple[str, str], ...] = (
+    ("article", "The story behind this module, in prose"),
+    ("newsletter", "This module, re-cut for the weekly read"),
+    ("learning", "Onboarding: read the module before the config"),
+)
+
+# The honesty-panel note disclosed when no traced owner/manager quote was provided — the
+# omission is shown to the reviewer, the slot is left empty, and NOTHING is fabricated.
+_QUOTE_ABSENT_NOTE = (
+    "owner/manager quote not provided — quote slot omitted (never fabricated)"
+)
+
+# The attribution used when a quote exists but its lane is unowned: an honesty marker, not
+# an invented name (02-CONTEXT.md "unowned lane → 'unassigned'-style honesty").
+_UNASSIGNED_ATTR = "unassigned"
+
+
+def _fanout_stub() -> FanoutBlock:
+    """The always-present fan-out stub: declared audience kinds, every ``href=None``."""
+    return FanoutBlock(
+        heading="What this module produces",
+        links=[FanoutLink(kind=kind, title=title) for kind, title in _FANOUT_STUB],
+    )
+
+
+def _quote_block(quote: Optional[Claim], owner: Optional[str]) -> Optional[QuoteBlock]:
+    """Return a ``QuoteBlock`` ONLY from a traced+addressed quote claim — else ``None``.
+
+    Sourced-or-omit (T-02-10): a quote is rendered only when ``quote`` is a content-addressed
+    ``Claim`` (traced from config); its ``text`` is the claim's verbatim text and its ``attr`` is
+    the owner id (a config value) — or the ``"unassigned"`` honesty marker for an unowned lane.
+    A missing/untraced/unaddressed quote yields ``None`` (the caller discloses the gap); quote text
+    is NEVER fabricated.
+    """
+    if quote is None or not _addressed(quote):
+        return None
+    return QuoteBlock(text=quote.text, attr=owner or _UNASSIGNED_ATTR)
+
+
+def compose_module_report(
+    load: SwimlaneLoad,
+    *,
+    author: str = "operator",
+    quote: Optional[Claim] = None,
+    owner: Optional[str] = None,
+) -> Surface:
     """Compose one deterministic ``Surface(REPORT, Draft)`` from a module's ``SectionBinding[]``.
 
     Per COMP-01 the composer treats each binding as a generic section (kind-agnostic seam): in FILE
@@ -221,8 +280,12 @@ def compose_module_report(load: SwimlaneLoad, *, author: str = "operator") -> Su
     ``traces=[load.source]`` so two composes of the same load are byte-identical and Phase-3
     claim-beside-trace rendering works.
 
-    ``author`` names the byline/review author. The ``ledger`` parameter and the quote/fanout blocks
-    are added in Plan 02-03 (same file) — the signature is kept extensible.
+    ``author`` names the byline/review author. ``quote`` (a traced owner/manager quote ``Claim``)
+    and ``owner`` (the owner id used as its attribution) drive the sourced-or-omit quote slot: a
+    ``QuoteBlock`` is emitted ONLY when ``quote`` is content-addressed; otherwise the omission is
+    disclosed in ``missing[]`` and the slot stays empty (never a fabricated quote). A fan-out stub
+    (declared kinds, every ``href=None``) is always appended. The ``ledger`` parameter (the R-NNN
+    identity authority) is added in Task 2 of this plan (same file).
     """
     blocks: list = []
     missing: list[str] = []
@@ -272,6 +335,17 @@ def compose_module_report(load: SwimlaneLoad, *, author: str = "operator") -> Su
         missing.append(
             "module config declares no sections — nothing to compose (Draft with no blocks)"
         )
+
+    # Sourced-or-omit owner/manager quote: emit a QuoteBlock ONLY from a traced claim; otherwise
+    # disclose the omission in missing[] and leave the slot empty (never a fabricated quote).
+    quote_block = _quote_block(quote, owner)
+    if quote_block is not None:
+        blocks.append(quote_block)
+    else:
+        missing.append(_QUOTE_ABSENT_NOTE)
+
+    # The fan-out stub is ALWAYS present (a declared intent, every href=None).
+    blocks.append(_fanout_stub())
 
     return Surface(
         id=f"report-{_slug(load.source.id)}",
