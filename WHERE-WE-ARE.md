@@ -7,6 +7,22 @@
 
 ## Where we are right now
 
+**2026-07-02 (evening) — v1.1 FORMALLY CLOSED. The 10-round deep-review loop is COMPLETE (10/10,
+PRs #9–#17, every round its own reviewable PR).** The milestone audit **PASSED** (12/12
+requirements, three-source cross-check, 4/4 phases verified); the milestone is archived
+(`.planning/milestones/v1.1-*`), logged (`MILESTONES.md`), retrospected (`RETROSPECTIVE.md`),
+synthesized (`.planning/reviews/2026-07-02-deep-review/10-synthesis.md` — read this first).
+626 tests green; all three corpora clean; the collaboration contract is canon
+(`docs/collaboration.md`: roles as hats — Editor-in-Chief/Bureau Chief/Reporters/Maintainer —
+guarded by test). **One known limitation:** the `v1.1` tag exists locally only — this
+environment's git proxy drops tag pushes; the maintainer creates it in one click (Releases →
+new tag `v1.1` @ `979f191`; noted on PR #17). **Three decisions wait on the
+Editor-in-Chief/Maintainer:** (1) the B1–B20 fix-batch PR (12 one-test guards — see
+`reviews/07-tests-as-promises.md`); (2) integration→main merge (the branch holds the complete,
+closed milestone); (3) the next milestone (evidence: DEF-04 or DEF-05, DEF-11 gated on mandatory
+content-addressed traces per `reviews/05-trust-invariants.md`). A fresh session starts from
+`.planning/loops/2026-07-02-deep-review/RESUME-PROMPT.md` — the repo alone carries the full record.
+
 **2026-07-02 (after the morning) — CLIENT-READABLE REVIEWS SHIPPED, then a 10-round DEEP-REVIEW
 LOOP to close v1.1 honestly.** Two things happened after the milestone's code was done. First, JJ's
 morning review landed a hard truth — the Signals-dispatch PR bodies were hype-free but still
