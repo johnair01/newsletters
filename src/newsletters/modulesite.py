@@ -1,12 +1,18 @@
 """MODA-01 — the synthetic ``module`` corpus builder (Phase 3).
 
 This module is the worked-example half of MODA-01: it composes and renders the committed
-synthetic ``content/module/module-a.yml`` config end-to-end (loader → composer → ledger →
+synthetic swim-lane config under ``content/module/`` end-to-end (loader → composer → ledger →
 render → Library) into a self-contained ``content/module/`` corpus with its OWN append-only
 ledger. It is deliberately a THIN seam that MIRRORS :mod:`newsletters.worksurface` exactly —
 ``Ledger.load`` → ``Site.from_surfaces`` → ``ledger.save()`` → ``render_surface`` per page →
 ``render_library`` → self-hosted fonts — reusing the Phase-1 loader, the Phase-2 composer, and
 the Phase-9/10 render devices with ZERO edits to any existing module.
+
+ABSTRACT EVERYTHING (LANE-03 / the abstraction guard): the concrete config-specific VALUES (the
+module id, area, lane/owner/engineer/tool/metric names) live ONLY in the YAML config + the
+rendered content, NEVER in this source. So this builder never hardcodes the fixture filename: it
+DISCOVERS the single ``*.yml`` config under the corpus dir (a generic, structural default), and
+the surface slug/title are DERIVED by the composer from the config's own identity at runtime.
 
 WHY a new top-level module (a sibling of ``worksurface.py``, not code in ``compose.py``):
 ``compose.py`` is a LEAF (COMP contract: it must not import ``render``/``site``), so the
@@ -22,8 +28,9 @@ The four-property contract (mirrors ``worksurface.py`` / ``swimlane.py`` / ``com
   owner quote is emitted via the SOURCED path only (a traced claim selected from the load) —
   never fabricated; the honesty panel shows every disclosed gap.
 * DETERMINISTIC / BYTE-STABLE. Relies wholly on the loader/composer's ``EPOCH_ZERO`` + file
-  order and the append-only ledger — no ``datetime.now()``, no ``set()``, no non-total sort — so
-  the committed output equals a fresh build (SITE-06 extended to the module corpus).
+  order, a sorted config discovery, and the append-only ledger — no ``datetime.now()``, no
+  ``set()``, no non-total sort — so the committed output equals a fresh build (SITE-06 extended
+  to the module corpus).
 * AI-FREE / MINIMAL-CORE. Imports only stdlib + sibling core modules (``swimlane``, ``compose``,
   ``site``, ``render``, ``worksurface`` for the shared ``_emit_fonts``) and the lazy
   ``_yaml_loader`` boundary. NO ``yaml`` at module top level, NO AI package — importable on a
@@ -44,9 +51,10 @@ from .swimlane import SwimlaneLoad, load_swimlanes
 
 __all__ = ["build_module_surfaces", "build_module_site"]
 
-# The committed synthetic corpus's fixed defaults (not user input — T-03-04 accept). The config,
-# its OWN append-only ledger, and the rendered site all live self-contained under content/module/.
-_CONFIG_PATH = "content/module/module-a.yml"
+# The committed synthetic corpus's fixed, GENERIC defaults (not user input — T-03-04 accept, and
+# not a config-specific fixture name — LANE-03). The config, its OWN append-only ledger, and the
+# rendered site all live self-contained under the corpus dir.
+_CORPUS_DIR = "content/module"
 _LEDGER_PATH = "content/module/ids.json"
 _SITE_DIR = "content/module/site"
 
@@ -54,6 +62,24 @@ _SITE_DIR = "content/module/site"
 # quote hand-off (generic keys only; the concrete owner/quote VALUES live in the config).
 _QUOTE_KEY = "quote"
 _OWNER_KEY = "owner"
+
+
+def _discover_config(root: Path | None) -> Path:
+    """Find the single committed ``*.yml`` config under the corpus dir (generic, deterministic).
+
+    Keeps the config-specific FILENAME out of source (LANE-03 abstraction guard): rather than
+    hardcode the fixture file, we discover it. The corpus is self-contained with exactly one config
+    (like ``content/work/``), so a SORTED glob is deterministic and byte-stable; the first entry is
+    chosen so the result never depends on filesystem order. Returned ABSOLUTE so it resolves cleanly
+    under any ``root`` the loader is given.
+    """
+    corpus = (Path(root) if root is not None else Path.cwd()) / _CORPUS_DIR
+    candidates = sorted(corpus.resolve().glob("*.yml"))
+    if not candidates:
+        raise FileNotFoundError(
+            f"no module-config '*.yml' found under {corpus} — the corpus is not populated"
+        )
+    return candidates[0]
 
 
 def _select_owner_quote(load: SwimlaneLoad) -> tuple[Claim | None, str | None]:
@@ -84,15 +110,16 @@ def _select_owner_quote(load: SwimlaneLoad) -> tuple[Claim | None, str | None]:
 
 
 def build_module_surfaces(
-    config_path: str | Path = _CONFIG_PATH, *, root: Path | None = None
+    config_path: str | Path | None = None, *, root: Path | None = None
 ) -> list[Surface]:
     """Load + compose the synthetic module corpus into one Draft REPORT Surface (MODA-01).
 
     Mirrors :func:`newsletters.worksurface.build_work_surfaces` (the corpus-assembly analog), but
-    over the swim-lane config path:
+    over the swim-lane config:
 
-      1. ``load = load_swimlanes(config_path, root=root)`` — the Phase-1 read-only, deterministic,
-         content-addressed load (5 lane bindings + module-level claims for this corpus).
+      1. Resolve the config (``config_path`` if given, else the single ``*.yml`` discovered under
+         the corpus dir), then ``load = load_swimlanes(config, root=root)`` — the Phase-1
+         read-only, deterministic, content-addressed load (lane bindings + module-level claims).
       2. Select the module-owner quote via :func:`_select_owner_quote` (the traced claim + owner id).
       3. ``compose_module_report(load, quote=..., owner=...)`` — the Phase-2 composer emits the
          per-lane KPI strips (with compose-time Δ) + claims, the sourced-or-omit QuoteBlock, and
@@ -102,7 +129,8 @@ def build_module_surfaces(
 
     The surface ships ``Draft`` — there is no auto-publish path (the hard rule holds).
     """
-    load = load_swimlanes(config_path, root=root)
+    config = Path(config_path) if config_path is not None else _discover_config(root)
+    load = load_swimlanes(config, root=root)
     quote, owner = _select_owner_quote(load)
     surface = compose_module_report(load, quote=quote, owner=owner)
     return [surface]
@@ -112,13 +140,13 @@ def build_module_site(
     out_dir: str | Path = _SITE_DIR,
     *,
     root: Path | None = None,
-    config_path: str | Path = _CONFIG_PATH,
+    config_path: str | Path | None = None,
 ) -> list[Path]:
     """Render the module corpus to standalone HTML at ``out_dir`` (MODA-01), mirroring build_work_site.
 
     Exactly mirrors :func:`newsletters.worksurface.build_work_site`, but over the module corpus and
-    its OWN append-only ledger (``content/module/ids.json``, first ref ``R-001`` for the
-    ``report-module-a`` slug), kept SEPARATE from the rev1 + work corpora:
+    its OWN append-only ledger (``content/module/ids.json``, first ref ``R-001`` for the composed
+    report slug), kept SEPARATE from the rev1 + work corpora:
 
       * ``Ledger.load("content/module/ids.json")`` → ``Site.from_surfaces(build_module_surfaces(),
         ledger=ledger)`` → ``ledger.save()`` — this builder is the SOLE ledger writer (compose only
@@ -137,7 +165,8 @@ def build_module_site(
     Args:
         out_dir: where to write the module Library (default ``content/module/site``).
         root: the repo root the config path resolves against (default cwd).
-        config_path: the module-config to build (default ``content/module/module-a.yml``).
+        config_path: an explicit module-config to build (default: discover the single ``*.yml``
+            under the corpus dir).
 
     Returns:
         The written paths (every ``{slug}.html`` + ``library.html``), in write order.
