@@ -20,8 +20,22 @@
    tonight on genuine leaks (a planned default path, a CLI docstring, a planted self-test) — a
    rule encoded as a test did its job repeatedly where a convention would have silently rotted.
 
+**Friction observed (morning review, from JJ directly)**
+
+3. **The PRs fixed hype but not audience.** The Signals dispatch removed boilerplate and tied
+   claims to evidence — and was still unreadable to the person it was for: "I don't understand
+   what the shit is going on." The bodies assumed a co-engineer; the reviewer is a CLIENT being
+   taught. And the deliverable (the rendered report) wasn't one click away — the Pages deploy
+   only published the web app, never the report corpora, so "review" meant reading diffs.
+
 **Rules hardened**
 
+- *The reviewer is a client being taught.* Every PR body now MUST open with a plain-terms
+  "Start here" section — what we built / why it matters to you / how to review with clickable
+  links, the rendered artifact first. Encoded in ship.md's generate_pr_body + enforced by
+  `tests/test_signals_voice.py` (a reverted contract is a RED suite, not a vibe).
+- *If the deliverable is visual, deploy it.* The Pages workflow now publishes the rendered
+  corpora at `/reports/{rev1,work,module}/` alongside the web app — a review link, not a diff.
 - *Never gate forward progress on a background wait.* At a decision point, check external state
   SYNCHRONOUSLY through the authenticated channel (GitHub MCP tools here — plain curl to
   api.github.com is dead in this environment), act on what you find, and move on. Background

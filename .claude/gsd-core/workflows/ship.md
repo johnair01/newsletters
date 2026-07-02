@@ -107,7 +107,33 @@ Phase {phase_number}: {phase_name}
 ```
 Or for milestone: `Milestone {version}: {name}`
 
-**2. The signal:**
+**2. Start here — the client section (FIRST section of every body, before The signal):**
+The reviewer is a CLIENT being taught, not a co-engineer. Assume they will not read the code.
+Written in plain language — no jargon, no type names, no file paths without a reason to click
+them. Three mandatory parts:
+
+- **What we built** — what the thing IS, in words a smart non-engineer follows on first read.
+  Analogy over terminology ("the reader", "the writer", "a receipt for every number").
+- **Why it matters to you** — the decision or principle this serves, addressed to the client.
+- **How to review it (~N min)** — numbered steps with CLICKABLE links: the rendered artifact
+  first whenever one exists (a deployed page beats a repo path beats a diff), then what "good"
+  looks like at each step, then where to say "this is wrong". A PR whose deliverable is visual
+  MUST link the rendered/deployed thing, not just the HTML source.
+
+```markdown
+## Start here — what this is, in plain terms
+
+**What we built:** {plain-language description}
+
+**Why it matters to you:** {the principle/decision, client-addressed}
+
+**How to review it (~{N} min):**
+1. {click this — what you should see}
+2. {check this — what "good" looks like}
+3. {where to leave feedback}
+```
+
+**3. The signal:**
 One honest line: what shipped and why it matters to the story we can now tell. Derived from the
 ROADMAP phase goal + the SUMMARY files' `## The signal` one-liners + the actual diff — never
 from intention. If the phase shipped less than the goal, the signal says what actually shipped.
@@ -118,7 +144,7 @@ from intention. If the phase shipped less than the goal, the signal says what ac
 {One or two sentences. What exists now that didn't before, and what it makes possible.}
 ```
 
-**3. What we learned:**
+**4. What we learned:**
 The decision this phase served; what we now understand that we didn't. Sourced from the SUMMARY
 files' `## Decisions & Deviations` + STATE.md decisions for this phase. Deviations and bugs
 found belong HERE, told plainly — a deviation narrated is a lesson; a deviation hidden is drift.
@@ -130,7 +156,7 @@ found belong HERE, told plainly — a deviation narrated is a lesson; a deviatio
 - {Each real deviation/bug/surprise and what it taught}
 ```
 
-**4. What's verified:**
+**5. What's verified:**
 The gates that passed, with their output **verbatim** — copied bytes inside a fenced block,
 never paraphrased, never summarized, never softened. Run (or collect from VERIFICATION.md) the
 project's enforced gate commands at ship time and paste their tails exactly. A gate that was
@@ -147,7 +173,7 @@ not run is not listed; a gate that failed is shown failing.
 {One plain sentence of context: suite growth, what the new tests prove, baseline comparisons.}
 ```
 
-**5. What's not here yet:**
+**6. What's not here yet:**
 This phase's honest `missing[]` — the same honesty panel the product renders, applied to the PR
 itself. Deferrals, skipped sub-tasks (named, with the reason), open seams, known caveats,
 inherited debt deliberately not touched. Sourced from SUMMARY `## What's not here yet` /
@@ -159,7 +185,7 @@ concerns, the ROADMAP's deferred entries, and anything the diff shows was left u
 - {Deferral / open seam / caveat — with the reason, never silently}
 ```
 
-**6. How to verify:**
+**7. How to verify:**
 The exact commands a reviewer runs to confirm green independently — copy-paste runnable from a
 fresh checkout, including any install step. Point at the artifact to READ (a rendered page, a
 report) when the deliverable is a thing to look at, not just a test to run.
@@ -175,7 +201,7 @@ report) when the deliverable is a thing to look at, not just a test to run.
 {Requirements covered: REQ-IDs. Plans + summaries: {phase_dir}.}
 ```
 
-**7. Configured project sections:**
+**8. Configured project sections:**
 Read append-only project-specific PRD/PR body sections from config:
 
 ```bash
@@ -192,7 +218,7 @@ Use these sections for lean/agile PRD material that should travel with the PR wi
 
 Rules:
 
-- Treat configured sections as append-only. They are rendered after `How to verify` and cannot replace, remove, or reorder the required core sections: `The signal`, `What we learned`, `What's verified`, `What's not here yet`, and `How to verify`.
+- Treat configured sections as append-only. They are rendered after `How to verify` and cannot replace, remove, or reorder the required core sections: `Start here — what this is, in plain terms`, `The signal`, `What we learned`, `What's verified`, `What's not here yet`, and `How to verify`.
 - Configured sections obey the same evidence rule as the core body: a `fallback` may not assert a fact no gate or artifact verified (e.g. "No known high-risk rollout dependencies" is forbidden as a fallback — absence of evidence is disclosed as "not assessed", or the section is omitted).
 - Each entry must have `heading` plus at least one of `source`, `template`, or `fallback`.
 - `enabled` defaults to `true`; when `enabled` is `false`, skip the section without warning. This lets onboarding seed optional sections that a project can enable later.
@@ -225,7 +251,7 @@ Example configured sections:
 ]
 ```
 
-**8. TDD Audit section:**
+**9. TDD Audit section:**
 
 Reconstruct the per-commit TDD gate trail before squash-merge discards it. Walk the PR branch's own commits (merges excluded) and read each commit's `gate_status:` trailer with Git's native trailer machinery — never a raw `%B` grep, which would also match the string written in prose:
 
@@ -262,7 +288,7 @@ Aggregate: 2 skill, 1 fallback, 1 exempt — 0 missing.
 
 This `## TDD Audit` section is the final body section — it renders after the configured `pr_body_sections`, immediately before the aggregate trailer — so the frozen core sections and the append-only configured sections both keep their existing order.
 
-**9. Aggregate gate_status trailer (final line):**
+**10. Aggregate gate_status trailer (final line):**
 
 After every other section — including any configured `pr_body_sections` — emit the audit aggregate as a single Git trailer on the **final line** of the PR body, preceded by a blank line so it parses as a valid trailer:
 
