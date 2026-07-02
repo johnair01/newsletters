@@ -201,7 +201,11 @@ def _compose_kpi_item(
     * ≥2 endpoints, both content-addressed AND numeric -> ``delta``/``dir`` from ``compute_delta``.
     * ≥2 endpoints that are not both computable -> ``delta=None`` + a ``missing[]`` note (a declared
       movement that could not be computed — NEVER a fabricated 0).
-    * a single (or zero) endpoint -> a point-in-time value, emitted value-only with NO note.
+    * exactly 1 endpoint -> the movement form (``values:``) was DECLARED but only one endpoint is
+      usable (a single-element list, or a partner the loader disclosed away) -> ``delta=None`` + a
+      ``missing[]`` note (COMP-02: an absent endpoint is disclosed, never silently deltaless).
+    * zero endpoints -> a point-in-time ``value:`` declaration — no movement promised, value-only,
+      NO note (disclosure tracks declared-but-unmet expectations, not the absence of a promise).
     """
     delta: Optional[str] = None
     direction: Optional[Literal["up", "down"]] = None
@@ -214,6 +218,11 @@ def _compose_kpi_item(
                 f"KPI {item.label!r} declares a movement whose two endpoints are not both "
                 "content-addressed numeric values — no delta derived (never a fabricated 0)"
             )
+    elif len(endpoints) == 1:
+        missing.append(
+            f"KPI {item.label!r} declares period movement but only one endpoint is usable — "
+            "no delta derived (never a fabricated 0)"
+        )
     return KpiItem(label=item.label, value=item.value, delta=delta, dir=direction)
 
 
