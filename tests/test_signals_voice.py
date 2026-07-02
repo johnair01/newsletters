@@ -22,8 +22,11 @@ _SHIP = _ROOT / ".claude" / "gsd-core" / "workflows" / "ship.md"
 _SUMMARY_TPL = _ROOT / ".claude" / "gsd-core" / "templates" / "summary-standard.md"
 _CONFIG = _ROOT / ".planning" / "config.json"
 
-# The five dispatch sections, in the order the seed prescribes.
+# The dispatch sections, in prescribed order. "Start here" is the client section (JJ's
+# 2026-07-02 review: the reviewer is a client being taught — plain terms, clickable links,
+# the rendered artifact first). It leads every body.
 _DISPATCH_SECTIONS = [
+    "## Start here",
     "## The signal",
     "## What we learned",
     "## What's verified",
@@ -80,6 +83,18 @@ def test_ship_forbids_fact_asserting_fallbacks() -> None:
     assert (
         "No known high-risk rollout dependencies" not in step.split("forbidden")[-1]
     ), "the fact-asserting fallback example returned as guidance"
+
+
+def test_ship_requires_the_client_section() -> None:
+    """The client section's three mandatory parts survive (JJ review, 2026-07-02)."""
+    step = _pr_body_step(_SHIP.read_text(encoding="utf-8"))
+    for marker in ("What we built", "Why it matters to you", "How to review it"):
+        assert marker in step, f"the client section lost its {marker!r} part"
+    lowered = step.lower()
+    assert "client" in lowered, "the reviewer-is-a-client framing is gone"
+    assert (
+        "rendered" in lowered and "link" in lowered
+    ), "the link-the-rendered-artifact rule is gone"
 
 
 def test_summary_template_feeds_the_dispatch() -> None:

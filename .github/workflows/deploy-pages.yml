@@ -6,8 +6,8 @@ name: Deploy web/ to GitHub Pages
 # and on manual dispatch.
 on:
   push:
-    branches: [main, claude/new-session-kz7u69]
-    paths: ['web/**', '.github/workflows/deploy-pages.yml']
+    branches: [main, claude/swimlane-report-composer-1i8vxt]
+    paths: ['web/**', 'content/**', '.github/workflows/deploy-pages.yml']
   workflow_dispatch:
 
 permissions:
@@ -39,6 +39,18 @@ jobs:
           enablement: true
       - run: npm ci
       - run: npm run build
+      # The rendered report corpora (the actual reviewable product — claim-beside-trace
+      # pages with honesty panels) publish alongside the web app so a reviewer can READ
+      # a report at /reports/<corpus>/ instead of opening raw HTML from the repo.
+      - name: Bundle rendered report corpora
+        working-directory: .
+        run: |
+          mkdir -p web/out/reports
+          for corpus in rev1 work module; do
+            if [ -d "content/${corpus}/site" ]; then
+              cp -r "content/${corpus}/site" "web/out/reports/${corpus}"
+            fi
+          done
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web/out
