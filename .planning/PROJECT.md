@@ -20,6 +20,31 @@ surfaces where every claim traces to its evidence and nothing publishes without 
 deterministic, auditable trust layer is what makes that legibility *believable*; AI is an optional
 accelerator, never an authority. If everything else fails, *this* must hold.
 
+## Current Milestone: v1.1 Swim-Lane Module Report
+
+**Goal:** Build the smallest fully-real, config-driven Report composer that cuts one owned module
+across its swim lanes — the spine exists; the composer is the missing piece.
+
+**Target features:**
+- Swim-lane binding + traced YAML loader — lane → `FunctionalGroup`+`Kpi`s/`Objective`s; every
+  loaded value becomes a `Claim`/`KpiItem` traced to its YAML source (or a declared slot)
+- Module-scope Report composer — per-lane `KpiStripBlock` (start→close Δ computed at compose time
+  into `KpiItem.delta`; NO start/baseline field on `Kpi`) + `ClaimsBlock`; unsubstantiated →
+  `Surface.missing[]`; stable `R-NNN` from the ledger; `Draft` state
+- Worked synthetic Module Report (`module-a`, fabricated naming scheme) rendered into `content/`,
+  Library-visible and gate-visible (method-docs sub-task skipped — companion files absent)
+- Signals-voice PR/summary — `ship` workflow PR bodies read as Signals dispatches, generated from
+  diff + verbatim gate output; may not weaken any gate
+
+**Fundamental principle (JJ, 2026-07-02):** ABSTRACT EVERYTHING. Core code carries data models
+only; module/lane/owner specifics are **configs** (YAML), never hardcoded. Any org's team shape
+must fit without touching `src/`. Enforced by a test that fails if fixture-specific names leak
+into source code.
+
+**Unit-of-work model:** a Report is a swim lane, a project/initiative, or an interview — audited
+by its owner. This milestone builds the swim-lane kind ONLY; the section abstraction stays generic
+enough for the other kinds to slot in later.
+
 ## How it's used
 
 One engine, every context: **Sources → Report (reviewed) → Article (peer-reviewed) → Newsletter
@@ -55,15 +80,29 @@ what matters.
 
 ### Active
 
-<!-- Current scope. Hypotheses until shipped and validated. -->
+<!-- Current scope (v1.1). Hypotheses until shipped and validated. -->
 
-- [ ] Make the core **AI-optional**: move `langchain` to an optional extra; the spine runs with zero AI deps
-- [ ] Formalize **distill as a swappable socket** — one interface, backends: by-hand / OSS tool / AI
-- [ ] **Format adapters** as the first borrowable backends: PowerPoint, Power BI, Excel, Email → faithful structured extraction → `Claim(+Trace)`
-- [ ] Enforce **faithful, not suggestive** extraction (extract + trace, never editorialize)
-- [ ] **Rev2 site fix** in the renderer/templates: split real Home from a Library status-board; real navigation; per-surface IDs; traceable source links
-- [ ] **Work-surface installation**: install on a real work codebase; author Reports by hand; the Library shows how the work was done
-- [ ] **Learning / onboarding surface**: re-cut reviewed records for newcomers and training cohorts — digestible, traceable, sequenced
+- [ ] **Swim-lane binding + traced YAML loader** — bind a configured swim lane to its
+  `FunctionalGroup`/`Kpi`s/`Objective`s; loaded values become `Claim`/`KpiItem` traced to their YAML source
+- [ ] **Module-scope Report composer** — one `Surface(REPORT)` per module: per-lane KPI strip (Δ at
+  compose time) + traced claims; `missing[]` honesty routing; stable `R-NNN`; `Draft` only
+- [ ] **Worked synthetic Module Report** — `module-a` example config rendered into `content/`, visible
+  in the Library with claim-beside-trace + honesty panel
+- [ ] **Signals-voice PR bodies** — ship workflow generates faithful, evidence-first dispatches from
+  diff + gate output
+- [ ] **Abstraction guard** — no fixture/org-specific names in `src/`; config-driven lane sets proven
+  by test
+
+### Validated in v1.0 (2026-06, Phases 1–13)
+
+- ✓ AI-optional core — `[ai]` extra, import-linter contract, bare-install CI gate (Phase 2)
+- ✓ Distill as a swappable socket — `DistillPort` + registry + manual backend + conformance suite (Phase 1)
+- ✓ Format adapters: Email, Excel, PPTX, Power BI — faithful extraction, zero silent drops (Phases 4–7)
+- ✓ Faithful-not-suggestive enforcement — content-addressed traces + span-containment gate (Phase 3)
+- ✓ Rev2 site fix — Home/Library split, nav, stable IDs, source links (Phases 8–9)
+- ✓ Reviewer surfacing + merge-block gate — honesty panel, `newsletters check` CI (Phase 10)
+- ✓ Work-surface installation — dogfooded on this repo (Phase 11)
+- ✓ Learning/onboarding surface + Problem lifecycle entity (Phases 12–13)
 
 ### Out of Scope
 
@@ -117,6 +156,9 @@ what matters.
 | Low-token, generic extraction (not no-AI, not per-template) | Cheapest models + format consistency; manual is the floor | — Pending |
 | Agents are interviewers (a distill modality) | Interview you / your work / your codebase to fill gaps faithfully | — Pending |
 | Promotion chain Report → Article → Newsletter is the spine | Each human-gated; the real-world shape of the model's promotions | — Pending |
+| Abstract everything: models in code, specifics in config (v1.1) | Different modules/teams organize differently; hardcoded lanes = a fixed tool. JJ's fundamental principle, 2026-07-02 | — Pending |
+| Report unit-of-work: swim-lane kind first; project/interview kinds deferred | Close one loop fully before widening; keep the section abstraction generic | — Pending |
+| Δ computed at compose time into `KpiItem.delta`; no Kpi start/baseline field | Model change deferred deliberately; composer derives, model stays untouched | — Pending |
 
 ## Evolution
 
@@ -136,4 +178,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-14 after initialization*
+*Last updated: 2026-07-02 after starting milestone v1.1 (Swim-Lane Module Report)*
