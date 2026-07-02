@@ -22,6 +22,11 @@ completed: YYYY-MM-DD
 
 **[Substantive one-liner describing outcome]**
 
+## The signal
+
+[One honest line: what exists now that didn't before, and what it makes possible. Drawn from the
+actual diff/outcome, never from intention — this line feeds the ship dispatch's "The signal".]
+
 ## Performance
 - **Duration:** [time]
 - **Tasks:** [count completed]
@@ -43,6 +48,11 @@ completed: YYYY-MM-DD
 ## Decisions & Deviations
 [Key decisions or "None - followed plan as specified"]
 [Minor deviations if any, or "None"]
+
+## What's not here yet
+[This plan's honest missing[] — deferrals with reasons, skipped sub-tasks (named), open seams,
+known caveats, inherited debt deliberately untouched. Feeds the ship dispatch's "What's not
+here yet". Never empty-by-omission: if genuinely nothing, write "Nothing known deferred."]
 
 ## Next Phase Readiness
 [What's ready for next phase]
