@@ -1,412 +1,139 @@
-# Roadmap: Newsletters (Rev2)
+# Roadmap: Newsletters — Milestone v1.1 (Swim-Lane Module Report)
+
+> **Fresh file for v1.1.** The v1.0 (Rev2) roadmap and its Phases 1–14 are **archived in git
+> history** — the v1.0 phase directories are archived, so numbering **resets to Phase 1–4** for
+> this milestone with no collision. The milestone seed, branch naming (`phase-01..04`), and the
+> run plan (`/gsd autonomous --to 4`) all assume the 1–4 numbering used here.
+
+**Milestone:** v1.1 Swim-Lane Module Report
+**Defined:** 2026-07-02
+**Granularity:** fine
+**Phases:** 4 (locked by approved milestone scope — not to be added to or split)
+**Coverage:** 12/12 v1.1 requirements mapped ✓
 
 ## Overview
 
-Rev2 operationalises the validated Rev1 spine (`Source/Claim/Trace/Distillation/Surface`, deterministic
-capture, review gate, HTML renderer — already merged on this branch) into a formally-defined,
-backend-agnostic trust pipeline. The journey: first lock the **distill socket contract** (the one
-boundary that gates every backend — coverage manifest, content-addressed traces, entailment gate,
-conformance suite) and stand up the **AI-optional packaging invariant** so the deterministic spine
-ships with zero AI deps from day one. With the contract fixed, two tracks open in parallel — the
-**Rev2 site/renderer** (depends only on type shapes) and the **format adapters** (Email → Excel →
-PPTX → Power BI, ascending complexity). Provenance surfacing and the merge-blocking CI gate close the
-human-review loop, and finally the **work-surface installation** proves the whole thing on a real
-codebase, and a first-class **learning/onboarding surface** re-cuts reviewed records for newcomers
-and training cohorts. AI backend (v2: AI-01/02) is explicitly out of v1 scope — the deterministic backends are
-proven first; AI conforms to them later, never the reverse.
+The trust spine already ships (`Source → Claim(+Trace) → Distillation → Surface`, the review gate,
+the renderer, the merge-block gate). This milestone bolts on the **missing composer**: the smallest
+fully-real, config-driven machine that cuts one owned module across its swim lanes into a reviewed,
+evidence-traced Report. The journey is strictly linear for the core: a traced YAML **loader** turns
+per-module swim-lane config into content-addressed `Claim`/`KpiItem`s (Phase 1); a **composer**
+arranges those traced inputs into a module-scope `Surface(REPORT, Draft)` with compose-time deltas
+and honest `missing[]` routing (Phase 2); a **worked synthetic example** (`module-a`, fabricated
+naming) proves the whole path end-to-end into the Library (Phase 3). A fourth, independent phase
+makes the `ship` workflow's PR bodies read as faithful Signals dispatches (Phase 4). The overriding
+principle — **ABSTRACT EVERYTHING** — is enforced from Phase 1: models in code, module/lane/owner
+specifics in config, no fixture names in `src/`.
+
+## Enforced gate set (definition of "green" for every phase)
+
+A phase is green only when **all** of the following pass, re-run independently (agent "green" ≠ green):
+
+1. **pytest** — full suite, including the new adversarial guard tests each phase lands
+2. **lint-imports** — import-linter contracts (AI-optional core + no-external-write held)
+3. **`newsletters check`** — the unforked merge-block gate, run over **all corpora** (`rev1`, `work`, and, from Phase 3, `module`)
+4. **byte-stable double-render** — SITE-06 invariant holds over every rendered output
+5. **bare-install CI** — `pip install .` runs the spine with zero YAML / zero AI reachable
+
+`mypy` / `black` / `isort` are held to a **no-NEW-failures** standard versus the recorded
+**2026-07-02 baseline** (the repo pre-dates a global format pass: ~59 files, 9 pre-existing mypy
+errors). Cleanup of that debt is out of scope for this milestone.
+
+> **Phase-1 circuit breaker:** If Phase 1 does not finish **cleanly green** on the enforced gate
+> set above, the run **STOPS**. Everything downstream consumes the loader's traced output; an
+> un-honest or non-deterministic loader must not be built upon.
 
 ## Phases
 
-**Phase Numbering:**
-
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
-
-Decimal phases appear between their surrounding integers in numeric order.
-
-- [x] **Phase 1: Distill Socket Contract** - One `DistillPort` with coverage manifest, conformance suite, and manual backend (completed 2026-06-17)
-- [x] **Phase 2: AI-Optional Packaging Boundary** - Bare `pip install .` runs the full spine with zero AI deps, CI-enforced every phase (completed 2026-06-17)
-- [x] **Phase 3: Content-Addressed Provenance & Faithfulness Gate** - Traces pin content hashes; every claim entailed by its evidence span (completed 2026-06-17)
-- [ ] **Phase 4: Shared Adapter Normalizer & Email Adapter** - One faithful-extraction rule; first stdlib adapter end-to-end
-- [x] **Phase 5: Excel Adapter** - openpyxl cell/sheet extraction with formula-cache gaps routed to `unextracted[]` (completed 2026-06-17)
-- [x] **Phase 6: PowerPoint Adapter** - python-pptx slide/shape extraction reporting unreadable shapes (completed 2026-06-17)
-- [x] **Phase 7: Power BI Adapter** - PBIP/TMDL text extraction reporting row-cap and aggregation limits (completed 2026-06-18)
-- [x] **Phase 8: Site Content Model & Stable IDs** - `Site/Collection/Page` with position-independent per-surface IDs (completed 2026-06-18)
-- [x] **Phase 9: Rev2 Site IA, Navigation & Source Links** - Real Home, Library status-board, four-destination nav, working source links (completed 2026-06-18)
-- [x] **Phase 10: Reviewer Surfacing & Merge-Block Gate** - `missing[]`/`unextracted[]` shown on every surface; CI blocks unsafe merges (completed 2026-06-18)
-- [x] **Phase 11: Work-Surface Installation** - Install on a real codebase, author Reports by hand, Library shows how the work was done (completed 2026-06-18)
-- [x] **Phase 12: Learning & Onboarding Surface** - A first-class surface that re-cuts reviewed records for newcomers and training cohorts — digestible, traceable, sequenced (completed 2026-06-19)
-- [x] **Phase 13: Problem Lifecycle Entity (A2)** - A first-class `Problem` above `Source` with its own state ladder — legibility layer, not a tracker; solving stays external
-- [ ] **Phase 14: Problem Board Portfolio Surface (A2)** - A queryable portfolio view — group/count/age problems by node, surface recurrence, every problem traced to its sources
+- [ ] **Phase 1: Swim-lane binding + traced YAML loader** - config → content-addressed traced `Claim`/`KpiItem`s, honest routing, abstraction guard (`swimlane.py`)
+- [ ] **Phase 2: Module-scope Report composer** - traced bindings → `Surface(REPORT, Draft)`, compose-time Δ, faithfulness holes closed by new tests (`compose.py`)
+- [ ] **Phase 3: Worked synthetic Module Report** - `module-a` config renders into the Library as a third `module` corpus with its own ledger
+- [ ] **Phase 4: Signals-voice PR/summary** - `ship` workflow PR bodies read as evidence-first Signals dispatches
 
 ## Phase Details
 
-### Phase 1: Distill Socket Contract
-
-**Goal**: Establish the one backend boundary every distill backend speaks through — including the coverage manifest, the conformance suite, and a working manual backend that proves the socket end-to-end with zero AI.
-**Mode:** mvp
-**Depends on**: Nothing (Rev1 spine is present/merged on this branch)
-**Requirements**: SOCK-01, SOCK-02, SOCK-03, SOCK-04, SOCK-05
+### Phase 1: Swim-lane binding + traced YAML loader
+**Goal**: An operator can declare a module's swim lanes in YAML, and a deterministic, lazy-loaded
+loader binds each lane to its `FunctionalGroup`/`Kpi`s/`Objective`s as content-addressed traced
+inputs — no `models.py` change, no fixture names in `src/`, zero silent drops.
+**Depends on**: Nothing (first phase). **Gates the whole milestone — circuit breaker applies.**
+**Requirements**: LANE-01, LANE-02, LANE-03, LANE-04
 **Success Criteria** (what must be TRUE):
+  1. Loading an arbitrary configured lane set produces one `SectionBinding` per lane bound to its `FunctionalGroup`+`Kpi`s/`Objective`s at the parsed-dict level, with zero changes to `models.py` (proven by test).
+  2. Every value the loader reads becomes a `Claim`/`KpiItem` minted **only** via `Trace.from_source` against the raw file text (`Source.transcript == path.read_text()` verbatim), and `trace.is_addressed is True` for every one (adversarial test proves an un-addressed trace is caught, not silently passed — closes Hole B upstream).
+  3. The read-anchored coverage identity holds: every scalar **read** is either content-addressed or routed to `unextracted[]`/`missing` — `len(claims) + len(unextracted) == scalars walked`, with no silent drops on the trap fixture (duplicates/quotes/coercion/anchors/block scalars).
+  4. The abstraction-guard test **fails the suite** if any fixture/org-specific name (lane, module, owner id) appears in `src/newsletters/` — lane sets are proven config, not code.
+  5. `pip install .` (bare) imports the spine with `import yaml` unreachable; PyYAML lives behind a `[config]` extra, lazy-imported inside `swimlane.py` only.
+**Plans**: TBD
 
-  1. An operator can register a distill backend by name and run `distill(sources) -> Distillation` without the pipeline knowing which backend produced the result
-  2. An operator can author claims+traces by hand via the manual backend and emit a valid `Distillation` with zero AI dependencies
-  3. Any backend reports a coverage manifest with an explicit `unextracted[]` list, so no content is silently dropped
-  4. A conformance suite runs against any registered backend and fails it if traces are missing, coverage is unreported, or the faithfulness contract is violated
-
-**Plans**: 2 plans (2 waves)Plans:
-**Wave 1**
-
-- [x] 01-01-PLAN.md — Walking skeleton: DistillPort + registry + ManualBackend + Coverage/Locator contract, end-to-end through the socket with zero AI (SOCK-01..04, D-04, D-06) — DONE (27 tests green, mypy clean, acyclic imports)
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 01-02-PLAN.md — Conformance suite (SOCK-05) + the no-auto-publish / AI-optional hard rules proven by test; injectable faithfulness seam
-
-### Phase 2: AI-Optional Packaging Boundary
-
-**Goal**: Make the deterministic spine ship with zero AI dependencies, and turn that property into a standing CI invariant that every subsequent phase must keep green.
-**Mode:** mvp
-**Depends on**: Phase 1
-**Requirements**: PKG-01, PKG-02, PKG-03, PKG-04
+### Phase 2: Module-scope Report composer
+**Goal**: Given traced bindings, the composer assembles one `Surface(REPORT, Draft)` per module —
+per-lane KPI strip (Δ at compose time) + traced claims, honest `missing[]` routing, stable `R-NNN` —
+selecting/ordering/linking traced material only, never authoring facts.
+**Depends on**: Phase 1 (consumes its `SectionBinding[]` output).
+**Requirements**: COMP-01, COMP-02, COMP-03, COMP-04
 **Success Criteria** (what must be TRUE):
+  1. The composer builds one `Surface(REPORT)` from an arbitrary configured lane set via a kind-agnostic `SectionBinding` seam (per lane: `KpiStripBlock` + `ClaimsBlock`) — project/interview report kinds could slot in with zero composer change (proven by a seam/second-kind test).
+  2. Start→close Δ is computed by one pure `compute_delta(start, close)` from two independently content-addressed endpoints into `KpiItem.delta`; a reproducibility test recomputes every rendered delta and asserts byte-equality; if either endpoint is absent, `delta=None`/`dir=None` + a `missing[]` note — never a fabricated `0`; no `Kpi` start/baseline field is added.
+  3. A test fails if the composer emits any claim with zero traces or any un-content-addressed trace (closes Hole B), and a numeral-free-prose guard fails if any non-`ClaimsBlock` block's text carries a digit run not drawn from a traced claim (closes Hole A) — `faithfulness.py`/`coverage.py` untouched.
+  4. The composed surface carries a stable `R-NNN` from `Ledger.ref_for` against its own `content/module/ids.json`, lands in `Draft` with an owner/manager quote slot and a `fanout` stub, and a no-auto-publish test proves it cannot reach `Published` without the gate.
+**Plans**: TBD
 
-  1. `pip install .` with no extras installs a fully working pipeline that runs capture → review → render end-to-end with zero AI dependencies
-  2. All AI/LLM dependencies live behind an `[ai]` extra and are lazy-imported only inside the AI backend module
-  3. A CI gate runs the full pipeline on a bare (no-extras) install and fails if any AI import is reachable from core
-  4. An import-linter contract forbids `core` from importing any AI package, and CI enforces it
-
-**Plans**: 2 plans (2 waves)
-
-**Wave 1**
-
-- [x] 02-01-PLAN.md — Dependency reorg (core = non-AI only; `[ai]` = pydantic-ai; drop langsmith/langchain/langgraph) + import-linter forbidden contract + plugin-aware runtime AI-isolation test (PKG-01, PKG-02, PKG-04)
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 02-02-PLAN.md — CI workflow: the bare no-extras install full-pipeline gate (PKG-03, the canonical source-of-truth) + the import-linter contract job (PKG-04) — the standing AI-optional invariant on every push
-
-### Phase 3: Content-Addressed Provenance & Faithfulness Gate
-
-**Goal**: Make traces resistant to source drift and make unfaithful claims structurally unable to pass as audited — content-address every trace and enforce entailment at the socket boundary for all backends.
-**Mode:** mvp
-**Depends on**: Phase 1
-**Requirements**: PROV-01, PROV-02
+### Phase 3: Worked synthetic Module Report
+**Goal**: A committed synthetic `module-a` config composes and renders end-to-end (loader → composer
+→ ledger → render → Library) as a third `module` corpus with its own ledger, gate-visible and
+byte-stable.
+**Depends on**: Phase 2 (needs a working composer).
+**Requirements**: MODA-01, MODA-02
 **Success Criteria** (what must be TRUE):
-
-  1. Every claim's `Trace` is content-addressed (hash + offset + verbatim span), not positional, so editing a source flips dependent claims to STALE instead of silently mis-attributing
-  2. A faithfulness gate verifies each emitted claim is entailed by its traced evidence span, using deterministic span-containment in no-AI mode
-  3. A claim whose text cannot be located in or entailed by its own trace is routed to `missing[]`, never surfaced as a fact
-
-**Plans**: 3 plans (2 waves)
-
-**Wave 1**
-
-- [x] 03-01-PLAN.md — Content-addressed Trace (SHA-256 of full Source + char offsets + verbatim span), self-verifying `Trace.from_source`, and STALE as a computed property at trace/claim/distillation granularity (PROV-01, D-1/D-2/D-4)
-
-**Wave 2** *(blocked on Wave 1; 03-02 and 03-03 run in parallel — disjoint files)*
-
-- [x] 03-02-PLAN.md — Migrate the Rev1 dogfood sample sources to content-addressed traces in place (faithful, reports anything unlocatable); corpus addressed + not stale after build (PROV-01, D-4)
-- [x] 03-03-PLAN.md — `SpanContainmentFaithfulness` (normalized, deterministic, stdlib-only) defaulted at the Phase-1 `_enforce`/`assert_conforms` seam so every backend inherits it, plus `route_unfaithful_to_missing` (PROV-02, D-3/D-4)
-
-### Phase 4: Shared Adapter Normalizer & Email Adapter
-
-**Goal**: Put the faithful-extraction rule in exactly one place (the shared normalizer) and prove it with the first, simplest adapter — Email, stdlib-only, no extra.
-**Mode:** mvp
-**Depends on**: Phase 1, Phase 3
-**Requirements**: ADAPT-01, ADAPT-02, ADAPT-06
-**Success Criteria** (what must be TRUE):
-
-  1. A shared `normalize()` step converts any adapter's raw extraction into typed `Claim(+Trace)` with source locators, and the faithful-extraction rule lives in exactly one place
-  2. The Email adapter extracts structured content from `.eml` into `Claim(+Trace)` and reports unextracted parts (forwarded `message/rfc822`, charset-fallback losses) in `unextracted[]`
-  3. A golden-file test (fixture `.eml` → expected typed claims+traces) covers the Email adapter and asserts zero silent drops
-
-**Plans**: 3 plans (3 waves)
-
-**Wave 1**
-
-- [x] 04-01-PLAN.md — Shared `normalize()` (ADAPT-01): the single faithful-extraction site — cursor-advancing offset location + `Trace.from_source` minting; non-locatable units routed to `unextracted[]`; new `src/newsletters/adapters/` package, stdlib-only
-
-**Wave 2** *(blocked on Wave 1 — imports `normalize()`)*
-
-- [x] 04-02-PLAN.md — Email `.eml` adapter (ADAPT-02): registered `DistillPort` backend — `policy.default` parse, canonical decoded transcript, deterministic charset ladder + U+FFFD detection, HTML-only emit-both, full U1–U8 `unextracted[]` routing; selectable as `"email"` and conforming
-
-**Wave 3** *(blocked on Wave 2 — drives the built adapter)*
-
-- [x] 04-03-PLAN.md — Golden-file corpus (ADAPT-06): 8 committed `.eml` fixtures + zero-silent-drops accounting identity + verbatim/content-addressed assertions + `assert_conforms` (span-containment + JSON round-trip) + determinism — identity holds for all 8; no adapter bug found
-
-### Phase 5: Excel Adapter
-
-**Goal**: Extract cell and sheet structure from workbooks via openpyxl, routing every value openpyxl cannot resolve to `unextracted[]` rather than emitting it as data.
-**Mode:** mvp
-**Depends on**: Phase 4
-**Requirements**: ADAPT-03
-**Success Criteria** (what must be TRUE):
-
-  1. The Excel adapter extracts cell/sheet structure into `Claim(+Trace)` with `sheet!cell` locators
-  2. Uncomputed / `None` formula cells (openpyxl-saved-without-cache) are routed to `unextracted[]`, never emitted as `0` or empty data
-  3. A golden-file test covers the Excel adapter against a fixture containing formulas and merged cells, asserting zero silent drops
-
-**Plans**: 4 plans (3 waves)
-
-**Wave 1**
-
-- [x] 05-01-PLAN.md — Task Zero: typed `Source.extraction` carrier (R1) + shared coverage codec; retrofit Email adapter (kill the in-memory dict); R2 safety-net; round-trip coverage-parity conformance test (ADAPT-03 carried hardening)
-- [x] 05-02-PLAN.md — openpyxl `[excel]` extra + lazy `_load_openpyxl()`; extend the bare-install AI-isolation gate; R4 Wave-0 probe pinning the chart/image attribute names (ADAPT-03)
-
-**Wave 2** *(blocked on Wave 1 — needs the carrier + the lazy loader/probe)*
-
-- [x] 05-03-PLAN.md — `ExcelAdapter` (registered `"excel"`): double-load, canonical `sheet!cell` transcript, faithful per-cell fork (formula-no-cache/error/charts → `unextracted[]`), merged-anchor handling, drops on `Source.extraction`, conforms (ADAPT-03)
-
-**Wave 3** *(blocked on Wave 2 — drives the built adapter)*
-
-- [x] 05-04-PLAN.md — Byte-reproducible `.xlsx` golden corpus (ADAPT-06): formula±cache, merged, multi-sheet, mixed types, empty, error cell, chart/image; zero-silent-drops + verbatim + content-addressed + conformance + determinism + round-trip coverage parity
-
-### Phase 6: PowerPoint Adapter
-
-**Goal**: Extract slide and shape text from decks via python-pptx, explicitly reporting the shapes the high-level API cannot read.
-**Mode:** mvp
-**Depends on**: Phase 4
-**Requirements**: ADAPT-04
-**Success Criteria** (what must be TRUE):
-
-  1. The PowerPoint adapter extracts slide/shape text into `Claim(+Trace)` with slide/shape locators
-  2. Shapes the adapter cannot read (e.g. SmartArt, grouped shapes) are reported in `unextracted[]`, so the reviewer sees the slide had content the extractor skipped
-  3. A golden-file test covers the PowerPoint adapter against a fixture containing SmartArt and grouped shapes, asserting zero silent drops
-
-**Plans**: 4 plans (3 waves)
-
-**Wave 1** *(parallel — disjoint file ownership)*
-
-- [x] 06-01-PLAN.md — FRONT FIX (CONTEXT decision 0 / L1): shared `adapters/_timestamps.py` (`EPOCH_ZERO` + `deterministic_timestamp`); retrofit email + excel off the `now()` fallback; cross-adapter determinism test (ADAPT-04 pattern prerequisite)
-- [x] 06-02-PLAN.md — PACKAGING (CONTEXT decision 1): `pptx = ["python-pptx"]` extra + lazy `_pptx_loader.py` (no top-level pptx import); install python-pptx in `.venv`; extend the bare-install AI-isolation gate; A1 graphic-frame `@uri` accessor + lxml-fallback probe (ADAPT-04)
-
-**Wave 2** *(blocked on Wave 1 — needs `_timestamps.py` + `_pptx_loader.py`)*
-
-- [x] 06-03-PLAN.md — `PptxAdapter` (registered `"pptx"`): ordered slide/shape walk, group recursion (L3), per-paragraph/cell/notes verbatim claims, full unreadable taxonomy (SmartArt/chart/picture/media/OLE → `unextracted[]`, L2), drops on `Source.extraction`, deterministic timestamp, conforms; lazy python-pptx only (ADAPT-04 criteria 1+2)
-
-**Wave 3** *(blocked on Wave 2 — drives the built adapter)*
-
-- [x] 06-04-PLAN.md — Byte-reproducible `.pptx` golden corpus (ADAPT-06 + criterion 3): SmartArt + nested grouped shapes, title+body, text box, table, notes, chart, image, empty slide; zero-silent-drops (incl. nested-group accounting) + verbatim + content-addressed + conformance + Source-determinism (L5) + round-trip coverage parity; join the parity matrix + the cross-adapter determinism test
-
-### Phase 7: Power BI Adapter
-
-**Goal**: Extract from Power BI PBIP/TMDL text (stdlib, ZERO new dependency), reporting the row-cap and aggregation limits that make an export look complete when it is a clipped aggregate; route binary `.pbix` to a fail-loud "export to PBIP" disclosure (pbixray DEFERRED per research-locked L1).
-**Mode:** mvp
-**Depends on**: Phase 4
-**Requirements**: ADAPT-05
-**Success Criteria** (what must be TRUE):
-
-  1. The Power BI adapter extracts from PBIP/TMDL text (stdlib) into `Claim(+Trace)`; binary `.pbix` routes to a whole-source `unextracted[]` deferral ("export to PBIP for faithful extraction") — pbixray DEFERRED (research-locked L1), ZERO new dependency
-  2. Row-cap hits and summarized-vs-underlying aggregation limits are reported in `unextracted[]`, failing loud rather than presenting a clipped aggregate as complete
-  3. A golden-file test covers the Power BI adapter against a fixture, asserting zero silent drops
-
-**Plans**: 4 plans (3 waves)
-
-**Wave 1** *(parallel — disjoint file ownership; pure stdlib parsers, unit-testable)*
-
-- [x] 07-01-PLAN.md — Stdlib TMDL line/indent parser (`_tmdl.py`, L2): ordered verbatim `(object-path, value)` units for tables/columns/measures/relationships/hierarchies/annotations; DAX extracted as TEXT, never evaluated; directQuery surfaced as a signal (ADAPT-05, D-3/L2)
-- [x] 07-02-PLAN.md — Stdlib PBIR report reader (`_pbir.py`, L3): verbatim page/visual/textbox/field units + the typed row-cap/aggregation detection taxonomy (TopN, restricting filters, summarized/aggregated bindings, DirectQuery/rowlimit), filter literals disclosed as config text (ADAPT-05, D-4/L3)
-
-**Wave 2** *(blocked on Wave 1 — composes both parsers)*
-
-- [x] 07-03-PLAN.md — `PowerBiAdapter` (registered `powerbi`): folder `parse_path` + byte `parse`, canonical prefixed transcript (L5), `.pbix` deferral (L1/`_R_PBIX_BINARY`), the full `_R_*` taxonomy + categorical `_R_NO_DATA_ROWS` → `unextracted[]` (fail loud), drops on `Source.extraction`, EPOCH_ZERO timestamp, conforms; joins the parity + determinism matrices (ADAPT-05 criteria 1+2)
-
-**Wave 3** *(blocked on Wave 2 — drives the built adapter)*
-
-- [x] 07-04-PLAN.md — Hand-authored byte-reproducible PBIP/TMDL golden corpus (ADAPT-06 criterion 3): TMDL model + relationship + plain + Top-N/summarized visuals + `.pbix` deferral; zero-silent-drops + verbatim/content-addressed claims + pinned `_R_TOPN`/`_R_AGGREGATED`/`_R_NO_DATA_ROWS`/`_R_PBIX_BINARY` + conformance + Source-determinism (L5) + round-trip coverage parity (ADAPT-05, ADAPT-06)
-
-### Phase 8: Site Content Model & Stable IDs
-
-**Goal**: Replace position-derived numbering with a `Site/Collection/Page` content model that carries stable per-surface IDs, so links and boards stop rotting when content reorders.
-**Mode:** mvp
-**Depends on**: Phase 1
-**Requirements**: SITE-01
-**Success Criteria** (what must be TRUE):
-
-  1. The `Site/Collection/Page` content model carries stable per-surface IDs (`EP01`, `R-001`, slug, issue/date) generated from content, independent of list position
-  2. Inserting or reordering surfaces does not change any existing surface's ID or break its cross-links
-
-**Plans**: 2 plans
-
-Plans:
-
-- [x] 08-01-PLAN.md — Identity core (TDD): `site.py` slugify + append-only `Ledger` + `Site/Collection/Page` + `from_surfaces`/`by_slug`, the reorder/insert stability test (L7), seeded `content/rev1/ids.json`, package exports
-- [x] 08-02-PLAN.md — Page-driven renderer: rewrite `render_library` to use `Page.ref` (drop the positional index) + `build_site` builds the Site, plus the spec update (L2) and the no-rot regression test
-
-**UI hint**: yes
-
-### Phase 9: Rev2 Site IA, Navigation & Source Links
-
-**Goal**: Fix the deployed site's information architecture — a real marketing Home separate from a Library status-board, four real nav destinations with breadcrumbs, and every cited source rendered as a working link — all regenerated from templates.
-**Mode:** mvp
-**Depends on**: Phase 8
-**Requirements**: SITE-02, SITE-03, SITE-04, SITE-05, SITE-06
-**Success Criteria** (what must be TRUE):
-
-  1. The front door is the real marketing Home (8-section spec) and the archive is a separate Library page
-  2. The Library renders as a status board with columns by gate state (Draft / In Review / Published) using CSS columns, no JS
-  3. Global navigation resolves to four real destinations with breadcrumbs and prev/next within a surface type
-  4. The fan-out diagram and every cited source render as working links (e.g. `vision.md` → repo file)
-  5. All site output regenerates from the renderer/templates with no hand-edited HTML
-
-**Plans**: 3 plans (3 waves)
-
-Plans:
-
-- [x] 09-01-PLAN.md — Wave 1: the 8-section marketing Home (`render_home` + section helpers + Home/board CSS + responsive `@media`); route split index.html=Home, library.html=archive (SITE-02)
-- [x] 09-02-PLAN.md — Wave 2: the gate-state status board (`_board*`, CSS grid, no JS) + four resolved nav destinations + `_breadcrumb` + `_prevnext` (within surface type) + footer library link (SITE-03, SITE-04)
-- [x] 09-03-PLAN.md — Wave 3: `source_base_url` + `link_for_source`, linked evidence chips + `FanoutLink.href` + SVG fan-out anchors + Home/footer links; generated marker + byte-stable regen + no-dead-link test (SITE-05, SITE-06)
-
-**UI hint**: yes
-
-### Phase 10: Reviewer Surfacing & Merge-Block Gate
-
-**Goal**: Make the human review gate real rather than a rubber stamp — surface every `missing[]` and `unextracted[]` item on every surface, and block merge in CI while any claim is STALE, un-entailed, or has open gaps.
-**Mode:** mvp
-**Depends on**: Phase 3, Phase 9
-**Requirements**: PROV-03, PROV-04
-**Success Criteria** (what must be TRUE):
-
-  1. `missing[]` and `unextracted[]` are surfaced to the reviewer on every surface, never hidden
-  2. CI blocks merge of any surface containing a STALE, un-entailed, or open-`missing[]` claim
-  3. The review view shows each claim next to its verbatim trace by default, so the unfaithful thing is visible without a click
-
-**Plans**: 3 plans (2 waves)
-
-Plans:
-
-**Wave 1**
-
-- [x] 10-01-PLAN.md — Surface.missing carrier (L1) + the pure AI-free merge-block checker review.py (Blocker + review_blockers, L2/L3) + the three gate-FIRES negative fixtures (STALE / un-entailed / open-missing) + no-AI guard (L7) — PROV-04 core
-
-**Wave 2** *(blocked on Wave 1; 10-02 and 10-03 run in parallel — disjoint files)*
-
-- [x] 10-02-PLAN.md — `newsletters check` Typer command (exit 0 clean / nonzero on any blocker, L4) + the third CI merge-block job on the bare .[test] install (L5) + exit-code e2e tests — PROV-04 enforcement
-- [x] 10-03-PLAN.md — Renderer surfacing (PROV-03): the per-surface amber "what's not here / not verified" panel (Surface.missing[] + Source unextracted[], L6) + the claim-beside-verbatim-trace view with inline STALE/unfaithful badge; regenerate content/rev1/site byte-stable (SITE-06) + surfaces.md spec update
-
-**UI hint**: yes
-
-### Phase 11: Work-Surface Installation
-
-**Goal**: Prove the whole pipeline on a real work codebase — install Newsletters, point read-only adapters at the code with data staying local, author a Report by hand, and publish a Library that shows how the work was done.
-**Mode:** mvp
-**Depends on**: Phase 4, Phase 10
-**Requirements**: WORK-01, WORK-02, WORK-03
-**Success Criteria** (what must be TRUE):
-
-  1. An operator can `pip install` Newsletters and point read-only adapters at a work codebase with all data staying local (no external calls on content)
-  2. An operator can author a Report by hand via the manual backend and have it inherit the traced structure
-  3. The published Library shows how the work was done, with process visible via Provenance/Lineage on each surface
-
-**Plans**: 5 plans (4 waves)
-
-Plans:
-
-**Wave 1** *(disjoint files — run in parallel)*
-
-- [x] 11-01-PLAN.md — Font fix (L3): remove the render.py:104 Google-Fonts @import, self-host the OFL woff2 via @font-face (or a DM-first fallback) + the no-external-call test (L6a); regenerate content/rev1/site byte-stable — WORK-01
-- [x] 11-02-PLAN.md — Read-only local-file ingest capture_files (L2): stdlib, content-addressed POSIX-relpath Sources, EPOCH_ZERO; read-only + content-addressed test (L6b); AI-isolation gate extended; e2e operator-flow scaffold — WORK-01
-
-**Wave 2** *(blocked on 11-02 — extends worksurface.py)*
-
-- [x] 11-03-PLAN.md — Hand-authored work Report (L1): build_work_report/build_work_surfaces via capture.build_report (zero AI), claims content-address to ingested files or route to missing[]; traced-structure test (L6c); populate Surface.lineage (L4); content/work/ids.json ledger — WORK-02, WORK-03
-
-**Wave 3** *(blocked on 11-03 + 11-01 — extends worksurface.py, reuses the font fix)*
-
-- [x] 11-04-PLAN.md — Publish + provenance/lineage surfacing (L4): build_work_site renders content/work/site reusing the Phase 9/10 devices + emits self-hosted fonts; provenance/lineage-visible (L6d) + no-external-call + byte-stable tests — WORK-03
-
-**Wave 4** *(blocked on 11-04 — disjoint files: cli.py + docs)*
-
-- [x] 11-05-PLAN.md — --corpus {rev1|work} selector on build/check (L5): work corpus runs the same corpus-agnostic review_blockers gate (exit 0 clean / nonzero on a blocker) + e2e check-gate test; document the install/work-surface flow + self-host-fonts note in the specs — WORK-03
-
-**UI hint**: yes
-
-### Phase 12: Learning & Onboarding Surface
-
-**Goal**: Add a first-class learning/onboarding surface that re-cuts reviewed records for newcomers and training-program participants — progressive disclosure, traceable concepts, and ordered onboarding paths — making org/codebase knowledge digestible to people new to it.
-**Mode:** mvp
-**Depends on**: Phase 8, Phase 9
-**Requirements**: LEARN-01, LEARN-02, LEARN-03
-**Success Criteria** (what must be TRUE):
-
-  1. A Learning/Onboarding surface preset re-cuts a reviewed record for a newcomer audience with progressive disclosure, prerequisite context, and an in-context glossary
-  2. Every concept on the surface links back to its source record/claim, so a learner can trace explanation → evidence
-  3. An onboarding path sequences multiple records into an ordered learning track for a new team member / training cohort
-
-**Plans**: 5 plans
-
-Plans:
-
-- [x] 12-01-PLAN.md — LEARNING SurfaceTemplate + typed GlossaryBlock (the typed foundation)
-- [x] 12-02-PLAN.md — docs/surfaces.md Learning + OnboardingPath spec section
-- [x] 12-03-PLAN.md — learning_surface() faithful re-cut + OnboardingPath model (learning.py)
-- [x] 12-04-PLAN.md — render: GlossaryBlock + ordered learning sections + render_path() (no JS, no external call, faithful)
-- [x] 12-05-PLAN.md — dogfood re-cut of report-datamodel + onboarding path + content/rev1/site regen (byte-stable, L-001, end-to-end)
-
-**UI hint**: yes
-
-### Phase 13: Problem Lifecycle Entity (A2)
-
-**Goal**: Add a first-class `Problem` entity *above* `Source` that consolidates the scattered problem→owned→solution→promoted lifecycle (today spread across Jira/Azure DevOps, passdowns, and people's heads) into one legible, queryable home — **as a legibility layer, not a second tracker**. The problem-SOLVING step stays external/operator-owned; Signals models the *record* of the lifecycle, not its execution.
-**Mode:** mvp
-**Depends on**: Phase 1 (socket/type shapes), Phase 3 (content-addressed traces), Phase 11 (real Source capture)
-**Requirements**: PROB-01, PROB-03
-**Success Criteria** (what must be TRUE):
-
-  1. A `Problem` entity aggregates ≥1 traced `Source` and carries its own lifecycle state ladder (`Identified → Owned → In Progress → Resolved → Verified`), typed end to end
-  2. The problem lifecycle ladder is provably distinct in code from the surface review gate (`Draft → In Review → Published`) and the surface fan-out chain — no shared/overloaded "promotion" term (enforced per the terminology-guard seed)
-  3. Lifecycle-state transitions are human-gated and never auto-mutated; there is no write-back path to any external system (Jira/ADO) — the `semantic.py` spine boundary (solving is external) is preserved and proven by a test
-
-**Plans**: 2 plans
-
-Plans:
-
-- [x] 13-01-PLAN.md — Problem entity + ProblemState ladder + human-gated transition() + __init__ export + dogfood (PROB-01)
-- [x] 13-02-PLAN.md — no-write-back proof (import-linter contract + runtime + API allow-list) + spine-unchanged + terminology-distinctness (PROB-03)
-
-**UI hint**: no
-
-### Phase 14: Problem Board Portfolio Surface (A2)
-
-**Goal**: Render the consolidated problem portfolio as a queryable surface alongside the existing gate-state board — the cross-record view A1 structurally cannot produce — so a real consumer can watch bottlenecks, ages, and recurring problem-types across the portfolio.
-**Mode:** mvp
-**Depends on**: Phase 9 (site IA / board rendering), Phase 13 (Problem entity)
-**Requirements**: PROB-02, PROB-04
-**Success Criteria** (what must be TRUE):
-
-  1. The problem board renders the portfolio grouped/countable/age-able by node/area and surfaces recurrence across records (the aggregate query A1 cannot answer)
-  2. Every problem on the board links back to its constituent `Source` records/claims, so the lifecycle stays traceable to evidence
-  3. The board regenerates from the renderer/templates (no hand-edited HTML) and sits alongside — not replacing — the gate-state board
-
+  1. A synthetic `module-a` config (fabricated naming only — `area-bem`, `module-a`, `owner-*`, `eng-NN`, `toolset-N`; nothing resembling real org/tool/metric nomenclature) composes and renders into `content/`, is visible in the Library with claim-beside-verbatim-trace and a populated honesty panel, and passes the synthetic-name check on committed content.
+  2. `newsletters check --corpus module` runs the **same unforked** merge-block gate on the `module` corpus (exit 0 clean; nonzero on a planted blocker) against a dedicated `content/module/ids.json` ledger whose first entry is `R-001`.
+  3. The SITE-06 byte-stable double-render invariant holds over the new `module` output (regenerates identically from `render.py`).
 **Plans**: TBD
 **UI hint**: yes
 
+### Phase 4: Signals-voice PR/summary
+**Goal**: The `ship` workflow generates PR/summary bodies that read as faithful, evidence-first
+Signals dispatches — built from the diff + verbatim gate output, weakening no gate.
+**Depends on**: Independent of Phases 1–3 (edits the ship workflow/script, not the composer);
+**ordered last** per milestone scope and because it *quotes* the `check` gate output the earlier
+phases produce.
+**Requirements**: VOICE-01, VOICE-02
+**Success Criteria** (what must be TRUE):
+  1. PR-body generation + `summary-standard.md` produce dispatches with exactly the sections: The signal / What we learned / What's verified (verbatim gate output) / What's not here yet / How to verify — generated **from** the diff + gate output, with no AI framing and no hype.
+  2. Gate output appears **byte-verbatim** in the body (never paraphrased or softened), and the same numeral-free-unless-sourced rule applies to dispatch prose.
+  3. The voice change is proven by a test/snapshot and **weakens no existing check** (no gate edited or relaxed).
+**Plans**: TBD
+
 ## Progress
 
-**Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14
-
-Phases 13–14 (A2 Problem Lifecycle Layer) are a Rev2 extension routed 2026-06-17 — they build on
-the spine (Phases 1/3/11) and the site board (Phase 9), and do not alter Phases 1–12.
-
-Phases 8–9 (site track) depend only on Phase 1 type shapes and may proceed in parallel with the
-adapter track (Phases 4–7) once the socket contract is fixed. Phases 2 (PKG-03/04) and the PROV-04
-merge-block gate (Phase 10) establish standing CI invariants verified on every subsequent phase.
+**Execution Order:** Phases execute in numeric order: 1 → 2 → 3 → 4 (core is strictly linear
+1→2→3; Phase 4 is independent but ordered last).
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Distill Socket Contract | 2/2 | Complete   | 2026-06-17 |
-| 2. AI-Optional Packaging Boundary | 2/2 | Complete   | 2026-06-17 |
-| 3. Content-Addressed Provenance & Faithfulness Gate | 3/3 | Complete   | 2026-06-17 |
-| 4. Shared Adapter Normalizer & Email Adapter | 2/3 | In Progress|  |
-| 5. Excel Adapter | 4/4 | Complete   | 2026-06-17 |
-| 6. PowerPoint Adapter | 4/4 | Complete   | 2026-06-17 |
-| 7. Power BI Adapter | 4/4 | Complete   | 2026-06-18 |
-| 8. Site Content Model & Stable IDs | 2/2 | Complete   | 2026-06-18 |
-| 9. Rev2 Site IA, Navigation & Source Links | 3/3 | Complete   | 2026-06-18 |
-| 10. Reviewer Surfacing & Merge-Block Gate | 3/3 | Complete   | 2026-06-18 |
-| 11. Work-Surface Installation | 5/5 | Complete   | 2026-06-18 |
-| 12. Learning & Onboarding Surface | 5/5 | Complete   | 2026-06-19 |
-| 13. Problem Lifecycle Entity (A2) | 2/2 | Complete | All success criteria met; PROB-01 + PROB-03 proven by test |
-| 14. Problem Board Portfolio Surface (A2) | 0/TBD | Not started | - |
+| 1. Swim-lane binding + traced YAML loader | 0/TBD | Not started | - |
+| 2. Module-scope Report composer | 0/TBD | Not started | - |
+| 3. Worked synthetic Module Report | 0/TBD | Not started | - |
+| 4. Signals-voice PR/summary | 0/TBD | Not started | - |
+
+## Deferred — un-scheduled
+
+> The following 12 items are **recorded, not built** (§7 of the milestone seed). They have **no
+> phase number and no checkbox** — they are explicitly NOT scheduled work for v1.1.
+
+- **DEF-01** — Area roll-up scope (multi-module aggregation)
+- **DEF-02** — Project-kind report sections
+- **DEF-03** — Interview/sit-down-kind report sections
+- **DEF-04** — Owner-audit workflow (report routed to its swim-lane owner for review)
+- **DEF-05** — Quarter-editorial (ARTICLE) template in the Signal-01 shape (generic, synthetic)
+- **DEF-06** — Report→newsletter persona re-cut
+- **DEF-07** — Self-assessment leadership re-cut (`mapped_objective` spine)
+- **DEF-08** — Learning re-cut of the module report
+- **DEF-09** — MOR/IQ defect-project ↔ `Problem` tie-in
+- **DEF-10** — Any `Kpi` start/baseline model change
+- **DEF-11** — DistillPort AI backend (the robot journalist — designed separately, eval-first)
+- **DEF-12** — Problem Board Portfolio Surface (v1.0 Phase 14 carry-over, PROB-02/04)
+
+---
+*Roadmap created: 2026-07-02 for milestone v1.1. v1.0 Phases 1–14 archived in git history.*
