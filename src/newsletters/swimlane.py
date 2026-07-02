@@ -60,7 +60,7 @@ from .distill.coverage import Unextracted
 from .locators import FreeLocator
 from .semantic import Claim, KpiItem, Source, Trace
 
-__all__ = ["SectionBinding"]
+__all__ = ["SectionBinding", "SwimlaneLoad", "load_swimlanes"]
 
 
 # --------------------------------------------------------------------------- #
@@ -97,6 +97,20 @@ _R_ANCHOR_ALIAS = (
 
 
 # --------------------------------------------------------------------------- #
+# Generic STRUCTURAL schema keys (NOT fixture-specific values — LANE-03). These
+# name the shape the loader generalizes over; the concrete lane/module/owner
+# VALUES live only in the config file, never here.
+# --------------------------------------------------------------------------- #
+
+_LANES_KEY = "lanes"
+_HEADING_KEY = "heading"
+_KPIS_KEY = "kpis"
+_LABEL_KEY = "label"
+_VALUE_KEY = "value"
+_VALUES_KEY = "values"
+
+
+# --------------------------------------------------------------------------- #
 # SectionBinding — the kind-agnostic per-lane seam Phase 2's composer consumes.
 # A small, AI-free Pydantic model reusing the EXISTING KpiItem/Claim (no new
 # block type; models.py untouched). Bound at the parsed-DICT level.
@@ -120,3 +134,253 @@ class SectionBinding(BaseModel):
     claims: list[Claim] = Field(default_factory=list)
     missing: list[str] = Field(default_factory=list)
     unextracted: list[Unextracted] = Field(default_factory=list)
+
+
+class SwimlaneLoad(BaseModel):
+    """The result of loading one module-config file: the ``Source`` + one binding per lane.
+
+    ``claims`` / ``unextracted`` carry MODULE-LEVEL scalars — those outside any lane (e.g. the
+    module id, an area id) — so the read-anchored coverage identity spans the WHOLE load, not just
+    the lanes. ``scalars_walked`` is the count of non-null scalar leaves the loader read; by
+    construction ``len(all_claims) + len(all_unextracted) == scalars_walked`` (enforced in
+    :func:`load_swimlanes`, which raises on any drift).
+    """
+
+    source: Source
+    bindings: list[SectionBinding] = Field(default_factory=list)
+    claims: list[Claim] = Field(default_factory=list)
+    unextracted: list[Unextracted] = Field(default_factory=list)
+    scalars_walked: int = 0
+
+    @property
+    def all_claims(self) -> list[Claim]:
+        """Every content-addressed claim minted across the load (module-level + all lanes)."""
+        out = list(self.claims)
+        for binding in self.bindings:
+            out.extend(binding.claims)
+        return out
+
+    @property
+    def all_unextracted(self) -> list[Unextracted]:
+        """Every disclosed unextracted scalar across the load (module-level + all lanes)."""
+        out = list(self.unextracted)
+        for binding in self.bindings:
+            out.extend(binding.unextracted)
+        return out
+
+
+# --------------------------------------------------------------------------- #
+# The forward-only cursor mint (mirrors adapters/normalize.py:88-117). ONE
+# cursor over the RAW config text for the WHOLE document, so duplicate values get
+# DISTINCT, forward-only offsets and consumed text is never re-pointed at.
+# --------------------------------------------------------------------------- #
+
+
+class _Minter:
+    """Locate each scalar VERBATIM in the raw config text and mint it (or route it honestly).
+
+    A single ``str.find`` from a monotonically-advancing cursor over ``source.transcript`` (the RAW
+    file text — NEVER a re-serialized dump, Pitfall 3). On a hit the scalar is minted via
+    ``Trace.from_source`` — the SOLE trace-minting path (never a hand-minted hash, never a
+    fabricated offset). On a miss the scalar is routed to an ``Unextracted`` with a content preview
+    and the most specific ``_R_*`` reason. WHY the cursor: two identical scalars would both resolve
+    to the FIRST occurrence without it, mis-attributing the second's provenance (normalize.py:17-20).
+    """
+
+    def __init__(self, source: Source) -> None:
+        self._source = source
+        self._transcript = source.transcript
+        self._cursor = 0
+        self.walked = 0
+
+    def mint(self, value: object) -> Claim | Unextracted:
+        """Route ONE scalar leaf: a content-addressed ``Claim`` on a verbatim hit, else honest gap.
+
+        Increments ``walked`` for every scalar READ (read-anchored coverage, Pitfall 9). The raw
+        candidate token is the value itself for a string, else ``str(value)`` — we search for the
+        token as written and, if the coerced form is not verbatim, disclose it rather than fabricate.
+        """
+        self.walked += 1
+        token = value if isinstance(value, str) else str(value)
+        idx = self._transcript.find(token, self._cursor)
+        if idx == -1:
+            return Unextracted(
+                locator=FreeLocator(text=token[:_PREVIEW_CHARS]),
+                reason=self._classify(value, token),
+            )
+        end = idx + len(token)
+        # Trace.from_source validates 0 <= start <= end <= len before slicing (raises on a bad
+        # range), pins content_hash, and stores span == transcript[idx:end]. is_addressed is True.
+        trace = Trace.from_source(self._source, idx, end)
+        self._cursor = end  # advance -> duplicates get distinct, forward-only offsets
+        return Claim(text=token, evidence=[trace], confidence=0.0)
+
+    def _classify(self, value: object, token: str) -> str:
+        """Pick the most specific routing reason for a non-locatable scalar (cheap type checks)."""
+        if not isinstance(value, str):
+            return _R_TYPE_COERCED
+        if "\n" in token:
+            return _R_BLOCK_SCALAR
+        # It exists in the text, but only BEFORE the forward cursor (duplicate exhausted / an alias
+        # whose characters live at an earlier anchor site) — no distinct forward span to address.
+        if self._transcript.find(token) != -1:
+            return _R_ANCHOR_ALIAS
+        return _R_NOT_VERBATIM
+
+
+def _route(
+    minted: Claim | Unextracted, claims: list[Claim], unextracted: list[Unextracted]
+) -> None:
+    """Append a minted scalar to the correct sink (claim vs disclosed gap)."""
+    if isinstance(minted, Claim):
+        claims.append(minted)
+    else:
+        unextracted.append(minted)
+
+
+def _walk_generic(
+    node: object,
+    minter: _Minter,
+    claims: list[Claim],
+    unextracted: list[Unextracted],
+) -> None:
+    """Recursively mint EVERY non-null scalar leaf under ``node`` in file order (zero silent drops).
+
+    The STRUCTURE vs CONTENT split (Pitfall 9): mapping KEYS (``lanes:``, ``kpis:``) are structure
+    and are never minted; mapping VALUES and list items are recursed; a terminal (non-container,
+    non-None) node is a scalar leaf and is routed via the minter. A ``None`` leaf is a
+    declared-but-absent slot — nothing was READ, so it is not counted (recognized slots disclose
+    their own absence via ``missing[]``; see :func:`_bind_lane`).
+    """
+    if isinstance(node, dict):
+        for child in node.values():
+            _walk_generic(child, minter, claims, unextracted)
+    elif isinstance(node, list):
+        for item in node:
+            _walk_generic(item, minter, claims, unextracted)
+    elif node is None:
+        return
+    else:
+        _route(minter.mint(node), claims, unextracted)
+
+
+def _bind_lane(lane: object, minter: _Minter) -> SectionBinding:
+    """Bind one configured lane to a SectionBinding at the parsed-dict level (LANE-01).
+
+    Task-2 scope: capture the lane ``heading`` and mint EVERY other lane scalar generically so the
+    coverage identity holds. The KPI display projection (``kpi_items``) is layered in by Task 3 —
+    the SAME scalars, additionally projected for display (minted once, never double-counted).
+    """
+    heading = ""
+    claims: list[Claim] = []
+    unextracted: list[Unextracted] = []
+    missing: list[str] = []
+
+    if isinstance(lane, dict):
+        for key, value in lane.items():
+            if key == _HEADING_KEY and isinstance(value, str):
+                heading = value
+                _route(minter.mint(value), claims, unextracted)
+            else:
+                _walk_generic(value, minter, claims, unextracted)
+    else:
+        # A non-mapping lane entry: mint its scalars honestly, empty heading.
+        _walk_generic(lane, minter, claims, unextracted)
+
+    return SectionBinding(
+        heading=heading,
+        kpi_items=[],
+        claims=claims,
+        missing=missing,
+        unextracted=unextracted,
+    )
+
+
+def load_swimlanes(path: str | Path, *, root: Path | None = None) -> SwimlaneLoad:
+    """Load a module-config YAML file into a ``Source`` + one ``SectionBinding`` per lane (LANE-02).
+
+    Read-only, deterministic, AI-free. Mirrors ``worksurface.capture_files``'s edge policy: the path
+    is resolved under ``root`` (default :func:`Path.cwd`) and any path escaping root raises
+    ``ValueError`` (the path-traversal bound); a missing file raises ``FileNotFoundError`` and a
+    non-UTF-8 file raises ``UnicodeDecodeError`` — never skipped silently, never lossy-decoded. The
+    ``Source.transcript`` is the RAW file text VERBATIM (never a re-serialized dump, Pitfall 3) and
+    ``Source.timestamp`` is the fixed ``EPOCH_ZERO`` sentinel (never ``now()``, Pitfall 5).
+
+    The parsed structure (via Plan 01-01's ``safe_load`` boundary) is walked to learn WHICH scalar
+    values exist and in what file order; each is located in the RAW transcript by the forward-only
+    cursor and minted via ``Trace.from_source`` — or disclosed in ``unextracted[]``. The
+    read-anchored coverage identity ``len(all_claims) + len(all_unextracted) == scalars_walked`` is
+    enforced by construction (a mismatch raises — a scalar read but neither claimed nor disclosed is
+    a silent drop, forbidden by Pitfall 9 / the RETRO Phase-7 lesson).
+
+    Args:
+        path: the module-config file to load (str or Path; absolute or relative to ``root``).
+        root: the repo root the relpath ``Source.id`` is computed against. Defaults to ``Path.cwd()``.
+
+    Returns:
+        A :class:`SwimlaneLoad` — the ``Source``, the per-lane ``SectionBinding[]`` in file order,
+        the module-level claims/unextracted, and the ``scalars_walked`` count.
+
+    Raises:
+        ValueError: if ``path`` resolves OUTSIDE ``root`` (path-traversal bound).
+        FileNotFoundError: if ``path`` does not exist.
+        UnicodeDecodeError: if the file is not valid UTF-8.
+        RuntimeError: if the read-anchored coverage identity is violated (a silent drop).
+    """
+    root_path = (root or Path.cwd()).resolve()
+    candidate = Path(path)
+    absolute = candidate if candidate.is_absolute() else (root_path / candidate)
+    resolved = absolute.resolve()
+    rel = resolved.relative_to(
+        root_path
+    ).as_posix()  # raises ValueError if it escapes root
+    transcript = resolved.read_text(
+        encoding="utf-8"
+    )  # READ ONLY — no write, no network
+
+    source = Source(
+        id=rel,
+        context=f"module-config:{rel}",
+        transcript=transcript,
+        timestamp=EPOCH_ZERO,
+    )
+
+    # Parse ONLY to learn which scalars exist and in what file order; locate them in the RAW text.
+    parsed = _parse_config(transcript)
+
+    minter = _Minter(source)
+    module_claims: list[Claim] = []
+    module_unextracted: list[Unextracted] = []
+    bindings: list[SectionBinding] = []
+
+    if isinstance(parsed, dict):
+        for key, value in parsed.items():
+            if key == _LANES_KEY and isinstance(value, list):
+                # Iterate the lane list DIRECTLY in file order (never a set / non-total sort,
+                # Pitfall 6) so lane order is deterministic and matches the config.
+                for lane in value:
+                    bindings.append(_bind_lane(lane, minter))
+            else:
+                _walk_generic(value, minter, module_claims, module_unextracted)
+    elif parsed is not None:
+        # A non-mapping top-level document: mint its scalars honestly at module level.
+        _walk_generic(parsed, minter, module_claims, module_unextracted)
+
+    load = SwimlaneLoad(
+        source=source,
+        bindings=bindings,
+        claims=module_claims,
+        unextracted=module_unextracted,
+        scalars_walked=minter.walked,
+    )
+
+    # Read-anchored coverage identity, enforced BY CONSTRUCTION (Pitfall 9 / RETRO Phase-7): every
+    # scalar READ is either a content-addressed claim or a disclosed gap — zero silent drops.
+    minted = len(load.all_claims) + len(load.all_unextracted)
+    if minted != minter.walked:
+        raise RuntimeError(
+            f"swimlane read-anchored coverage identity violated: {minted} "
+            f"(claims+unextracted) != {minter.walked} scalars walked — a scalar was read but "
+            "neither claimed nor disclosed (silent drop, forbidden)."
+        )
+    return load
