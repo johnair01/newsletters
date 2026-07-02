@@ -1,12 +1,12 @@
 ---
 loop: 2026-07-02-deep-review
-round: 9
+round: 10
 total_rounds: 10
 pace: continuous
 interval: null
 branch: loop/2026-07-02-deep-review
 base: claude/swimlane-report-composer-1i8vxt (at fd96ea0, includes PRs #4-#8)
-next_action: "Round 10 — audit-milestone -> complete-milestone -> tag v1.1 -> final synthesis; loop terminates"
+next_action: "LOOP COMPLETE"
 ---
 
 # Deep-review loop — round log
@@ -37,3 +37,4 @@ next_action: "Round 10 — audit-milestone -> complete-milestone -> tag v1.1 -> 
 | 7 | Tests-as-promises | reviews/07-tests-as-promises.md | PR #14 (96ddfc8) | yes | 62 promises, 11 unguarded, 2 vacuous guards, B1-B20 backlog consolidated; quote-path Hole B un-proven (B18) |
 | 8 | Ontology & drift + compass | reviews/08-ontology-and-drift.md + 4 compass fixes | PR #15 (c5fe1b3) | yes | 11 drift terms D1-D11; speed-artifact lesson; 4-way phase-numbering collision -> maintainer |
 | 9 | Collaboration contract | docs/collaboration.md + CLAUDE.md roles + guard test | PR #16 (0e7849e) | yes | roles-as-hats canonical; 8 learned rules; guard teeth proven RED-able; 626 tests |
+| 10 | Formal milestone close | milestones/v1.1-{MILESTONE-AUDIT,ROADMAP,REQUIREMENTS}.md + MILESTONES.md + RETROSPECTIVE.md + PROJECT/STATE evolution + 10-synthesis.md | PR #17 | yes | v1.1 CLOSED per GSD — audit PASSED (12/12 reqs, 4/4 phases, Nyquist-COMPLIANT); phase dirs archived; REQUIREMENTS.md git-rm'd; SDK verbs choked on the phase format (hand-authored, noted); 626 tests green. **LOOP COMPLETE** — maintainer owns integration→main + tag + B1–B20 fix-batch. |

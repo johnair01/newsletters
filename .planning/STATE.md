@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: executing
-stopped_at: "v1.1 core complete (4/4 phases, 12/12 plans, PRs #4–#8 merged to integration); deep-review loop in progress (round 8 of 10) — formal milestone close is Round 10"
-last_updated: "2026-07-02T05:04:19.428Z"
-last_activity: 2026-07-02 — deep-review loop Round 8 (ontology & drift + compass fixes)
+status: completed
+stopped_at: "v1.1 CLOSED per GSD (deep-review loop Round 10): audit-milestone + complete-milestone done — 12/12 reqs, 4/4 phases, archived to milestones/. Next = maintainer's integration→main decision + the B1–B20 fix-batch PR."
+last_updated: "2026-07-02T21:05:00.000Z"
+last_activity: 2026-07-02 — deep-review loop Round 10 (formal milestone close: audit + archive + retrospective)
 progress:
   total_phases: 4
   completed_phases: 4
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-02)
 
 **Core value:** Make work legible and trustworthy — every published claim traces to evidence; nothing publishes without a human. The deterministic, auditable trust layer is what makes legibility believable; AI is an optional accelerator, never an authority.
-**Current focus:** v1.1 core complete (all 4 phases); deep-review loop (round 8 of 10) reconciling artifacts + compass ahead of the formal Round-10 milestone close.
+**Current focus:** Milestone v1.1 CLOSED (2026-07-02). Awaiting the maintainer: (1) the integration→main merge decision, (2) the B1–B20 fix-batch PR, (3) the next milestone (`/gsd-new-milestone`).
 
 ## Current Position
 
-Phase: 4 of 4 — COMPLETE (all phases executed + independently verified)
-Plan: 12 of 12 complete
-Status: Milestone v1.1 core complete — PRs #4–#8 merged to the integration branch; deep-review loop running (round 8 of 10); formal GSD close at Round 10
-Last activity: 2026-07-02 — deep-review Round 8 (ontology & drift + compass fixes)
+Phase: — (Milestone v1.1 closed 2026-07-02; phase dirs archived to `.planning/milestones/v1.1-phases/`)
+Plan: — (12 of 12 complete, archived)
+Status: **Milestone v1.1 CLOSED per GSD** — audit-milestone + complete-milestone done at deep-review loop Round 10 (audit → PROJECT evolution → archive → MILESTONES + RETROSPECTIVE). Requirements 12/12 satisfied; phases 4/4 verified + Nyquist-compliant. The maintainer owns: the integration→main merge, the B1–B20 fix-batch PR, and the next milestone. NEVER auto-merged/auto-tagged — main/tag are the maintainer hat.
+Last activity: 2026-07-02 — deep-review loop Round 10 (formal close)
 
 
 ## Performance Metrics
@@ -102,6 +102,6 @@ Items acknowledged and carried forward (v1.1 seed §7 — recorded, not built). 
 
 ## Session Continuity
 
-Last session: 2026-07-02 — deep-review loop Round 8
-Stopped at: v1.1 core complete (4/4 phases); deep-review loop round 8 of 10 (formal close at Round 10)
-Resume file: .planning/loops/2026-07-02-deep-review/STATE.md (loop memory — read PLAN.md then that file)
+Last session: 2026-07-02 — deep-review loop Round 10 (formal milestone close; LOOP COMPLETE)
+Stopped at: v1.1 CLOSED per GSD — archived to milestones/; audit + retrospective written. Maintainer owns integration→main + B1–B20 fix-batch + next milestone.
+Resume file: .planning/loops/2026-07-02-deep-review/STATE.md (round=10, LOOP COMPLETE); then MILESTONES.md + milestones/v1.1-MILESTONE-AUDIT.md
