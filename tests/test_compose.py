@@ -304,3 +304,115 @@ def test_no_auto_publish_on_the_composed_surface() -> None:
         Review(
             state=ReviewState.PUBLISHED, policy=REPORT.review_policy, author="operator"
         )
+
+
+# --------------------------------------------------------------------------- #
+# Task 2 — Δ reproducibility (recompute every rendered delta from its endpoints)
+# and determinism (byte-identical model_dump_json across two composes).
+# --------------------------------------------------------------------------- #
+
+
+def test_every_rendered_delta_recomputes_byte_equal() -> None:
+    """COMP-02: recompute every rendered delta from its two endpoints; no fabricated 0; Δ==0 honest.
+
+    Exercises all three arms of the LOCKED Δ contract on the composed surface:
+    * a real movement (Cycle time 10->7) -> a signed delta + dir, byte-equal to ``compute_delta``;
+    * a point-in-time KPI (one endpoint) -> NO delta rendered (never a fabricated 0);
+    * Δ==0 (Escaped defects 4->4) -> ``dir=None`` with the computed zero form.
+    """
+    load, _ = _build_load()
+    surface = _compose(load)
+
+    kpi_blocks = [b for b in surface.blocks if isinstance(b, KpiStripBlock)]
+    bindings = [b for b in load.bindings if b.kpi_items]
+    assert len(kpi_blocks) == len(bindings)
+
+    saw_movement = saw_no_delta = saw_zero = False
+    for block, binding in zip(kpi_blocks, bindings):
+        for item, endpoints in zip(block.items, binding.kpi_endpoints):
+            if item.delta is not None:
+                # RECOMPUTE from the two paired endpoint claims; assert byte-equality.
+                assert len(endpoints) >= 2
+                expected_delta, expected_dir = compute_delta(
+                    endpoints[0].text, endpoints[-1].text
+                )
+                assert (
+                    item.delta == expected_delta
+                ), "rendered delta is not reproducible"
+                assert item.dir == expected_dir, "rendered dir is not reproducible"
+                if expected_dir is None:
+                    # Δ==0: honest no-change — dir=None, delta is the computed zero form.
+                    saw_zero = True
+                    assert item.dir is None
+                    assert (
+                        item.delta
+                        == compute_delta(endpoints[0].text, endpoints[-1].text)[0]
+                    )
+                else:
+                    saw_movement = True
+            else:
+                # No delta rendered -> fewer than two content-addressed numeric endpoints. Never a 0.
+                saw_no_delta = True
+                computable = [
+                    e
+                    for e in endpoints
+                    if e.is_traced and all(t.is_addressed for t in e.evidence)
+                ]
+                recomputed, _dir = (
+                    compute_delta(endpoints[0].text, endpoints[-1].text)
+                    if len(endpoints) >= 2
+                    else (None, None)
+                )
+                assert (
+                    len(computable) < 2 or recomputed is None
+                ), "a delta was omitted even though both endpoints are computable"
+
+    assert saw_movement, "fixture invariant: expected a real signed-movement delta"
+    assert saw_no_delta, "fixture invariant: expected a point-in-time KPI with no delta"
+    assert saw_zero, "fixture invariant: expected a Δ==0 (dir=None) case"
+
+
+def test_two_composes_are_byte_identical() -> None:
+    """COMP-02 / Pitfall 5-6: same load -> byte-identical model_dump_json; created is EPOCH_ZERO."""
+    load, _ = _build_load()
+    first = compose_module_report(load, ledger=_empty_ledger())
+    second = compose_module_report(load, ledger=_empty_ledger())
+
+    assert first.model_dump_json() == second.model_dump_json()
+    # The determinism trap: created must be the deterministic sentinel, never now().
+    assert first.created == EPOCH_ZERO
+
+
+def test_determinism_with_repeated_value_across_lanes() -> None:
+    """COMP-02: a repeated KPI value across two lanes still composes byte-identically, in file order."""
+    src = Source(
+        id="content/module/dup.yml",
+        context="module-config:content/module/dup.yml",
+        transcript="alpha throughput 5 pts and beta throughput 5 pts done",
+        timestamp=EPOCH_ZERO,
+    )
+    cur = _Cursor(src)
+    v_alpha = cur.claim("5 pts")  # first occurrence
+    v_beta = cur.claim("5 pts")  # DISTINCT forward span (same value, second lane)
+
+    alpha = SectionBinding(
+        heading="Alpha",
+        kpi_items=[KpiItem(label="Throughput", value="5 pts")],
+        kpi_endpoints=[[v_alpha]],
+        claims=[v_alpha],
+    )
+    beta = SectionBinding(
+        heading="Beta",
+        kpi_items=[KpiItem(label="Throughput", value="5 pts")],
+        kpi_endpoints=[[v_beta]],
+        claims=[v_beta],
+    )
+    load = SwimlaneLoad(source=src, bindings=[alpha, beta])
+
+    first = compose_module_report(load, ledger=_empty_ledger())
+    second = compose_module_report(load, ledger=_empty_ledger())
+    assert first.model_dump_json() == second.model_dump_json()
+
+    # Ordering is stable and total (file order) — no set()/non-total sort collapsed the duplicate.
+    kpi_headings = [b.heading for b in first.blocks if isinstance(b, KpiStripBlock)]
+    assert kpi_headings == ["Alpha", "Beta"]
