@@ -1,156 +1,186 @@
-# Stack Research
+# Stack Research — v1.1 Swim-Lane Module Report Composer
 
-**Domain:** Deterministic format-extraction adapters + optional-LLM boundary + standalone HTML rendering (Python framework, Newsletters Rev2)
-**Researched:** 2026-06-14
-**Confidence:** HIGH (versions/licenses verified against PyPI JSON; provider-comparison MEDIUM)
+**Domain:** Config-driven, traced YAML loader + deterministic Report composer (brownfield, added to `src/newsletters/`)
+**Researched:** 2026-07-02
+**Confidence:** HIGH
 
-> Scope note: this researches only the **new** Rev2 stack — (a) the AI-optional packaging boundary, (b) format adapters (PPTX / XLSX / Power BI / Email), (c) the static-site renderer. The existing Rev1 spine (typed models, capture, render) is not re-researched.
->
-> Guiding constraints from PROJECT.md: **MIT / self-hostable, no telemetry, no external calls on content, deterministic-first, low-token, faithful-not-suggestive, Python 3.12, no-JS render.** Every recommendation below is filtered through these.
+## TL;DR (the opinionated answer)
+
+**Add exactly one dependency: `PyYAML>=6.0.3`, behind a NEW `[config]` optional extra**, wired
+through a lazy `_yaml_loader.py` boundary module that mirrors the already-hardened
+`_openpyxl_loader.py` discipline. **Do not add PyYAML to core. Do not add `ruamel.yaml`. Do not add
+anything for tracing** — the char-offset trace model already in `semantic.py` needs zero new code
+beyond PyYAML's own source-mark metadata.
+
+The single most important discovery: **the existing `sample_team/*.yml` files are orphaned** — no
+Python in `src/` or `tests/` imports `yaml` or reads them (the only `.yml` hit in `render.py` is the
+string `".yml"` inside `_SOURCE_EXTS`). So there is **no existing reader to mirror or preserve**;
+this milestone introduces the first real YAML consumer. That frees the decision to be made on
+principle rather than compatibility.
+
+## The core question: stdlib-only vs `[config]` extra vs PyYAML-in-core
+
+Three genuine options were weighed. The decision hinges on one fact and one principle:
+
+- **Fact:** Python's stdlib has **no YAML parser** (only `json` and `tomllib`). A hand-rolled YAML
+  subset parser is a footgun (the Norway problem, anchors, coercion, multiline scalars) and violates
+  the repo's "no vibing" rule. Rejected outright.
+- **Principle:** the hardened invariant is *"core = pydantic/typer/sqlmodel ONLY, enforced by
+  import-linter + bare-install CI"* (milestone context; `pyproject.toml` L13-21). Third-party,
+  non-AI deps that serve an **optional path** live behind an extra and are **lazy-imported inside a
+  boundary module** (the `[excel]`/`[pptx]` pattern, `_openpyxl_loader.py`). PyYAML fits that mold.
+
+| Option | Verdict | Why |
+|--------|---------|-----|
+| **stdlib-only parse** (hand-roll, or switch config to TOML/JSON) | ❌ Reject | No stdlib YAML; hand-rolling is unsafe; switching format churns the existing `sample_team` fixtures and loses YAML's human-authoring ergonomics. |
+| **PyYAML in core** (4th core dep) | ⚠️ Viable alternative | Cleanest *if* compose runs inside the bare-install `newsletters build` pipeline. Cost: rewrites the "core = 3 deps" invariant the reviewer explicitly wants preserved. |
+| **PyYAML behind `[config]` extra + lazy loader** | ✅ **Recommend** | Preserves the literal core-is-3-deps invariant, reuses the exact discipline CI already understands, keeps the bare spine YAML-free. |
+
+The recommendation assumes **compose is an author-time step** (like `capture.py`): `newsletters
+compose <config>` reads YAML → mints a Draft `Surface` → persists it; the render/check spine then
+reads persisted artifacts and needs zero YAML. This keeps the bare-install CI job green (it never
+imports `yaml`) while the composer is exercised in a separate CI step under `.[config]` — exactly how
+`import-linter` runs under `.[dev]`. **If instead the team decides compose must run inside
+`newsletters build` on a bare install, switch to "PyYAML in core"** (see Stack Patterns below).
 
 ## Recommended Stack
 
-### Core Technologies
+### Core Technologies (NEW for this milestone)
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| **python-pptx** | `1.0.2` | PPTX adapter — extract slides, shapes, text frames, tables, speaker notes into typed claims+traces | The canonical, only-serious OSS PowerPoint reader. **MIT.** Pure-Python, zero native deps, fully deterministic, no network. Gives a faithful object tree (slide → shape → paragraph/run, plus `notes_slide`) that maps cleanly to `Claim(+Trace)` with slide/shape coordinates as the trace anchor. |
-| **openpyxl** | `3.1.5` | XLSX adapter — read cell values, formulas, sheet/cell coordinates into traced claims | The standard pure-Python xlsx reader. **MIT.** Deterministic, streaming `read_only=True` for large books. Trace anchor = `sheet!cell` (e.g. `Q3 Budget!B14`). Read **both** `data_only=False` (formula) and the cached value so a claim can trace "value 1.2M, derived by `=SUM(...)`". |
-| **stdlib `email`** | Python 3.12 stdlib | Email adapter for `.eml` / RFC 822 (MIME) — headers, parts, bodies | Zero dependencies, in the standard library, deterministic, no network. `email.parser.BytesParser` + `policy.default` gives a faithful message tree. This is the **default email path** — most "email" inputs can be exported to `.eml`. Trace anchor = `Message-ID` + part index. |
-| **Jinja2** | `3.1.6` | Rev2 static-site renderer / templates (Home, Library status-board, surface pages) | Industry-standard templating. **BSD-3** (MIT-compatible). Renders fully standalone HTML with **no JS and no external calls**; `autoescape=True` enforces safe, token-faithful output. Pairs with the existing token/signal-color design system. |
-| **pydantic-ai** | `1.107.0` | The single optional `distill()` LLM backend (one of three sockets: hand / OSS tool / **AI**) | **MIT**, built by the Pydantic team — same typed-model lineage as the existing models. Model-agnostic (Anthropic/OpenAI/Gemini/local) and gives **built-in typed/structured output** so an AI distillation returns a validated `Distillation`, not free text. Lives entirely behind an `[ai]` optional extra; the spine never imports it. |
+| PyYAML | `>=6.0.3` | Parse swim-lane / KPI / objective config YAML into dicts, and expose per-scalar **source marks** for tracing | Industry-standard, MIT, non-AI, pure-Python-capable (libyaml C-ext optional), Python ≥3.8. Its low-level node API yields exact char offsets — parse *and* trace from one dep. |
 
 ### Supporting Libraries
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| **MarkupSafe** | `3.0.x` | Autoescaping primitive under Jinja2 | Transitive dep of Jinja2; pin only if you build escaping helpers. MIT-compatible (BSD). |
-| **olefile** | `0.47` | MIT-compatible OLE2/`.msg` primitive | Use when you must read Outlook `.msg` **inside the MIT core** without GPL contamination (see "What NOT to Use"). BSD-2. You parse the OLE streams yourself → more work, but license-clean. |
-| **pbixray** | `0.11.1` | Binary `.pbix` extraction (tables, DAX measures, M/Power Query, schema, relationships) | Use **only** when the source is a binary `.pbix` and no PBIP/TMDL export exists. **MIT.** Prefer the TMDL text path (below) for faithfulness and low token cost. |
-| **stdlib `csv` / `pathlib`** | stdlib | TMDL/PBIP folder walk + plain-text Power BI semantic model parse | Preferred Power BI path: PBIP projects store the model as **TMDL** — one human-readable `.tmdl` file per table/measure/relationship. Walk the `/definition` folder and parse text deterministically; trace anchor = `model/tables/<t>.tmdl#measure:<name>`. Zero extra deps, fully faithful, diffable. |
-| **extract-msg** | `0.55.0` | High-level `.msg` parsing convenience | **GPL-3.0 — do NOT ship in the MIT core.** Acceptable only in a clearly-isolated, non-distributed dev/conversion script (e.g. an operator converts `.msg`→`.eml` locally, outside the package). See warnings. |
-| **litellm** | `1.89.0` | Alternative provider-routing shim | Only if you want pure provider routing (100+ providers, cost/rate limiting) and will add `instructor` for structured output. Heavier than pydantic-ai for this use; MIT. |
+| *(none)* | — | Tracing needs no new library | `Trace.from_source(source, start, end)` + PyYAML node marks cover it; see Integration. |
 
-### Development Tools
+### What is REUSED (no new dependency)
 
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| **pytest** | Adapter golden-file tests | Already in `[dev]`. Each adapter needs fixture files (a sample `.pptx`/`.xlsx`/`.eml`/`.tmdl`) with golden typed output — this is how "faithful, not suggestive" is enforced in CI. |
-| **ruff** | Lint + format | Already configured (`line-length = 88`). Can replace black/isort to cut dev deps. |
-| **mypy** | Type checking | Already configured for 3.12; critical since the whole value prop is typed/auditable output. |
-| **pip-licenses** / `uv pip compile` | License audit gate | Add a CI check that fails on any non-MIT-compatible license entering the **core** dependency set (catches GPL creep from `.msg` tooling). |
+| Existing piece | Role in the new capability |
+|----------------|----------------------------|
+| `Source.transcript` + `content_hash()` (`semantic.py`) | The **raw YAML file text becomes the transcript** — the content-address anchor. |
+| `Trace.from_source(source, start, end)` (`semantic.py`) | Mints content-addressed, self-verifying traces from char offsets into the YAML text. **This is the whole tracing mechanism.** |
+| `Claim` / `KpiItem` / `ClaimsBlock` / `KpiStripBlock` (`semantic.py`) | Every loaded value becomes one of these; delta computed at compose time into `KpiItem.delta`. |
+| `Surface.missing[]` (`semantic.py`) | Honesty routing for unsubstantiated / unresolvable config values. |
+| `FunctionalGroup` / `Kpi` / `Objective` / `TeamMember` (`models.py`) | The typed targets the loader binds config onto (validation, e.g. `ensure_owners_are_team_members`, runs for free). |
+| `FreeLocator` / a future `ConfigLocator` (`locators.py`) | Anchor kind for "this claim came from file X". Reuse `FreeLocator` v1; a `ConfigLocator{path,key_path}` is a clean future addition to the union (stubbed already in `locators.py`). |
+| R-NNN ledger (`site.py`) | Stable IDs for the composed report — unchanged. |
 
 ## Installation
 
 ```bash
-# Core spine — ZERO AI, deterministic-only (this is the default install)
-pip install "newsletters"
-#   -> pydantic, jinja2, (sqlmodel/typer already present)
+# Core is UNCHANGED — still pydantic / typer / sqlmodel only:
+pip install .
 
-# Format-adapter extras (still deterministic, no AI)
-pip install "newsletters[adapters]"
-#   -> python-pptx==1.0.2  openpyxl==3.1.5  olefile==0.47  pbixray==0.11.1
-#   (email + tmdl adapters need no extra deps — stdlib only)
-
-# Optional AI distill socket (the ONLY place LLM deps live)
-pip install "newsletters[ai]"
-#   -> pydantic-ai>=1.107
+# The new config path (author-time compose + tests that exercise it):
+pip install ".[config]"          # brings PyYAML
+pip install ".[config,test]"     # config path + pytest, for the new CI step
 ```
 
-Proposed `pyproject.toml` shape (the packaging-boundary deliverable):
+`pyproject.toml` change (mirrors the `excel`/`pptx` stanzas verbatim in spirit):
 
 ```toml
-[project]
-dependencies = ["pydantic>=2", "jinja2>=3.1.6", "typer", "sqlmodel"]  # NO langchain/langgraph/langsmith here
-
-[project.optional-dependencies]
-adapters = ["python-pptx==1.0.2", "openpyxl==3.1.5", "olefile==0.47", "pbixray==0.11.1"]
-ai       = ["pydantic-ai>=1.107"]
-dev      = ["pytest", "ruff", "mypy"]
+# YAML config loader dep (v1.1). PyYAML is NON-AI, MIT, pure-Python-capable, spec-named for the
+# swim-lane config path. It lives behind an extra and is lazy-imported inside the config loader only
+# (mirror the [ai]/[excel]/[pptx] discipline), so bare `pip install .` still runs the deterministic
+# capture -> review -> render spine with zero PyYAML and zero AI. Use yaml.safe_load ONLY.
+config = ["PyYAML>=6.0.3"]
 ```
 
-> This directly satisfies the Active requirement *"move `langchain` to an optional extra; the spine runs with zero AI deps."* Note `langchain[anthropic]`, `langgraph`, `langsmith`, `langsmith` telemetry must all leave `dependencies` — `langsmith` in particular phones home, violating the no-telemetry constraint.
+## Integration with the existing discipline (the load-bearing part)
+
+**1. Lazy boundary module — copy `_openpyxl_loader.py` exactly.** Create
+`src/newsletters/config/_yaml_loader.py` (or `adapters/_yaml_loader.py`) with:
+- **No top-level `import yaml`.** The import lives inside `_load_yaml()`.
+- A `MISSING_PYYAML_MESSAGE` constant naming `pip install '.[config]'` and stating the spine runs
+  without it (so a test can assert the message without string drift).
+- **`yaml.safe_load` ONLY** — never `yaml.load` (the latter can construct arbitrary Python objects;
+  a hard "faithful, not suggestive / no surprises" boundary).
+- Return typed as `Any` (PyYAML 6.x ships inline types, but keep the boundary opaque and do **not**
+  add a `types-*` package — mirror the openpyxl Any-typing decision).
+
+**2. import-linter (`.importlinter`, PKG-04): no change needed, but consider one guard.** The
+`forbid-ai-in-core` contract only forbids AI packages, so PyYAML is untouched. To keep the
+"lazy boundary only" property *enforced* (not vibed), optionally add a small `forbidden` contract:
+`source_modules = newsletters` / `forbidden_modules = yaml`, then whitelist the single loader module
+— OR (simpler, matching the openpyxl precedent) rely on the bare-install grep-style test. The
+openpyxl boundary is guarded by `tests/test_ai_optional.py` asserting grep-count 0 for top-level
+`import openpyxl`; add the analogous assertion for `import yaml`.
+
+**3. Bare-install CI (PKG-03): stays green untouched.** The `bare-install` job installs `.[test]`
+(no `[config]`) and runs `newsletters build`. As long as **compose is author-time** and `build`
+renders persisted surfaces, `import newsletters` and the full pipeline never touch `yaml`. Add a
+**new CI step/job** that installs `.[config,test]` and runs the composer + its tests (mirror the
+`import-linter` job that installs `.[dev]`). The belt-and-suspenders "no AI importable" assertion is
+unaffected.
+
+**4. Tracing — the char-offset insight, made exact.** The YAML text *is* the `Source.transcript`.
+Two ways to get offsets, in order of fidelity:
+- **Preferred — PyYAML source marks.** `yaml.compose(text)` (or a mark-recording `SafeLoader`
+  subclass) returns a node graph where **every scalar node carries `start_mark.index` and
+  `end_mark.index`** — absolute character offsets into the raw text. Feed those straight into
+  `Trace.from_source(source, start_mark.index, end_mark.index)`. Exact, faithful, no heuristics.
+- **Fallback — `str.find`.** For a simple flat scalar, locate the raw token in the transcript with
+  stdlib string search. **Caveat:** match the *raw* token as written, not PyYAML's coerced Python
+  value — `safe_load` strips quotes, folds multiline scalars, and coerces `2025-05-05...` to a
+  `datetime` and applies bareword rules. A coerced value may not appear verbatim; the node-mark
+  path sidesteps this entirely, which is the second reason to prefer PyYAML over any
+  stdlib/hand-rolled approach.
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|-------------------------|
-| python-pptx | Aspose.Slides / Spire.Presentation | Never for this project — commercial/proprietary, not MIT, often phone-home. Only if you needed render-to-image fidelity (you don't; you extract structure). |
-| openpyxl | pandas `read_excel` | When you want tabular dataframes for analysis, not cell-level provenance. pandas loses cell coordinates and formulas, which **breaks traceability** — wrong for claim extraction. Adds numpy/pandas weight. |
-| openpyxl | `python-calamine` | When you need pure-speed bulk reads of huge sheets and don't need to write or read formulas. Faster, but no formula access — keep openpyxl as default for faithful "value + how it was derived". |
-| Power BI **TMDL/PBIP text** | pbixray (binary `.pbix`) | When the operator only has a binary `.pbix` and cannot re-export as a PBIP project. TMDL is preferred: deterministic, diffable, lowest token cost, no parsing of compressed VertiPaq. |
-| stdlib `email` (.eml) | mailbox / `mail-parser` | `mailbox` for `.mbox` archives (multi-message). `mail-parser` only if you want convenience over stdlib — but it adds a dep for what stdlib already does faithfully. |
-| pydantic-ai | litellm + instructor | When provider routing/cost-control across 100+ vendors matters more than a tight typed boundary. For a *single optional socket*, pydantic-ai is leaner and structurally typed. |
-| pydantic-ai | langchain / langgraph | Effectively never — these are the deps being *removed*. Heavy, churny, opinionated orchestration that pulls the spine toward AI-as-authority and telemetry (langsmith). |
+| PyYAML behind `[config]` extra | **PyYAML in core** (4th core dep) | If compose must run inside `newsletters build` on a bare install, or if the team decides config is so central it belongs beside `sqlmodel`. Justified precedent: `sqlmodel` is a non-AI core dep kept because `models.py` uses it. Trade-off: rewrites the "core = 3 deps" invariant statement. |
+| PyYAML behind `[config]` extra | **Switch config format to TOML (`tomllib`, stdlib)** | If the team wants **zero** new deps and is willing to migrate `sample_team/*.yml`. `tomllib` is stdlib in 3.11+, but it is read-only, less pleasant for nested OKR trees, and gives no per-value source marks (tracing falls back to `str.find`). Reject unless dep-count is an absolute constraint. |
+| PyYAML | **ruamel.yaml** | Only if the milestone needed **round-trip editing / comment preservation** (writing YAML back). It does not — the loader is read-only. ruamel is heavier and its round-trip API is overkill here. |
 
-## What NOT to Use
+## What NOT to Use / What NOT to Add
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| **langchain / langgraph / langsmith in core** | Violates "AI-optional spine" and "no telemetry" (langsmith phones home). Heavy, fast-churning APIs couple the trust layer to a single AI stack. | `pydantic-ai` behind an `[ai]` extra; deterministic adapters in `[adapters]`. |
-| **extract-msg in the distributed core** | **GPL-3.0** — incompatible with the project's MIT license; shipping it would force the whole package to GPL. | `olefile` (BSD-2) for in-core `.msg`, **or** convert `.msg`→`.eml` in a separate operator-side script and feed the `.eml` to the stdlib adapter. |
-| **pandas/numpy as a required dep for XLSX** | Loses cell coordinates + formulas (breaks provenance), adds large binary deps to a low-token framework. | `openpyxl` cell-level reads; keep pandas in the existing optional `[panel]` extra only. |
-| **Aspose / Spire / GroupDocs (any format)** | Proprietary, non-MIT, license-fee, some call home. Violates self-hostable + MIT. | `python-pptx`, `openpyxl`, TMDL text, stdlib `email`. |
-| **An LLM in the default/distill path by default** | Contradicts "AI is an accelerator, never an authority" and the token-constrained operator. | Make `distill()` a socket whose **default backend is deterministic** (format adapter or by-hand); AI only on the messy residue, opt-in. |
-| **`data_only=True` without a freshness check** | openpyxl returns the value Excel last cached — `None` if the file was never opened in Excel after editing. Silent wrong/empty claims. | Read formula **and** cached value; surface "uncomputed formula" to `missing[]` rather than publishing a blank. Faithful, not suggestive. |
-| **Sempy / Fabric REST for Power BI** | Microsoft-Fabric-only, requires cloud auth + external calls. Violates self-hostable / no-external-calls. | Local PBIP/TMDL text parse, or `pbixray` for binary files. |
-| **`html.parser`-based ad-hoc HTML string building** | Hand-built HTML invites injection + breaks token-faithful escaping. | Jinja2 with `autoescape=True`. |
+| `yaml.load(...)` (unsafe loader) | Can construct arbitrary Python objects from input — a trust/security hole and an editorializing surface | `yaml.safe_load` / `yaml.compose` only |
+| PyYAML in core (as the default choice) | Grows the deliberately-minimal core; contradicts the preserved "core = pydantic/typer/sqlmodel" invariant | `[config]` extra + lazy loader |
+| `ruamel.yaml` | Round-trip/comment features unused; heavier | PyYAML |
+| `types-PyYAML` stub package | PyYAML 6.x ships inline types; a stub is redundant, and the boundary is intentionally `Any` | Type the loader return as `Any` (openpyxl precedent) |
+| A new tracing library / offset framework | `Trace.from_source` + PyYAML node marks already give exact content-addressed traces | Reuse `semantic.py` |
+| A stored `start`/`baseline` field on `Kpi` | Milestone decision: Δ is **computed at compose time** into `KpiItem.delta`; the model stays untouched | Compute delta in the composer |
+| Hardcoding lane/module/owner names in `src/` | Violates the milestone's fundamental principle; a test must fail on fixture-name leakage | Everything specific lives in the YAML config |
 
 ## Stack Patterns by Variant
 
-**If the operator has Power BI as a modern PBIP project (recommended export):**
-- Walk the `*.SemanticModel/definition/**.tmdl` text files with stdlib.
-- Parse measures/columns/relationships deterministically; trace each claim to its `.tmdl` file + object name.
-- Because: zero binary parsing, zero extra deps, fully diffable, lowest token cost, most faithful.
+**If compose is an author-time step (RECOMMENDED — mirrors `capture.py`):**
+- PyYAML behind `[config]`; lazy `_yaml_loader.py`; new `.[config,test]` CI step.
+- Bare-install `newsletters build` renders persisted surfaces, never imports `yaml` → PKG-03 green.
+- Because: keeps core literally 3 deps and reuses the hardened extras discipline.
 
-**If the operator only has a binary `.pbix`:**
-- Use `pbixray==0.11.1` to extract DAX, M, tables, schema.
-- Because: TMDL text is unavailable; pbixray is the MIT option that reads VertiPaq without Fabric.
-
-**If the email source is Outlook `.msg` (not `.eml`):**
-- Preferred: convert to `.eml` outside the package, then use the stdlib `email` adapter (license-clean, faithful).
-- In-core fallback: `olefile` (BSD-2) to read the OLE2 streams directly.
-- Because: avoids GPL-3.0 `extract-msg` contaminating the MIT distribution.
-
-**If running fully offline / token-zero (the primary operator path):**
-- Install `newsletters[adapters]` only; never install `[ai]`.
-- `distill()` resolves to a deterministic adapter or by-hand backend; pipeline runs end-to-end with zero AI deps and no network.
-- Because: this is the validated core thesis — the trust layer must hold with no AI present.
+**If compose must run inside `newsletters build` on a bare install:**
+- Move PyYAML into `dependencies` (core, 4th dep) — the `sqlmodel` precedent.
+- Update the milestone's "core = 3 deps" invariant statement and the bare-install job to install it.
+- Because: bare-install exercises the composer, so its parser must be present bare.
 
 ## Version Compatibility
 
-| Package A | Compatible With | Notes |
-|-----------|-----------------|-------|
-| `python-pptx==1.0.2` | Python 3.8–3.12 | **No 3.13 classifier yet** (works in practice, but pin runtime to 3.12 per project constraint). Depends on `lxml`, `Pillow`, `XlsxWriter` (all MIT-compatible). |
-| `openpyxl==3.1.5` | Python 3.8–3.12 | Pure-Python; `read_only`/`data_only` flags as documented. |
-| `jinja2==3.1.6` | `MarkupSafe>=2.0` | 3.1.6 includes the 2025 security fixes; do not pin below 3.1.6. |
-| `pydantic-ai>=1.107` | `pydantic>=2` | Shares Pydantic v2 with the existing typed models — no v1/v2 split risk. Keep isolated in `[ai]` extra. |
-| `pbixray==0.11.1` | Python 3.9+ | MIT; pulls `pandas`/`numpy` transitively — another reason to keep it in `[adapters]`, never core. |
-| `olefile==0.47` | Python 3.5–3.12 | BSD-2; tiny, no deps. |
-
-## License Summary (gate: must be MIT-compatible)
-
-| Library | License | Core-safe? |
-|---------|---------|-----------|
-| python-pptx | MIT | ✅ yes |
-| openpyxl | MIT | ✅ yes |
-| stdlib `email`/`csv` | PSF | ✅ yes |
-| Jinja2 / MarkupSafe | BSD-3 / BSD | ✅ yes |
-| pydantic-ai | MIT | ✅ yes (optional `[ai]`) |
-| pbixray | MIT | ✅ yes (optional `[adapters]`) |
-| olefile | BSD-2 | ✅ yes |
-| litellm | MIT | ✅ yes |
-| **extract-msg** | **GPL-3.0** | ❌ **no — never in distributed core** |
-| Sempy / Aspose / Spire | Proprietary/MS-only | ❌ no |
+| Package | Compatible With | Notes |
+|---------|-----------------|-------|
+| `PyYAML>=6.0.3` | Python 3.12 (repo target) | `requires_python >=3.8`; latest is 6.0.3, MIT. Pure-Python fallback always works; libyaml C-extension is an optional speedup, not required. |
+| `PyYAML` | pydantic 2 / typer / sqlmodel | No interaction — PyYAML produces plain dicts that pydantic validates into `FunctionalGroup`/`Kpi`/`Objective`. |
+| `PyYAML` | import-linter `forbid-ai-in-core` | Not an AI package; contract unaffected. |
 
 ## Sources
 
-- PyPI JSON API (`pypi.org/pypi/<pkg>/json`) — verified current versions + licenses for python-pptx 1.0.2, openpyxl 3.1.5, jinja2 3.1.6, litellm 1.89.0, pydantic-ai 1.107.0, pbixray 0.11.1, olefile 0.47, extract-msg 0.55.0 — **HIGH**
-- openpyxl docs (read_only / data_only / formula semantics) — **HIGH**
-- Microsoft Learn + community (PBIP/TMDL text format, Sempy is Fabric-only) — **MEDIUM**
-- Web comparison (litellm vs pydantic-ai structured output) — **MEDIUM**
-- decalage.info / oletools (olefile BSD, extract-msg GPL-3.0) — **HIGH**
+- Local repo audit (HIGH): `pyproject.toml`, `src/newsletters/semantic.py`, `models.py`,
+  `locators.py`, `adapters/_openpyxl_loader.py`, `.importlinter`, `.github/workflows/ci.yml`,
+  `sample_team/*.yml` — confirmed no existing `yaml` importer; confirmed the extras + lazy-loader
+  discipline and the char-offset `Trace.from_source` model.
+- PyPI PyYAML metadata (HIGH): latest 6.0.3, license MIT, `requires_python >=3.8` —
+  https://pypi.org/pypi/PyYAML/json
+- PyYAML API (HIGH, standard docs): `safe_load`, `compose`, and node `start_mark`/`end_mark`
+  (`.index`) offsets — https://pyyaml.org/wiki/PyYAMLDocumentation
 
 ---
-*Stack research for: format-extraction adapters + optional-LLM boundary + standalone HTML rendering*
-*Researched: 2026-06-14*
+*Stack research for: config-driven traced YAML loader + Report composer (v1.1)*
+*Researched: 2026-07-02*
