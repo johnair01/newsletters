@@ -11,12 +11,20 @@ next_action: "Round 3 — Phase 3 (module-a worked example) deep review → 03-t
 
 # Deep-review loop — round log
 
-> **Resume contract:** on any wake, restart, or fresh session — read PLAN.md (same dir)
-> then this file. `round` = last COMPLETED round. If `round == 10`, the loop is done:
-> do not reschedule; TaskStop any monitors. Otherwise execute round `round+1` per PLAN,
-> then: commit + push the artifact(s), increment `round`, append a log row, give the
-> Editor-in-Chief a one-line plain-terms report (artifact link first), and advance
-> per `pace` (continuous → next round now; scheduled → ScheduleWakeup at `interval`).
+> **Resume contract (amended by the Editor-in-Chief, 2026-07-02):** on any wake, restart,
+> or fresh session — read PLAN.md (same dir) then this file. `round` = last COMPLETED
+> round. If `round == 10`, the loop is done: do not reschedule; TaskStop any monitors.
+> Otherwise execute round `round+1` as a **complete OpenGSD mini-cycle with its own PR**:
+> 1. branch `loop-rN/<slug>` off the integration branch; commit the round's scope note;
+>    open a DRAFT PR into `claude/swimlane-report-composer-1i8vxt`;
+> 2. research + execute via fresh-context subagents — every round carries the standing
+>    lenses: delta-to-reality, semantic/ontological drift, total-history honesty;
+> 3. validate independently (enforced gates re-run; artifacts spot-checked vs live repo);
+> 4. ship: client-readable PR body (Start here / signal / verified-verbatim / not-here-yet
+>    / how-to-review), mark ready, squash-merge into integration — the merged PR trail is
+>    the Editor-in-Chief's per-round review record;
+> 5. increment `round`, append a log row with the PR number, one-line report, advance per
+>    `pace`. (Rounds 1–2 predate this amendment — they land retroactively via their own PR.)
 
 | # | focus | artifact(s) | commit | reported | status |
 |---|-------|-------------|--------|----------|--------|
