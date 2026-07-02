@@ -209,3 +209,59 @@ def test_lanes_bind_at_dict_level() -> None:
         for claim in binding.claims:
             assert isinstance(claim, Claim)
             assert not isinstance(claim, (models.FunctionalGroup, models.Kpi))
+
+
+def test_every_emitted_trace_is_addressed() -> None:
+    """LANE-02 / Hole B: every loader trace is content-addressed, and an un-addressed one is CAUGHT.
+
+    Positive half: across BOTH fixtures, every trace on every emitted claim ``is_addressed`` — no
+    un-addressed free-pass trace ever leaves the loader (Hole B closed upstream, not merely trusted
+    to the downstream gate). Adversarial half: hand-build a ``Claim`` carrying a bare ``Trace`` with
+    ``content_hash=None`` (un-addressed) and prove the SAME predicate that passes for every loader
+    claim REJECTS it — so the guard demonstrably distinguishes addressed from un-addressed, rather
+    than passing vacuously (the RETRO Phase-7 "prove it FIRES" discipline).
+    """
+
+    def all_addressed(claim: Claim) -> bool:
+        """The guard: True iff every trace on this claim pinned a content hash (is_addressed)."""
+        return bool(claim.evidence) and all(t.is_addressed for t in claim.evidence)
+
+    # Positive: no un-addressed trace escapes the loader, on either fixture.
+    for name in FIXTURES:
+        load = _load(name)
+        assert load.all_claims, f"{name}: expected at least one claim to guard"
+        for claim in load.all_claims:
+            assert all_addressed(
+                claim
+            ), f"{name}: {claim.text!r} carries an un-addressed trace"
+
+    # Adversarial: an un-addressed trace (content_hash=None) is CAUGHT by that same guard.
+    source = _load("module-x.yml").source
+    bad_trace = Trace(source_id=source.id, span="fabricated")  # never content-addressed
+    assert bad_trace.is_addressed is False
+    bad_claim = Claim(text="fabricated", evidence=[bad_trace])
+    assert (
+        all_addressed(bad_claim) is False
+    ), "the guard must REJECT an un-addressed trace"
+
+    # ...and the identical guard PASSES for a real loader claim — it is not vacuously false.
+    real_claim = _load("module-trap.yml").all_claims[0]
+    assert all_addressed(real_claim) is True
+
+
+def test_load_is_byte_stable() -> None:
+    """SITE-06 determinism: two loads of the same file are byte-identical (Source + bindings + load).
+
+    Proves the ``EPOCH_ZERO`` timestamp, file-order iteration, and no ``set()``-induced reordering:
+    ``model_dump_json`` of the Source, of each SectionBinding, and of the whole ``SwimlaneLoad`` are
+    equal across two independent loads (mirrors test_worksurface.py's byte-identical double-load).
+    """
+    for name in FIXTURES:
+        first = _load(name)
+        second = _load(name)
+        assert first.source.model_dump_json() == second.source.model_dump_json()
+        assert [b.model_dump_json() for b in first.bindings] == [
+            b.model_dump_json() for b in second.bindings
+        ]
+        # whole-load byte equality (Source + bindings + module-level claims/unextracted + count).
+        assert first.model_dump_json() == second.model_dump_json()
