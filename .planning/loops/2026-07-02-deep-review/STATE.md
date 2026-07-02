@@ -1,12 +1,12 @@
 ---
 loop: 2026-07-02-deep-review
-round: 3
+round: 4
 total_rounds: 10
 pace: continuous
 interval: null
 branch: loop/2026-07-02-deep-review
 base: claude/swimlane-report-composer-1i8vxt (at fd96ea0, includes PRs #4-#8)
-next_action: "Round 4 — Phase 4 (signals-voice) deep review → 04-triad + accepted-gap records (CONTEXT, PATTERNS)"
+next_action: "Round 5 — semantic spine + trust invariants cross-phase → 05-trust-invariants.md"
 ---
 
 # Deep-review loop — round log
@@ -31,3 +31,4 @@ next_action: "Round 4 — Phase 4 (signals-voice) deep review → 04-triad + acc
 | 1 | Phase 1 loader | 01-{VERIFICATION,VALIDATION,LEARNINGS}.md | (this commit) | yes | passed 5/5; finding: 2 stale docstrings in swimlane.py (post-efb635a) → backlog, not fixed in-loop |
 | 2 | Phase 2 composer | 02-{VERIFICATION,VALIDATION,LEARNINGS}.md | (this commit) | yes | passed 4/4; Holes A+B closure re-proven by named tests; finding: zero-endpoint arm unguarded (fixture models point-in-time as 1-element) → backlog |
 | 3 | Phase 3 module-a | 03-{VERIFICATION,VALIDATION,LEARNINGS}.md | PR #10 (494c19e) | yes | passed 3/3; accepted gaps recorded; guard-out-enforced-the-plan; 3 new edges backlogged |
+| 4 | Phase 4 voice | 04-{VERIFICATION,VALIDATION,LEARNINGS}.md | PR #11 (dbda32d) | yes | passed 3/3; hype-vs-audience two-axis lesson; ROADMAP 5-vs-6 drift + vacuous config arm + PR#9 footer near-miss flagged |
