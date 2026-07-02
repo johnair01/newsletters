@@ -53,12 +53,12 @@ shape must fit without touching source. Enforced by test.
 
 ### Worked Synthetic Module Report (MODA)
 
-- [ ] **MODA-01**: A synthetic `module-a` example config (fabricated naming scheme: `area-bem`,
+- [x] **MODA-01**: A synthetic `module-a` example config (fabricated naming scheme: `area-bem`,
   `module-a`, `owner-*`, `eng-NN`, `toolset-N`; nothing resembling real org/tool/metric/site/
   program nomenclature) composes and renders into `content/`, visible in the Library,
   gate-visible: claim beside verbatim trace + populated honesty panel
 
-- [ ] **MODA-02**: `newsletters check --corpus module` runs the SAME unforked merge-block gate on
+- [x] **MODA-02**: `newsletters check --corpus module` runs the SAME unforked merge-block gate on
   the module corpus, and the byte-stable double-render invariant (SITE-06) holds over the new
   output
 
@@ -108,8 +108,8 @@ shape must fit without touching source. Enforced by test.
 | COMP-02 | Phase 2 | Complete |
 | COMP-03 | Phase 2 | Complete |
 | COMP-04 | Phase 2 | Complete |
-| MODA-01 | Phase 3 | Pending |
-| MODA-02 | Phase 3 | Pending |
+| MODA-01 | Phase 3 | Complete |
+| MODA-02 | Phase 3 | Complete |
 | VOICE-01 | Phase 4 | Pending |
 | VOICE-02 | Phase 4 | Pending |
 
