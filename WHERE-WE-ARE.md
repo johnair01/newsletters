@@ -7,6 +7,31 @@
 
 ## Where we are right now
 
+**2026-07-02 — MILESTONE v1.1 STARTED: Swim-Lane Module Report (Stage A locked with JJ; Stage B
+running overnight).** v1.0 is complete and archived (Phases 1–13 shipped; Phase 14 → DEF-12). The
+new milestone builds the **missing composer**: a config-driven machine that cuts one owned module
+across its swim lanes into a Draft, evidence-traced `Surface(REPORT)`. **JJ's locked principle:
+ABSTRACT EVERYTHING** — models in code, module/lane/owner specifics in YAML config, zero fixture
+names in `src/` (enforced by test). Exactly 4 phases (`.planning/ROADMAP.md`): (1) traced YAML
+loader `swimlane.py` — every value content-addressed via `Trace.from_source` to the raw YAML text,
+read-anchored zero-silent-drops, PyYAML behind a `[config]` extra; (2) composer `compose.py` —
+kind-agnostic `SectionBinding` seam, compose-time Δ from two traced endpoints (`delta=None` +
+`missing[]` when an endpoint is absent, never a fabricated 0), own `content/module/ids.json`
+ledger, Draft only; (3) worked synthetic `module-a` into the Library as a third `module` corpus;
+(4) Signals-voice PR bodies from the `ship` workflow. Research (4 agents + synthesis, committed in
+`.planning/research/`) found **two real holes in the existing gate** — `_published_claims()` scans
+only `ClaimsBlock` (Hole A) and un-addressed traces pass entailment free (Hole B) — closed by new
+adversarial tests in Phases 1–2, never by editing `faithfulness.py`/`coverage.py`. Gate policy:
+enforced set = pytest / lint-imports / `newsletters check` (all corpora) / byte-stable double-render
+/ bare-install CI (all green at the 2026-07-02 baseline, 574 tests); mypy/black/isort = no-NEW-
+failures vs the recorded baseline (repo pre-dates a global format pass — 9 mypy errors, ~59
+unformatted files are v1.0 debt, out of scope). Run model: one draft PR per phase off integration
+branch `claude/swimlane-report-composer-1i8vxt` (the session-designated branch, serving the seed's
+`milestone/swimlane-report` role), squash-merged phase-by-phase; **`main` untouched**; max 2
+attempts per phase; Phase-1 circuit breaker stops the run if the loader isn't cleanly green.
+Synthetic data only — no real org/tool/metric/site/program names anywhere. **Next: Phase 1 —
+plan-phase → execute-phase → self-verify → ship.**
+
 **2026-06-19 — Phase 13 SHIPPED & VERIFIED (3/3): Problem Lifecycle Entity (PROB-01/03). THE CUT IS
 COMPLETE — Phases 1–13 all shipped & verified.** A first-class typed `Problem` sits ABOVE `Source`
 (`src/newsletters/problem.py`, AI-free leaf, acyclic — `semantic` never imports it): aggregates ≥1
