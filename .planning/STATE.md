@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: The Published Record
 status: in_progress
-stopped_at: "v1.2 SHIPPED as PR #21 (supersets PR #20 — sequencing is the maintainer's). Milestone closes formally after the merge + post-merge UAT (deploy green, live URLs 200, styled 404)."
+stopped_at: "v1.2 MERGED (PRs #20+#21) & LIVE — deploy run #5 green (first-ever successful automated publish); post-merge UAT PASSED (all URLs 200 incl. module report, styled 404, marker, one gh-pages publish commit @ 528d092). Remaining: pages review (EiC), then /gsd-complete-milestone."
 last_updated: "2026-07-03T00:45:00.000Z"
-last_activity: 2026-07-03 — Phase 2 shipped & verified (one publish channel; 639 tests; live dead-nav bug caught+fixed)
+last_activity: 2026-07-03 — merged & live; UAT passed (deploy run #5 green; module report 200; styled 404)
 progress:
   total_phases: 2
   completed_phases: 2
@@ -85,6 +85,6 @@ channel iff maintainer aligns repo settings).
 
 ## Session Continuity
 
-Last session: 2026-07-03 — v1.2 built, verified, shipped (PR #21)
-Stopped at: Awaiting the maintainer: PR #20/#21 sequencing + merge; then post-merge UAT (checklist in the PR body + WHERE-WE-ARE top entry); then /gsd-complete-milestone.
+Last session: 2026-07-03 — v1.2 merged & live; post-merge UAT PASSED (evidence on PR #21)
+Stopped at: Pages review (EiC), then /gsd-complete-milestone (audit → archive → retrospective).
 Resume file: this file + `.planning/ROADMAP.md` + `.planning/research/2026-07-03-pages-publish-forensics.md`
