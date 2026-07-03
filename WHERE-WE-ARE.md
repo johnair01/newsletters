@@ -7,6 +7,22 @@
 
 ## Where we are right now
 
+**2026-07-03 (round 2) — `web/` DESIGN PREVIEW FIXED & DEPLOYED at `/web/`.** An audit of the
+Signals Navigation & IA implementation (work order: `.planning/notes/2026-07-03-web-round2-fixprompt.md`)
+found the components faithful but the packaging broken: `@font-face` URLs hardcoded a basePath
+(fonts 404 → system-font fallbacks), **Instrument Sans 500/600 were byte-identical copies of the
+400 file** (a defect in the design bundle itself — medium/semibold never rendered anywhere), dark
+tokens had drifted from the handoff hexes, and nothing ever deployed or CI-checked `web/`. Fixed:
+fonts moved to `app/fonts` with relative bundler-managed URLs (works in dev, export, any basePath);
+genuine 500/600 from `@fontsource/instrument-sans`; `next.config.mjs` basePath now env-driven
+(`NEXT_BASE_PATH`) + `trailingSlash`; dark tokens restored to the exact handoff values incl. the
+page(`#07070b`)-vs-frame(`#0e0e14`) distinction; amber `::selection`; and a `web-ci.yml` gate
+(tsc + build + a fonts-are-real hash check) so it can't rot silently again. **DEF-13 amended, not
+broken:** the root URL still belongs to the corpus record; the app now deploys UNDER it at
+`/newsletters/web/` as a labeled design preview — the same single publish workflow builds it after
+assemble, both publish gates untouched (test_publish 10/10, full suite 639 green). Verified served
+under the subpath: all 8 woff2 200, all 11 routes, serif/mono/weights rendering per the design.
+
 **2026-07-03 (later) — v1.2 MERGED & LIVE. Post-merge UAT PASSED — the publish loop is closed.**
 The maintainer merged PR #20 + PR #21 together; the rewritten deploy workflow ran from the merge
 commit and **succeeded on its first try** (run #5 — the first successful automated Pages deploy

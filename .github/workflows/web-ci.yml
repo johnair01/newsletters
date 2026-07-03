@@ -1,0 +1,36 @@
+# CI for the web/ design preview (round 2) — path-filtered so it only runs when web/
+# changes. Exists because the app rotted silently for a week with zero CI coverage:
+# fonts 404'd (hardcoded basePath), two font weights were byte-copies of the 400 file,
+# and nothing ever built it. Typecheck + build + a fonts-are-real guard.
+name: CI — web design preview
+
+on:
+  push:
+    paths: ["web/**", ".github/workflows/web-ci.yml"]
+  pull_request:
+    paths: ["web/**", ".github/workflows/web-ci.yml"]
+
+jobs:
+  web-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: cd web && npm ci
+
+      - run: cd web && npx tsc --noEmit
+
+      - run: cd web && npm run build
+
+      - name: Fonts are real (three distinct Instrument Sans weights)
+        # Guards the round-2 find: 400/500/600 were byte-identical, so medium/semibold
+        # never rendered. Three files must hash to at least three distinct digests.
+        run: |
+          cd web/app/fonts
+          test "$(sha256sum instrument-sans-*-normal.woff2 | awk '{print $1}' | sort -u | wc -l)" -ge 3

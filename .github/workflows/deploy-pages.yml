@@ -3,9 +3,10 @@
 # WHAT PUBLISHES: the rendered record — the committed corpora assembled by
 # `newsletters assemble` (publish.assemble_site): content/rev1/site at the ROOT,
 # content/work/site at /work/, content/module/site at /module/, plus .nojekyll and the
-# base-path-absolute 404.html. The web/ Next.js app is NOT deployed (DEF-13: it stays
-# in-repo until it consumes real corpus data — placeholder content must not wear the
-# product's URL).
+# base-path-absolute 404.html. The web/ Next.js app additionally deploys UNDER the
+# record at /web/ as a labeled DESIGN PREVIEW (round-2 amendment to DEF-13: the root
+# URL still belongs to the corpus record; the preview carries placeholder data and
+# lives at the subpath until it consumes real corpus data).
 #
 # HOW IT PUBLISHES: a single-commit force-push to the `gh-pages` branch — the channel
 # GitHub Pages is configured to serve from (Settings → Pages → "Deploy from a branch").
@@ -34,6 +35,7 @@ on:
       - "content/**"
       - "src/newsletters/**"
       - "tests/test_publish.py"
+      - "web/**"
       - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
@@ -91,6 +93,21 @@ jobs:
 
       - name: Assemble the published tree (the canonical function, not bash cp)
         run: newsletters assemble --out _site --base-path /newsletters/
+
+      # The web design preview builds AFTER assemble so it lands inside the final
+      # _site tree. The root .nojekyll from assemble already covers _site/web/_next/.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build the web design preview (served at /newsletters/web/)
+        run: |
+          cd web
+          npm ci
+          NEXT_BASE_PATH=/newsletters/web npm run build
+          cp -r out ../_site/web
 
       - name: Publish — single-commit force-push to gh-pages
         # Plain git, no third-party action to pin/audit. Force-push keeps gh-pages a
