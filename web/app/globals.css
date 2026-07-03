@@ -5,21 +5,22 @@
    raw --color-* + semantic --bg/--card/--text/--text-dim/--line + --chrome-*.
    Three net-new tokens are folded in from the Navigation & IA handoff:
    --color-amber-ink / --color-accent-ink (AA text-on-light) and --ev-bg.
-   Fonts are self-hosted (no external calls) — see public/fonts.
+   Fonts are self-hosted (no external calls) — see app/fonts.
    ============================================================ */
 
 /* Self-hosted fonts — no external calls.
-   URLs are prefixed with the GitHub Pages basePath (/newsletters) because CSS
-   url() is not rewritten by Next's basePath. Keep in sync with next.config.mjs;
-   drop the /newsletters prefix if hosting at a domain root. */
-@font-face { font-family: 'DM Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('/newsletters/fonts/dm-mono-400-normal.woff2') format('woff2'); }
-@font-face { font-family: 'DM Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('/newsletters/fonts/dm-mono-500-normal.woff2') format('woff2'); }
-@font-face { font-family: 'DM Serif Display'; font-style: italic; font-weight: 400; font-display: swap; src: url('/newsletters/fonts/dm-serif-display-400-italic.woff2') format('woff2'); }
-@font-face { font-family: 'DM Serif Display'; font-style: normal; font-weight: 400; font-display: swap; src: url('/newsletters/fonts/dm-serif-display-400-normal.woff2') format('woff2'); }
-@font-face { font-family: 'Instrument Sans'; font-style: italic; font-weight: 400; font-display: swap; src: url('/newsletters/fonts/instrument-sans-400-italic.woff2') format('woff2'); }
-@font-face { font-family: 'Instrument Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url('/newsletters/fonts/instrument-sans-400-normal.woff2') format('woff2'); }
-@font-face { font-family: 'Instrument Sans'; font-style: normal; font-weight: 500; font-display: swap; src: url('/newsletters/fonts/instrument-sans-500-normal.woff2') format('woff2'); }
-@font-face { font-family: 'Instrument Sans'; font-style: normal; font-weight: 600; font-display: swap; src: url('/newsletters/fonts/instrument-sans-600-normal.woff2') format('woff2'); }
+   Relative url()s let the bundler own the URLs: Next inlines these into
+   _next/static/media and rewrites them correctly for dev, static export, and any
+   basePath. Literal family names stay (components reference them directly) — do
+   not switch to next/font, which hashes family names. */
+@font-face { font-family: 'DM Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('./fonts/dm-mono-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'DM Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('./fonts/dm-mono-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'DM Serif Display'; font-style: italic; font-weight: 400; font-display: swap; src: url('./fonts/dm-serif-display-400-italic.woff2') format('woff2'); }
+@font-face { font-family: 'DM Serif Display'; font-style: normal; font-weight: 400; font-display: swap; src: url('./fonts/dm-serif-display-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Instrument Sans'; font-style: italic; font-weight: 400; font-display: swap; src: url('./fonts/instrument-sans-400-italic.woff2') format('woff2'); }
+@font-face { font-family: 'Instrument Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url('./fonts/instrument-sans-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Instrument Sans'; font-style: normal; font-weight: 500; font-display: swap; src: url('./fonts/instrument-sans-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Instrument Sans'; font-style: normal; font-weight: 600; font-display: swap; src: url('./fonts/instrument-sans-600-normal.woff2') format('woff2'); }
 
 :root {
   /* PALETTE (raw) */
@@ -70,24 +71,29 @@
 }
 
 [data-theme="dark"] {
-  --color-ink:            #f0ede8;
-  --color-paper:          #0f0f14;
-  --color-white:          #1a1a22;
-  --color-brand-primary:  #3f9ae0;
+  /* Exact handoff values (design-reference/signals-navigation) — do not re-pick. */
+  --color-ink:            #f1efe9;
+  --color-paper:          #0e0e14;
+  --color-white:          #14141b;
+  --color-brand-primary:  #3a9be0;
   --color-brand-mid:      #5aa9e6;
   --color-brand-light:    #15293a;
   --color-brand-dark:     #0c1b29;
-  --color-accent:         #e07a45;
-  --color-amber:          #d99a2a;
-  --color-green:          #4fa873;
-  --color-rule:           rgba(240,237,232,0.16);
-  --color-muted:          rgba(240,237,232,0.55);
+  --color-accent:         #e07a48;
+  --color-amber:          #dba62f;
+  --color-green:          #4caa75;
+  --color-rule:           #2a2a33;
+  --color-muted:          #9a978f;
   --color-surface-low:    #16161d;
   --color-surface-mid:    #20202a;
-  --color-amber-ink:      #d99a2a;
-  --color-accent-ink:     #e07a45;
-  --chrome-bg:   #07070b;
+  --color-amber-ink:      #dba62f;
+  --color-accent-ink:     #e07a48;
+  --chrome-bg:   #050509;
+  --chrome-dim:  #7d7a74;
   --chrome-line: rgba(255,255,255,0.10);
+  /* Page-vs-frame: the page behind the framed viewport goes deeper than the frame's
+     paper — the frame (.viewport) stays on --color-paper, the page drops to #07070b. */
+  --bg: #07070b;
 }
 
 * { box-sizing: border-box; }
@@ -102,7 +108,8 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-::selection { background: var(--color-brand-primary); color: #fff; }
+/* Spec: amber highlight with near-black text, in BOTH themes. */
+::selection { background: var(--color-amber); color: #0a0a0f; }
 
 button { font-family: inherit; cursor: pointer; }
 a { color: inherit; text-decoration: none; }
@@ -128,7 +135,7 @@ select:focus-visible { outline: 2px solid var(--color-brand-primary); outline-of
   margin: 0 auto;
   border-left: 1px solid var(--line);
   border-right: 1px solid var(--line);
-  background: var(--bg);
+  background: var(--color-paper); /* the frame keeps paper; --bg (page) drops deeper in dark */
   min-height: 100vh;
   position: relative;
 }

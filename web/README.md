@@ -52,8 +52,12 @@ used — they were reconciled onto the spec namespace.
 
 Light/dark is driven by `prefers-color-scheme` + a `localStorage` override, applied to
 `<html data-theme>` by a tiny pre-paint inline script (no flash). The three font families
-(DM Serif Display / Instrument Sans / DM Mono) are self-hosted in `public/fonts` — no
-external calls.
+(DM Serif Display / Instrument Sans / DM Mono) are self-hosted in `app/fonts` with relative
+`url()`s in `globals.css` — the bundler rewrites them for dev/export/any basePath; no
+external calls. The Instrument Sans 500/600 files come from `@fontsource/instrument-sans`
+(kept as a devDependency for provenance): the design bundle shipped 400/500/600 as three
+byte-identical copies of the 400 file, so medium/semibold never rendered — guarded now by
+the fonts-are-real check in `.github/workflows/web-ci.yml`.
 
 ## Notes
 
