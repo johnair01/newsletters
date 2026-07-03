@@ -53,8 +53,10 @@ byte-stably with the new chrome.
 **Success Criteria** (what must be TRUE):
 
   1. `render_home`/`render_library` accept an optional `records` sequence and render a Records
-     strip using existing `_CSS` tokens only (DM Mono eyebrow, hairline rules, radius 0); empty →
-     rendered output byte-identical to before the parameter existed (proven by test).
+     strip using existing `_CSS` tokens only (DM Mono eyebrow, hairline rules, radius 0); records
+     omitted/empty → no strip markup (proven by test). *(Amended from "byte-identical to before"
+     — the strip's CSS lands in the shared inline `_CSS`, so all pages change bytes once this
+     phase regardless; see 01-CONTEXT decision 5.)*
   2. The strip appears on chrome pages ONLY (rev1 `index.html` + `library.html`; work + module
      `library.html`); no per-surface page carries it (proven by test).
   3. `render_404(base_path=…)` emits a page through `_page` (generated marker + full token CSS)
