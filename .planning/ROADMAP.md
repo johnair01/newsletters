@@ -37,7 +37,7 @@ Re-run independently (agent "green" ≠ green):
 
 ## Phases
 
-- [ ] **Phase 1: Site IA & linkability** (PUB-03)
+- [x] **Phase 1: Site IA & linkability** (PUB-03) — completed 2026-07-03, verified 5/5
 - [ ] **Phase 2: One publish channel** (PUB-01, PUB-02, PUB-04, PUB-05)
 
 ## Phase Details
@@ -70,7 +70,7 @@ byte-stably with the new chrome.
 
 **Plans**: 1 plan
 
-  - [ ] 01-01-PLAN.md — Records strip + 404 renderer + builder wiring + corpus regeneration + guard tests + `docs/surfaces.md` deltas
+  - [x] 01-01-PLAN.md — Records strip + 404 renderer + builder wiring + corpus regeneration + guard tests + `docs/surfaces.md` deltas (completed 2026-07-03)
 
 ### Phase 2: One publish channel
 
@@ -110,7 +110,7 @@ test resolves Phase 1's cross-corpus hrefs).
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Site IA & linkability | 0/1 | Not started | — |
+| 1. Site IA & linkability | 1/1 | Complete | 2026-07-03 |
 | 2. One publish channel | 0/1 | Not started | — |
 
 ## Deferred — un-scheduled (carried from v1.1 close, unchanged)
