@@ -39,6 +39,18 @@ receive shipped code.
   [`RETRO.md`](RETRO.md) — name mistakes, don't paper over them. A recurring friction you haven't
   hardened is a bug. (This rule generates the others.)
 
+### Roles (hats, not people — full contract in [`docs/collaboration.md`](docs/collaboration.md))
+
+- **Editor-in-Chief** (here: JJ) — owns intent, sets pace, approves through the review gate.
+  Stop authority, always. Nobody is "the user."
+- **Bureau Chief** (here: Claude) — owns execution coordination, keeps time, runs the reporter
+  agents, reports in plain terms. The reviewer is a client being taught; if the deliverable is
+  visual, deploy it — one click, never "read the diff."
+- **Maintainer** (here: JJ) — owns `main`, tags, releases, config policy.
+- **Reporters** (subagents) draft under assignment; contributor / operator / reviewer / author /
+  reader as the product defines them. **Everybody learns everywhere all the time** — frictions
+  → RETRO rules, lessons → LEARNINGS files, durable agreements → guard tests.
+
 ## Execution discipline (learned the hard way — layered on GSD)
 
 - **"The agent says green" ≠ green.** After any GSD subagent or executor reports success,
@@ -106,8 +118,8 @@ them in the real stack using its components. `Newsletters - Home.html` is V1 —
 |------------|---------------------|-------|
 | `/core`    | `src/newsletters/`  | The typed semantic model + package API. `semantic.py` is the spine (`Source/Claim/Trace/Distillation/Surface`, the review gate); `models.py` holds the OKR/team sample domain. |
 | `/docs`    | `docs/`             | The spec set — source of truth for *what* to build. |
-| `/web`     | `web/`              | Next.js surfaces. Stub until its phase. |
-| `/content` | `content/`          | Git-backed published surfaces — the Library (`content/rev1/` holds the Rev1 renderer output). |
+| `/web`     | `web/`              | Next.js surfaces. Stub until its phase — **not deployed** (DEF-13: placeholder data must not wear the product's URL). |
+| `/content` | `content/`          | Git-backed published surfaces — the Library (`content/{rev1,work,module}/` corpora). Published to GitHub Pages via ONE channel: `publish.assemble_site` / `newsletters assemble` → the deploy workflow force-pushes `gh-pages` from `main` only (see `docs/architecture.md` §9). |
 | `/mcp`     | `mcp/`              | One MCP server per source system. Stub until its phase. |
 | reference  | `design-reference/` | Hi-fi HTML/JSX prototypes — the look-and-behavior contract, **not** production code. |
 | plan       | `.planning/`        | GSD's live plan: PROJECT / REQUIREMENTS / ROADMAP / STATE / research. |

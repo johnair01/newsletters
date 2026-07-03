@@ -90,7 +90,16 @@ Report: "Pushed `{branch}` to origin ({commit_count} commits ahead of ${BASE_BRA
 </step>
 
 <step name="generate_pr_body">
-Auto-generate a rich PR body from planning artifacts:
+Generate the PR body as a **Signals dispatch** — faithful, no hype, teaching, evidence-first
+(VOICE-01). The body is generated FROM the diff and the gate output; it may not drift from the
+actual change. Two hard rules govern every sentence:
+
+- **Evidence rule:** every numeral and every factual claim in the body must be drawn from the
+  gate output, the diff (`git diff --stat "${RANGE_BASE}..HEAD"`), or a committed planning
+  artifact it cites. If a statement cannot be re-derived from those sources, it does not ship.
+- **Voice rule:** no AI framing, no hype adjectives (no "powerful", "seamless", "robust",
+  "comprehensive"), no emoji decoration, no aspiration stated as fact. Plain sentences. Honest
+  hedges stay honest ("passes vacuously", "not exercised end-to-end") — never softened away.
 
 **1. Title:**
 ```
@@ -98,54 +107,101 @@ Phase {phase_number}: {phase_name}
 ```
 Or for milestone: `Milestone {version}: {name}`
 
-**2. Summary section:**
-Read ROADMAP.md for phase goal. Read VERIFICATION.md for verification status.
+**2. Start here — the client section (FIRST section of every body, before The signal):**
+The reviewer is a CLIENT being taught, not a co-engineer. Assume they will not read the code.
+Written in plain language — no jargon, no type names, no file paths without a reason to click
+them. Three mandatory parts:
+
+- **What we built** — what the thing IS, in words a smart non-engineer follows on first read.
+  Analogy over terminology ("the reader", "the writer", "a receipt for every number").
+- **Why it matters to you** — the decision or principle this serves, addressed to the client.
+- **How to review it (~N min)** — numbered steps with CLICKABLE links: the rendered artifact
+  first whenever one exists (a deployed page beats a repo path beats a diff), then what "good"
+  looks like at each step, then where to say "this is wrong". A PR whose deliverable is visual
+  MUST link the rendered/deployed thing, not just the HTML source.
 
 ```markdown
-## Summary
+## Start here — what this is, in plain terms
 
-**Phase {N}: {Name}**
-**Goal:** {goal from ROADMAP.md}
-**Status:** Verified ✓
+**What we built:** {plain-language description}
 
-{One paragraph synthesized from SUMMARY.md files — what was built}
+**Why it matters to you:** {the principle/decision, client-addressed}
+
+**How to review it (~{N} min):**
+1. {click this — what you should see}
+2. {check this — what "good" looks like}
+3. {where to leave feedback}
 ```
 
-**3. Changes section:**
-For each SUMMARY.md in the phase directory:
+**3. The signal:**
+One honest line: what shipped and why it matters to the story we can now tell. Derived from the
+ROADMAP phase goal + the SUMMARY files' `## The signal` one-liners + the actual diff — never
+from intention. If the phase shipped less than the goal, the signal says what actually shipped.
+
 ```markdown
-## Changes
+## The signal
 
-### Plan {plan_id}: {plan_name}
-{one_liner from SUMMARY.md frontmatter}
-
-**Key files:**
-{key-files.created and key-files.modified from SUMMARY.md frontmatter}
+{One or two sentences. What exists now that didn't before, and what it makes possible.}
 ```
 
-**4. Requirements section:**
+**4. What we learned:**
+The decision this phase served; what we now understand that we didn't. Sourced from the SUMMARY
+files' `## Decisions & Deviations` + STATE.md decisions for this phase. Deviations and bugs
+found belong HERE, told plainly — a deviation narrated is a lesson; a deviation hidden is drift.
+
 ```markdown
-## Requirements Addressed
+## What we learned
 
-{REQ-IDs from plan frontmatter, linked to REQUIREMENTS.md descriptions}
+- {The decision the phase served, and why it was built this way}
+- {Each real deviation/bug/surprise and what it taught}
 ```
 
-**5. Testing section:**
+**5. What's verified:**
+The gates that passed, with their output **verbatim** — copied bytes inside a fenced block,
+never paraphrased, never summarized, never softened. Run (or collect from VERIFICATION.md) the
+project's enforced gate commands at ship time and paste their tails exactly. A gate that was
+not run is not listed; a gate that failed is shown failing.
+
 ```markdown
-## Verification
+## What's verified
 
-- [x] Automated verification: {pass/fail from VERIFICATION.md}
-- {human verification items from VERIFICATION.md, if any}
+```
+{command}                                  {verbatim output tail}
+{command}                                  {verbatim output tail}
 ```
 
-**6. Decisions section:**
+{One plain sentence of context: suite growth, what the new tests prove, baseline comparisons.}
+```
+
+**6. What's not here yet:**
+This phase's honest `missing[]` — the same honesty panel the product renders, applied to the PR
+itself. Deferrals, skipped sub-tasks (named, with the reason), open seams, known caveats,
+inherited debt deliberately not touched. Sourced from SUMMARY `## What's not here yet` /
+concerns, the ROADMAP's deferred entries, and anything the diff shows was left undone.
+
 ```markdown
-## Key Decisions
+## What's not here yet
 
-{Decisions from STATE.md accumulated context relevant to this phase}
+- {Deferral / open seam / caveat — with the reason, never silently}
 ```
 
-**7. Configured project sections:**
+**7. How to verify:**
+The exact commands a reviewer runs to confirm green independently — copy-paste runnable from a
+fresh checkout, including any install step. Point at the artifact to READ (a rendered page, a
+report) when the deliverable is a thing to look at, not just a test to run.
+
+```markdown
+## How to verify
+
+```bash
+{install command}
+{gate commands}
+```
+
+{Requirements covered: REQ-IDs. Plans + summaries: {phase_dir}.}
+```
+
+**8. Configured project sections:**
 Read append-only project-specific PRD/PR body sections from config:
 
 ```bash
@@ -162,7 +218,8 @@ Use these sections for lean/agile PRD material that should travel with the PR wi
 
 Rules:
 
-- Treat configured sections as append-only. They are rendered after `Key Decisions` and cannot replace, remove, or reorder the required core sections: `Summary`, `Changes`, `Requirements Addressed`, `Verification`, and `Key Decisions`.
+- Treat configured sections as append-only. They are rendered after `How to verify` and cannot replace, remove, or reorder the required core sections: `Start here — what this is, in plain terms`, `The signal`, `What we learned`, `What's verified`, `What's not here yet`, and `How to verify`.
+- Configured sections obey the same evidence rule as the core body: a `fallback` may not assert a fact no gate or artifact verified (e.g. "No known high-risk rollout dependencies" is forbidden as a fallback — absence of evidence is disclosed as "not assessed", or the section is omitted).
 - Each entry must have `heading` plus at least one of `source`, `template`, or `fallback`.
 - `enabled` defaults to `true`; when `enabled` is `false`, skip the section without warning. This lets onboarding seed optional sections that a project can enable later.
 - `source` is a fallback chain of planning artifact headings: `PLAN.md ## Risks || VERIFICATION.md ## Manual Checks`. Allowed artifacts are `ROADMAP.md`, `PLAN.md`, `SUMMARY.md`, `VERIFICATION.md`, `STATE.md`, `REQUIREMENTS.md`, and `CONTEXT.md`.
@@ -178,13 +235,13 @@ Example configured sections:
     "heading": "User Stories & Acceptance Criteria",
     "enabled": true,
     "source": "REQUIREMENTS.md ## User Stories || REQUIREMENTS.md ## Acceptance Criteria",
-    "fallback": "- Acceptance criteria are covered by the linked requirements and verification evidence."
+    "fallback": "- Not captured for this phase — see REQUIREMENTS.md for the covered REQ-IDs."
   },
   {
     "heading": "Risks & Dependencies",
     "enabled": true,
     "source": "PLAN.md ## Risks || PLAN.md ## Dependencies",
-    "fallback": "- No known high-risk rollout dependencies."
+    "fallback": "- Not assessed this phase (no PLAN.md risk section)."
   },
   {
     "heading": "Stakeholder Review & Approval",
@@ -194,7 +251,7 @@ Example configured sections:
 ]
 ```
 
-**8. TDD Audit section:**
+**9. TDD Audit section:**
 
 Reconstruct the per-commit TDD gate trail before squash-merge discards it. Walk the PR branch's own commits (merges excluded) and read each commit's `gate_status:` trailer with Git's native trailer machinery — never a raw `%B` grep, which would also match the string written in prose:
 
@@ -231,7 +288,7 @@ Aggregate: 2 skill, 1 fallback, 1 exempt — 0 missing.
 
 This `## TDD Audit` section is the final body section — it renders after the configured `pr_body_sections`, immediately before the aggregate trailer — so the frozen core sections and the append-only configured sections both keep their existing order.
 
-**9. Aggregate gate_status trailer (final line):**
+**10. Aggregate gate_status trailer (final line):**
 
 After every other section — including any configured `pr_body_sections` — emit the audit aggregate as a single Git trailer on the **final line** of the PR body, preceded by a blank line so it parses as a valid trailer:
 

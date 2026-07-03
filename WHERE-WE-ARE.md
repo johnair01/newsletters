@@ -7,6 +7,122 @@
 
 ## Where we are right now
 
+**2026-07-03 — MILESTONE v1.2 BUILT & VERIFIED: The Published Record — one channel,
+production-ready. Awaiting the maintainer's merge (the publish itself is the human gate).**
+The trigger: live forensics found the "deployed" site was a two-week-stale *hand-pushed*
+`gh-pages` snapshot, the automated deploy built the WRONG artifact (the placeholder `web/`
+app) and had failed **4/4 runs — including from `main`** (so PR #20's "merge → deploy"
+premise was false), and no test saw the assembled tree — `/module/…` 404'd live, and every
+work/module page's Home/nav/fan-out link was dead (evidence:
+`.planning/research/2026-07-03-pages-publish-forensics.md`). What shipped (PUB-01..05,
+phases verified 5/5 + 4/4, **639 tests**): **(1) Site IA & linkability** — a cross-corpus
+**Records strip** on chrome pages (designed per `docs/design-system.md` + the
+`design-reference/signals-navigation/` handoff: *no surface a dead-end*), a design-system
+**404** ("not in the record", base-path-absolute by necessity), and sub-corpus nav that
+climbs to the site's front door (`home_href` — the live dead-nav bug, caught by the new
+assembled-tree test on its FIRST run, fixed at the renderer). **(2) One publish channel** —
+`publish.assemble_site` / `newsletters assemble` composes the committed corpora (rev1 root +
+`/work/` + `/module/` + `.nojekyll` + 404) byte-verbatim; `tests/test_publish.py` codifies
+the four guarantees (assembled links resolve · committed==fresh ALL corpora · fonts present ·
+marker everywhere) as PR-blocking CI (`site-integrity` job; merge-block now gates all three
+corpora); `deploy-pages.yml` rewritten to gate-then-force-push `gh-pages` **from `main`
+only** — the channel with one visible gate, deliberately avoiding the environment allowlist
+that killed every prior deploy (adopting it back is DEF-14; `web/` deploy is retired until it
+consumes real data, DEF-13). **Sequencing note:** this branch contains all of open **PR #20**
+(built on the v1.1 integration branch, verified fast-forward) — merge #20 first or merge this
+as its superset. **Post-merge UAT:** deploy run green → `/module/report-module-a.html` 200 →
+styled 404 on a garbage path → gh-pages = one publish commit naming the merge SHA.**
+
+**2026-07-02 (evening) — v1.1 FORMALLY CLOSED. The 10-round deep-review loop is COMPLETE (10/10,
+PRs #9–#17, every round its own reviewable PR).** The milestone audit **PASSED** (12/12
+requirements, three-source cross-check, 4/4 phases verified); the milestone is archived
+(`.planning/milestones/v1.1-*`), logged (`MILESTONES.md`), retrospected (`RETROSPECTIVE.md`),
+synthesized (`.planning/reviews/2026-07-02-deep-review/10-synthesis.md` — read this first).
+626 tests green; all three corpora clean; the collaboration contract is canon
+(`docs/collaboration.md`: roles as hats — Editor-in-Chief/Bureau Chief/Reporters/Maintainer —
+guarded by test). **One known limitation:** the `v1.1` tag exists locally only — this
+environment's git proxy drops tag pushes; the maintainer creates it in one click (Releases →
+new tag `v1.1` @ `979f191`; noted on PR #17). **Three decisions wait on the
+Editor-in-Chief/Maintainer:** (1) the B1–B20 fix-batch PR (12 one-test guards — see
+`reviews/07-tests-as-promises.md`); (2) integration→main merge (the branch holds the complete,
+closed milestone); (3) the next milestone (evidence: DEF-04 or DEF-05, DEF-11 gated on mandatory
+content-addressed traces per `reviews/05-trust-invariants.md`). A fresh session starts from
+`.planning/loops/2026-07-02-deep-review/RESUME-PROMPT.md` — the repo alone carries the full record.
+
+**2026-07-02 (after the morning) — CLIENT-READABLE REVIEWS SHIPPED, then a 10-round DEEP-REVIEW
+LOOP to close v1.1 honestly.** Two things happened after the milestone's code was done. First, JJ's
+morning review landed a hard truth — the Signals-dispatch PR bodies were hype-free but still
+unreadable to the person they were for ("I don't understand what the shit is going on") — so **PR #8**
+added a mandatory plain-terms **"Start here"** section (what we built / why it matters / how to
+review) and deployed the rendered report corpora to Pages, so review means clicking an artifact, not
+diffing. Second, the milestone was **functionally done but never formally closed per GSD** (no
+per-phase VERIFICATION/VALIDATION/**LEARNINGS**, no milestone archive/tag, and STATE/ROADMAP/PROJECT
+carried internal contradictions). The fix is a **10-round deep-review /loop** (PRs #9–#15) where each
+round's deep review *is* the capture vehicle — reviewing Phase N produces its honest triad. Rounds so
+far: **1–4** the per-phase retroactive triads (all verified; accepted gaps recorded, not fabricated);
+**5** the 12 trust invariants mapped as one system (weakest link named: the Option-A structural
+faithfulness fallback passes an un-addressed trace with no content check); **6** the 16 GSD config
+toggles reconciled (4 honored / 2 backfilled / 6 accepted / 5 maintainer recommendations — lesson:
+independence, not correctness, is what a fresh-context review buys); **7** the whole suite read as a
+promise ledger (62 promises, 11 unguarded arms, 2 vacuous guards → backlog **B1–B20**, all one-test
+remedies); **8** (this round) ontology & semantic drift across total history + these compass fixes.
+The standing lenses every round: delta-to-reality, semantic drift, total-history honesty. **Next:
+Round 9 — the collaboration contract (roles as hats: Editor-in-Chief / Bureau Chief / maintainer /
+…, `docs/collaboration.md` + a presence guard mirroring the voice guard); Round 10 — the formal GSD
+close (`audit-milestone` → `complete-milestone`: MILESTONES.md, archive, RETROSPECTIVE, tag v1.1 on
+the integration branch — the maintainer merges to `main`).**
+
+**2026-07-02 (morning) — MILESTONE v1.1 CORE COMPLETE: all 4 phases shipped, verified, and
+squash-merged to the integration branch (`claude/swimlane-report-composer-1i8vxt`). `main`
+untouched. 622 tests green; every enforced gate re-run independently on the merged result.**
+The composer JJ asked for exists and is config-driven end to end: **Phase 1** (PR #4) — the
+traced YAML loader `swimlane.py`: every scalar content-addressed to the raw file text or
+disclosed, PyYAML behind `[config]`, the abstraction guard enforcing "models in code, specifics
+in config" (it fired on three real leaks during the night — the principle is a test, not a
+convention). **Phase 2** (PR #5) — `compose.py`: one Draft `Surface(REPORT)` per module,
+compose-time Δ from two traced endpoints (declared-but-single endpoint disclosed; point-in-time
+`value:` never falsely flagged — the endpoint accumulator carries the movement form only),
+sourced-or-omit quote, fanout stub, `R-NNN` via reused Ledger, both research gate-holes closed
+by adversarial tests with zero edits to existing gates. **Phase 3** (PR #6) — the worked
+synthetic `module-a` report rendered at `content/module/site/report-module-a.html` (36
+claim-beside-trace rows, populated honesty panel, R-001, own ledger), `newsletters check
+--corpus module` proven to fire on a planted blocker; method-docs sub-task skipped honestly
+(`_incoming/` absent). **Phase 4** (PR #7) — `/gsd ship` PR bodies are now Signals dispatches
+(five sections, verbatim gate output, no fact-asserting fallbacks), guarded by test against
+installer reversion. **One stall JJ caught live:** a backgrounded CI-wait that could never
+succeed (container restart + dead unauthenticated curl + watching a docs-only SHA that never
+triggered CI) — rules hardened in `RETRO.md` 2026-07-02: background monitors notify, never
+sequence. **Next: JJ's morning review of PRs #4–#7 (merged into the integration branch) and
+the integration→main decision, which JJ owns.** After that, the §7 deferrals (DEF-01..12 in
+REQUIREMENTS/ROADMAP) are the menu — the owner-audit workflow (DEF-04) or the quarter-editorial
+re-cut (DEF-05) are the natural next loops; the DistillPort AI backend (DEF-11) stays
+eval-first and deliberately last.
+
+**2026-07-02 — MILESTONE v1.1 STARTED: Swim-Lane Module Report (Stage A locked with JJ; Stage B
+running overnight).** v1.0 is complete and archived (Phases 1–13 shipped; Phase 14 → DEF-12). The
+new milestone builds the **missing composer**: a config-driven machine that cuts one owned module
+across its swim lanes into a Draft, evidence-traced `Surface(REPORT)`. **JJ's locked principle:
+ABSTRACT EVERYTHING** — models in code, module/lane/owner specifics in YAML config, zero fixture
+names in `src/` (enforced by test). Exactly 4 phases (`.planning/ROADMAP.md`): (1) traced YAML
+loader `swimlane.py` — every value content-addressed via `Trace.from_source` to the raw YAML text,
+read-anchored zero-silent-drops, PyYAML behind a `[config]` extra; (2) composer `compose.py` —
+kind-agnostic `SectionBinding` seam, compose-time Δ from two traced endpoints (`delta=None` +
+`missing[]` when an endpoint is absent, never a fabricated 0), own `content/module/ids.json`
+ledger, Draft only; (3) worked synthetic `module-a` into the Library as a third `module` corpus;
+(4) Signals-voice PR bodies from the `ship` workflow. Research (4 agents + synthesis, committed in
+`.planning/research/`) found **two real holes in the existing gate** — `_published_claims()` scans
+only `ClaimsBlock` (Hole A) and un-addressed traces pass entailment free (Hole B) — closed by new
+adversarial tests in Phases 1–2, never by editing `faithfulness.py`/`coverage.py`. Gate policy:
+enforced set = pytest / lint-imports / `newsletters check` (all corpora) / byte-stable double-render
+/ bare-install CI (all green at the 2026-07-02 baseline, 574 tests); mypy/black/isort = no-NEW-
+failures vs the recorded baseline (repo pre-dates a global format pass — 9 mypy errors, ~59
+unformatted files are v1.0 debt, out of scope). Run model: one draft PR per phase off integration
+branch `claude/swimlane-report-composer-1i8vxt` (the session-designated branch, serving the seed's
+`milestone/swimlane-report` role), squash-merged phase-by-phase; **`main` untouched**; max 2
+attempts per phase; Phase-1 circuit breaker stops the run if the loader isn't cleanly green.
+Synthetic data only — no real org/tool/metric/site/program names anywhere. **Next: Phase 1 —
+plan-phase → execute-phase → self-verify → ship.**
+
 **2026-06-19 — Phase 13 SHIPPED & VERIFIED (3/3): Problem Lifecycle Entity (PROB-01/03). THE CUT IS
 COMPLETE — Phases 1–13 all shipped & verified.** A first-class typed `Problem` sits ABOVE `Source`
 (`src/newsletters/problem.py`, AI-free leaf, acyclic — `semantic` never imports it): aggregates ≥1
@@ -297,6 +413,15 @@ end-to-end; Wave 2 adds the conformance suite + the hard-rule tests.
 - **The engine is one promotion chain** — Sources → Report → Article → Newsletter, each human-gated.
   Grounded in five worked contexts (work quality-events, work weeklies-by-swim-lane, interns, PulseIQ,
   Newsletters itself). See `PROJECT.md` → How it's used.
+  > 🔤 **Ontology annotation (deep-review R8, 2026-07-02 — history preserved, not rewritten):** the
+  > canonical term for this axis-2 device is now **fan-out**, *not* "promotion chain" — one reviewed
+  > record **fans out** into audience-tuned surfaces (report / article / newsletter / show / learning).
+  > "promotion" was reserved *away* from this axis when A2 added the third state axis (the Problem
+  > lifecycle ladder, `transition`), so "promote/promotion" would not collide across axes; SITE-05
+  > renamed the site device to fan-out (Phase 9). "Promotion" now belongs only to the human-gated
+  > grammar steps `Claim → KPI` / `Report → Article`. See the three-axes seed
+  > (`.planning/seeds/promotion-terminology-guard.md`) and the drift ledger
+  > (`.planning/reviews/2026-07-02-deep-review/08-ontology-and-drift.md`, D2).
 - **The distill socket has three modalities** — author by hand / generic low-token extraction /
   agentic interview — all emitting one reviewed `Distillation` (Phase-1 decision; see
   `.planning/phases/01-distill-socket-contract/01-CONTEXT.md`).

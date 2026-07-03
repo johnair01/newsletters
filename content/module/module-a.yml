@@ -1,0 +1,59 @@
+# SYNTHETIC WORKED EXAMPLE — fabricated data only, for a gate-visible demonstration.
+# Every module/area/lane/owner/engineer/tool/metric name and every number below is
+# invented. Nothing here resembles a real organisation, site, tool, programme,
+# metric, or colleague. Do NOT read meaning into these comments: parsers drop
+# comments — the load-bearing content is the parsed scalars alone.
+#
+# This config exercises the REAL contract, not a happy-path brochure:
+#   - a module-level owner quote (drives the sourced-or-omit QuoteBlock),
+#   - a KPI movement mix that populates the honesty panel honestly:
+#       up (safety-observations), down (recordable-incidents),
+#       no-change / delta==0 (throughput-index),
+#       declared-but-single endpoint (defect-rate -> honesty disclosure),
+#       point-in-time value-only (transfer-readiness -> no false disclosure),
+#   - one lane with no KPIs (MOR/IQ -> "declares no KPIs" disclosure).
+
+module: module-a
+area: area-bem
+owner: owner-safety
+quote: We treat every near-miss as a lesson the whole module learns from.
+
+lanes:
+  - heading: Safety & Culture
+    owner: owner-safety
+    engineer: eng-01
+    toolset: toolset-1
+    kpis:
+      - label: safety-observations
+        values: [12, 20]
+      - label: recordable-incidents
+        values: [8, 3]
+
+  - heading: MA incl. MA cost
+    owner: owner-ma
+    engineer: eng-02
+    toolset: toolset-2
+    kpis:
+      - label: throughput-index
+        values: [15, 15]
+
+  - heading: Quality
+    owner: owner-quality
+    engineer: eng-03
+    toolset: toolset-3
+    kpis:
+      - label: defect-rate
+        values: [42]
+
+  - heading: VF Transfer
+    owner: owner-vf
+    engineer: eng-04
+    toolset: toolset-4
+    kpis:
+      - label: transfer-readiness
+        value: 88
+
+  - heading: MOR/IQ tools & defect projects
+    owner: owner-mor
+    engineer: eng-05
+    toolset: toolset-5

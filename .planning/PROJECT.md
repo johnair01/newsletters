@@ -20,6 +20,33 @@ surfaces where every claim traces to its evidence and nothing publishes without 
 deterministic, auditable trust layer is what makes that legibility *believable*; AI is an optional
 accelerator, never an authority. If everything else fails, *this* must hold.
 
+## Shipped Milestone: v1.1 Swim-Lane Module Report (Shipped 2026-07-02)
+
+**Delivered:** The smallest fully-real, config-driven Report composer that cuts one owned module
+across its swim lanes — the spine existed; v1.1 built the missing composer. 4 phases, 12 plans,
+12/12 requirements, PRs #4–#8 (build) + #9–#16 (deep-review close). Formally closed per GSD at
+deep-review Round 10; see `.planning/v1.1-MILESTONE-AUDIT.md` and `.planning/MILESTONES.md`.
+
+**Shipped features:**
+- Swim-lane binding + traced YAML loader — lane → `FunctionalGroup`+`Kpi`s/`Objective`s; every
+  loaded value becomes a `Claim`/`KpiItem` traced to its YAML source (or a declared slot)
+- Module-scope Report composer — per-lane `KpiStripBlock` (start→close Δ computed at compose time
+  into `KpiItem.delta`; NO start/baseline field on `Kpi`) + `ClaimsBlock`; unsubstantiated →
+  `Surface.missing[]`; stable `R-NNN` from the ledger; `Draft` state
+- Worked synthetic Module Report (`module-a`, fabricated naming scheme) rendered into `content/`,
+  Library-visible and gate-visible (method-docs sub-task skipped — companion files absent)
+- Signals-voice PR/summary — `ship` workflow PR bodies read as Signals dispatches, generated from
+  diff + verbatim gate output; may not weaken any gate
+
+**Fundamental principle (JJ, 2026-07-02):** ABSTRACT EVERYTHING. Core code carries data models
+only; module/lane/owner specifics are **configs** (YAML), never hardcoded. Any org's team shape
+must fit without touching `src/`. Enforced by a test that fails if fixture-specific names leak
+into source code.
+
+**Unit-of-work model:** a Report is a swim lane, a project/initiative, or an interview — audited
+by its owner. This milestone builds the swim-lane kind ONLY; the section abstraction stays generic
+enough for the other kinds to slot in later.
+
 ## How it's used
 
 One engine, every context: **Sources → Report (reviewed) → Article (peer-reviewed) → Newsletter
@@ -55,15 +82,43 @@ what matters.
 
 ### Active
 
-<!-- Current scope. Hypotheses until shipped and validated. -->
+<!-- Next-milestone scope. Set 2026-07-03 by the Editor-in-Chief: v1.2 The Published Record. -->
 
-- [ ] Make the core **AI-optional**: move `langchain` to an optional extra; the spine runs with zero AI deps
-- [ ] Formalize **distill as a swappable socket** — one interface, backends: by-hand / OSS tool / AI
-- [ ] **Format adapters** as the first borrowable backends: PowerPoint, Power BI, Excel, Email → faithful structured extraction → `Claim(+Trace)`
-- [ ] Enforce **faithful, not suggestive** extraction (extract + trace, never editorialize)
-- [ ] **Rev2 site fix** in the renderer/templates: split real Home from a Library status-board; real navigation; per-surface IDs; traceable source links
-- [ ] **Work-surface installation**: install on a real work codebase; author Reports by hand; the Library shows how the work was done
-- [ ] **Learning / onboarding surface**: re-cut reviewed records for newcomers and training cohorts — digestible, traceable, sequenced
+- **Milestone v1.2 — The Published Record: one channel, production-ready** (opened 2026-07-03;
+  set by the Editor-in-Chief after live publish forensics found the deployed site is a stale
+  hand-pushed snapshot and the automated deploy has failed 4/4 runs while building the wrong
+  artifact — see `.planning/research/2026-07-03-pages-publish-forensics.md`). Scope: PUB-01..05
+  (`.planning/REQUIREMENTS.md`) — the rendered record IS the published site (rev1 root +
+  /work/ + /module/, cross-linked, styled 404); one deploy channel republishes exactly what a
+  human merged to main (gate-checked, force-push to gh-pages); linkability/drift/gating become
+  PR-blocking tests. The fix-batch PR (B1–B20) and DEF-04/05/11 remain queued behind it.
+
+### Validated in v1.1 (2026-07-02, Phases 1–4)
+
+- ✓ **Swim-lane binding + traced YAML loader** — lane → `SectionBinding` at the parsed-dict level;
+  every scalar minted via `Trace.from_source` or routed to `unextracted[]` under a read-anchored
+  coverage identity enforced in code (LANE-01/02) — v1.1
+- ✓ **Module-scope Report composer** — one `Surface(REPORT, Draft)` per module: per-lane KPI strip
+  (Δ at compose time into `KpiItem.delta`) + traced claims; `missing[]` honesty routing; stable
+  `R-NNN`; Holes A+B closed at the composer (COMP-01..04) — v1.1
+- ✓ **Worked synthetic Module Report** — `module-a` synthetic config renders end-to-end into a
+  self-contained `content/module/` corpus, Library-visible + gate-visible, byte-stable (MODA-01/02) — v1.1
+- ✓ **Signals-voice PR bodies** — `ship` workflow emits six-section evidence-first dispatches
+  (Start here / signal / learned / verified-verbatim / not-here / how-to-verify), guarded against
+  silent reversion (VOICE-01/02) — v1.1
+- ✓ **Abstraction guard** — no fixture/org-specific name in `src/`; fired 3× on real leaks and
+  out-enforced the plan's own suggested defaults (LANE-03) — v1.1
+
+### Validated in v1.0 (2026-06, Phases 1–13)
+
+- ✓ AI-optional core — `[ai]` extra, import-linter contract, bare-install CI gate (Phase 2)
+- ✓ Distill as a swappable socket — `DistillPort` + registry + manual backend + conformance suite (Phase 1)
+- ✓ Format adapters: Email, Excel, PPTX, Power BI — faithful extraction, zero silent drops (Phases 4–7)
+- ✓ Faithful-not-suggestive enforcement — content-addressed traces + span-containment gate (Phase 3)
+- ✓ Rev2 site fix — Home/Library split, nav, stable IDs, source links (Phases 8–9)
+- ✓ Reviewer surfacing + merge-block gate — honesty panel, `newsletters check` CI (Phase 10)
+- ✓ Work-surface installation — dogfooded on this repo (Phase 11)
+- ✓ Learning/onboarding surface + Problem lifecycle entity (Phases 12–13)
 
 ### Out of Scope
 
@@ -74,6 +129,12 @@ what matters.
 
 ## Context
 
+- **Post-v1.1 state (2026-07-02).** The composer spine ships: `swimlane.py` (traced YAML loader),
+  `compose.py` (pure composer), `modulesite.py` (module corpus builder), the `--corpus module` CLI,
+  and the Signals-voice `ship` contract. 626 tests green (574 at v1.1 start), 2 import contracts
+  KEPT, three byte-stable corpora (`rev1`/`work`/`module`). Carried forward: the B1–B20 unguarded-arm
+  backlog (one fix-batch PR) and 12 deferred features (DEF-01..12). All v1.1 work lives on the
+  integration branch; the maintainer decides the integration→main merge.
 - **Brownfield.** Rev1 exists in `src/newsletters/` (models, capture, render, promote, semantic,
   templates, diagrams, dogfood) plus a deployed HTML Library on the `gh-pages` branch.
 - **Token-constrained operator.** The immediate user builds reports by hand at work (few AI tokens);
@@ -105,18 +166,21 @@ what matters.
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| AI-optional, deterministic core | The trust layer is the product; AI must never hold authority | — Pending |
-| Manual capture is first-class | The token-constrained operator is the primary user | — Pending |
-| Distill is a swappable socket (hand / OSS / AI) | Decouples the pipeline from any backend; enables no-AI mode | — Pending |
-| Format adapters first (PPT/Power BI/Excel/Email) | Deterministic, low-token; pulls structure already in the file | — Pending |
-| Faithful, not suggestive | Editorializing breaks auditability; emphasis is the human's job | — Pending |
-| Open-core: V2 Newsletters / V3 PulseIQ | Give away the trust framework, keep the learning engine | — Pending |
-| Design the surface first, then gather data | Decide what the artifact should look like, then go find the inputs | — Pending |
-| Learning/onboarding is a first-class surface | Teaching newcomers / training cohorts is a primary use, not an afterthought | — Pending |
-| Connection/relationship view — parked | "Make sense of how things connect" is real but deferred until after core V2 | — Pending |
-| Low-token, generic extraction (not no-AI, not per-template) | Cheapest models + format consistency; manual is the floor | — Pending |
-| Agents are interviewers (a distill modality) | Interview you / your work / your codebase to fill gaps faithfully | — Pending |
-| Promotion chain Report → Article → Newsletter is the spine | Each human-gated; the real-world shape of the model's promotions | — Pending |
+| AI-optional, deterministic core | The trust layer is the product; AI must never hold authority | ✓ Good — 2 import contracts KEPT every round; bare install runs the spine yaml-free (reviews/05 #8) |
+| Manual capture is first-class | The token-constrained operator is the primary user | ✓ Good — the deterministic manual path is the whole v1.1 composer; no AI touched it |
+| Distill is a swappable socket (hand / OSS / AI) | Decouples the pipeline from any backend; enables no-AI mode | ✓ Good — socket + conformance suite hold; the untrusted-producer hardening is DEF-11's job |
+| Format adapters first (PPT/Power BI/Excel/Email) | Deterministic, low-token; pulls structure already in the file | ✓ Good — v1.0; the read-anchored coverage identity ported cleanly to the YAML loader |
+| Faithful, not suggestive | Editorializing breaks auditability; emphasis is the human's job | ⚠ Revisit — the faithfulness gate's Option-A structural fallback is the chain's weakest link and Hole A is composer-only (reviews/05 verdict); harden before an untrusted producer |
+| Open-core: V2 Newsletters / V3 PulseIQ | Give away the trust framework, keep the learning engine | ✓ Good — the boundary held; V3/PulseIQ stayed out of scope |
+| Design the surface first, then gather data | Decide what the artifact should look like, then go find the inputs | ✓ Good — the worked `module-a` example proved surface-first end-to-end |
+| Learning/onboarding is a first-class surface | Teaching newcomers / training cohorts is a primary use, not an afterthought | ✓ Good — shipped v1.0 Phase 12; unchanged this milestone |
+| Connection/relationship view — parked | "Make sense of how things connect" is real but deferred until after core V2 | — Deferred (still parked) |
+| Low-token, generic extraction (not no-AI, not per-template) | Cheapest models + format consistency; manual is the floor | ✓ Good — generic extraction, no per-template code |
+| Agents are interviewers (a distill modality) | Interview you / your work / your codebase to fill gaps faithfully | — Deferred (DEF-11 — not built this milestone) |
+| Promotion chain Report → Article → Newsletter is the spine | Each human-gated; the real-world shape of the model's promotions | ⚠ Revisit — ontology drift: this is a **fan-out** (axis 2), not a promotion; "promotion" is reserved for `Claim→KPI`/`Report→Article` (reviews/08 D2) |
+| Abstract everything: models in code, specifics in config (v1.1) | Different modules/teams organize differently; hardcoded lanes = a fixed tool. JJ's fundamental principle, 2026-07-02 | ✓ Good — the strongest result of the milestone: the abstraction guard fired 3× on real leaks and out-enforced the plan's own defaults |
+| Report unit-of-work: swim-lane kind first; project/interview kinds deferred | Close one loop fully before widening; keep the section abstraction generic | ✓ Good — the kind-agnostic seam is proven by a second-kind ("risk register") test; other kinds slot in with zero composer change |
+| Δ computed at compose time into `KpiItem.delta`; no Kpi start/baseline field | Model change deferred deliberately; composer derives, model stays untouched | ✓ Good — `models.py` byte-unchanged; Δ reproducible from two content-addressed endpoints (DEF-10 deferred cleanly) |
 
 ## Evolution
 
@@ -136,4 +200,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-14 after initialization*
+*Last updated: 2026-07-02 after completing milestone v1.1 (Swim-Lane Module Report) — full evolution review at close (deep-review loop Round 10)*

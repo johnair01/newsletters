@@ -290,6 +290,33 @@ The prototype runtime (`support.js`, the `<x-dc>`/`<sc-*>` tags, the harness too
 reference only — **not** ported. See `design-reference/signals-navigation/README.md` for the
 full visual spec and `web/README.md` for the implementation.
 
+### Cross-corpus Records strip (PUB-03, v1.2)
+
+The published site composes **three corpora** (rev1 at the root, `/work/`, `/module/` — see
+`architecture.md` §"The published record"), and the package's "no surface a dead-end" rule
+applies *between* them too. The device is a **Records strip**: a single mono utility row
+(`Records on this site · <a>…</a>`) rendered by `render.py::_records_strip` on **chrome pages
+only** — the rev1 Home + each corpus's Library — never on per-surface pages (a reader inside a
+report is inside one record; the cross-record jump belongs at the record's front door). It sits
+after the main content, before the footer; DM Mono 11px, existing tokens, `--radius: 0`.
+
+Each *builder* declares its neighbors with hrefs **relative to the assembled published tree**
+(`work/library.html` from the root corpus; `../index.html` from a subdirectory corpus), so
+`render.py` stays corpus-blind. Caveat, accepted: these links resolve in the assembled tree,
+not when a corpus directory is opened standalone from the repo checkout — the assembled-tree
+link test (`tests/test_publish.py`) is their resolver of record.
+
+### 404 — "not in the record" (PUB-03, v1.2)
+
+`render.py::render_404(base_path=…)` renders the assembled site's `404.html`: the gated-view
+edge-state device (bordered card, 3px accent, terra signal) with the eyebrow
+`404 · not in the record`, one line of copy in the product's voice, and two buttons (Start
+here / The Library). Because GitHub Pages serves `404.html` for any missing URL at **any
+depth**, every href and font URL on this one page is **absolute under the base path** — the
+sole exception to the relative-links rule, guarded by test. It is written at **assemble time**
+(it embeds the base path, a property of the published tree, not of any corpus) and carries the
+generated marker like every other page.
+
 ## Sample data is illustrative
 
 Across all surfaces the worked example (a latency-regression RCA the four dashboards

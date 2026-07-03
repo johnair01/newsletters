@@ -1,185 +1,194 @@
 # Feature Research
 
-**Domain:** Semantic information distillation framework — one reviewed, evidence-traced record fanned out into audience-specific surfaces (report / article / newsletter / show), with claim-level provenance, a human review gate (review = a git PR), per-reader personalization from a local corpus, and a pluggable distill backend (manual / OSS tool / AI).
-**Researched:** 2026-06-14
-**Confidence:** MEDIUM (cross-checked across 5 comparable categories via web sources; no single OSS competitor implements the integrated whole, so the *combination* is inferred rather than observed — LOW on the integrated UX, MEDIUM/HIGH on individual category norms)
+**Domain:** Config-driven, module-scope **swim-lane Report composer** — a function that assembles ONE owned module's `Surface(REPORT)` cut across its swim lanes (per-lane KPI strip with start→close Δ, traced findings, owner attribution, fanout stub, honesty panel) from *already-existing traced claims*. The composer **selects / orders / links**; it never authors factual prose.
+**Researched:** 2026-07-02
+**Confidence:** HIGH on the composer's edge-case contract and the faithful-not-suggestive boundary (grounded in the live spine — `semantic.py`, `templates.py`, `surfaces.md`); MEDIUM on external practitioner norms for workstream status reports (cross-checked against project-management + metric-reporting sources, which are consistent but generic).
 
-> **Scope note.** This is a *brownfield Rev2* study. Rev1 already ships the typed spine
-> (`Source → Claim(+Trace) → Distillation → Surface`), the `Draft → InReview → Published` gate with
-> no auto-publish, surfaces-as-presets, human-gated promotions, deterministic `capture.py`, and the
-> token-faithful no-JS HTML renderer. Those are marked **[Rev1 ✓]** below so the table reads as a
-> landscape, not a backlog. New Rev2 scope is marked **[Rev2]**.
+> **Scope note.** This studies ONLY the NEW v1.1 capability. The typed spine already ships and is
+> **out of scope to re-research**: `Source → Claim(+Trace) → Distillation → Surface`; the
+> `Draft → InReview → Published` gate with no auto-publish; the `REPORT` preset with slots
+> `[hero, kpi, prose, claims, quote, fanout]`; `KpiItem{label, value, delta, dir}`; `KpiStripBlock`
+> and `ClaimsBlock`; the `R-NNN` ledger; and the renderer's claim-beside-trace view + honesty panel.
+> Those are the **substrate** the composer stands on and are marked **[substrate]** where relevant.
+>
+> **Load-bearing constraint (CLAUDE.md — faithful, not suggestive).** The composer is a
+> *re-arrangement* of the reviewed record. It may SELECT which claims/KPIs appear, ORDER them, GROUP
+> them by lane, and LINK them to evidence. It may NOT write factual prose, editorialise, invent KPI
+> values, or synthesise a lane's story. Every anti-feature below flows from this line. The learning
+> surface (`surfaces.md`) already set this precedent — the swim-lane composer inherits the same crux.
 
-## Comparable categories surveyed
+## Practitioner expectations for a swim-lane / workstream status report
 
-The brief names five adjacent slices; the integrated product spans all of them. Per-category norms:
-
-| Category | Representative tools | What they set as the bar |
-|----------|----------------------|--------------------------|
-| Private ingest + grounded answers | Onyx/Danswer, RAGFlow | Cited answers linked to originals; permission-respecting retrieval; 40+ connectors; self-host |
-| Claim→evidence provenance | GenProve, Valsci, sciwrite-lint, PaperTrail (CHI'26), CiteCheck, TROVE | Sentence-level attribution; supported / unsupported / *omitted* signalling; faithfulness ≠ correctness |
-| Changelog / release-notes automation | ReleaseNotes.io, LaunchNotes, Release Drafter | One source of truth → web changelog + in-app widget + email digest; audience segmentation; two-stage (raw → curated) |
-| Internal-comms / editorial | Planable, Contentful, Simpplr, Hootsuite | Author→editor→legal/HR→sign-off; calendar/cadence; tasks & comments; scheduled publish |
-| Personalized digest | Rasa.io, Ittybrief, Digest | Per-reader interest profile; relevance ranking; learn-from-engagement |
+A workstream ("swim lane") status report is a standard project-management artifact. Practitioners
+expect, **per lane**: (1) clear **ownership** — one accountable name per lane (RACI); (2) a small set
+of **KPIs with movement** — where the metric started the period and where it closed, plus the
+direction/size of change; (3) **findings / accomplishments** for the period; and increasingly (4)
+**risks / gaps** made explicit rather than hidden. The near-universal delta convention is
+**Δ = close_value − start_value**, shown as an absolute (and sometimes relative) change with an
+up/down direction. The report is read lane-by-lane, then rolled up across lanes into a weekly (the
+`PROJECT.md` "weeklies per swim lane" usage). This maps cleanly onto the existing model: a lane
+becomes a `ClaimsBlock` + a `KpiStripBlock` section; `KpiItem.delta`/`dir` carry the movement;
+`byline` carries the owner; `missing[]` + honesty panel carry the gaps.
 
 ## Feature Landscape
 
 ### Table Stakes (Users Expect These)
 
-Missing any of these makes the product feel incomplete for *this* category. Most are already in Rev1 — the category bar is high, but Rev1 cleared most of it.
+Missing any of these makes the composed report feel like it isn't actually a swim-lane report.
 
-| Feature | Why Expected | Complexity | Notes / Dependencies |
-|---------|--------------|------------|----------------------|
-| **Per-claim citation linking source → claim** | Onyx/RAGFlow/PaperTrail all link every assertion back to a retrievable original; without it the "trust layer" claim is empty | LOW (Rev1) | **[Rev1 ✓]** `Claim(+Trace)` exists. Rev2 must make cited sources *real clickable links* (brief: `vision.md` → repo file). Depends on: per-surface IDs. |
-| **Draft → review → publish gate** | Every editorial/internal-comms tool gates publish behind an explicit sign-off step | LOW (Rev1) | **[Rev1 ✓]** `Draft → InReview → Published`. Bar is met; the *mechanism* (review = git PR) is a differentiator (below). |
-| **Self-hostable, no phone-home** | Onyx/RAGFlow/listmonk users self-host for data residency; an audit tool that exfiltrates content is a contradiction | LOW (Rev1) | **[Rev1 ✓]** MIT, no telemetry, no external calls on content. Constraint, not a build item. |
-| **Multi-format ingest (PPT/Excel/Email/docs)** | Unstructured/RAGFlow set the expectation that "any office artifact goes in." Operators won't pre-convert files by hand | MEDIUM | **[Rev2]** Format adapters (python-pptx, openpyxl, email libs, Power BI export). Depends on: distill socket contract. The *common case is deterministic structure-pull*, AI only for residue. |
-| **Multi-surface output from one record** | Changelog tools generate web + widget + email + community from one source; users won't maintain N copies | LOW (Rev1) | **[Rev1 ✓]** Surfaces-as-presets over one `SurfaceTemplate`. Bar met. Rev2 adds cross-links between surfaces. |
-| **Renders/exports a readable artifact** | Every tool produces a publishable surface (web page, email, PDF) | LOW (Rev1) | **[Rev1 ✓]** Token-faithful standalone HTML, light/dark, no-JS, WCAG AA. |
-| **"Unsupported / missing" surfaced to reviewer** | PaperTrail's core finding: showing *omitted* and *unsupported* claims is what makes provenance trustworthy (not just showing the supported ones) | LOW (Rev1) | **[Rev1 ✓]** `missing[]` shown to reviewer, never published silently. This is now table stakes in the provenance category, not a differentiator. |
-| **Cadence / scheduling config per surface** | Editorial calendars + digest tools treat cadence as a first-class field | LOW (Rev1) | **[Rev1 ✓]** Cadence is typed config on the surface preset. |
-| **Status board by gate state** | Editorial/internal-comms tools show a kanban/calendar of what's in-flight by stage | MEDIUM | **[Rev2]** Library reframed as a status board (columns by gate state). Brief item. Depends on: per-surface IDs, IA split. |
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| **Per-lane section grouping** — one `KpiStripBlock` + one `ClaimsBlock` per configured lane, in config order | A swim-lane report *is* the per-lane cut; without it you just have a flat report | MEDIUM | The core "section abstraction." Keep it generic: a lane is one instance of a `ReportSection` so project/interview kinds slot in later (`PROJECT.md` unit-of-work model). |
+| **Start→close Δ computed at compose time into `KpiItem.delta`/`dir`** | The whole point of a status report is *movement*, not a snapshot | MEDIUM | Δ = close − start, derived by the composer. **No `start`/baseline field is added to `Kpi`** (Key Decision, 2026-07-02) — the composer holds the start value from config/period and computes; the model stays untouched. Direction from the sign; format faithfully (units, +/−). |
+| **Traced findings per lane (reuse `ClaimsBlock`)** | Every finding must show its evidence; that's the product's core value | LOW | Pure reuse of `ClaimsBlock` + the renderer's claim-beside-trace. Composer only *selects & orders* existing `Claim`s into the lane's block. |
+| **Owner attribution per lane** | RACI: a status report with no accountable owner is noise | LOW | Owner comes from YAML config → surface/section attribution (e.g. lane `byline`/quote `attr`). Never hardcoded. |
+| **Config-driven lanes/modules/owners (YAML)** | JJ's fundamental principle — different orgs organise differently; hardcoded lanes = a fixed tool | MEDIUM | The whole milestone's premise. Loader binds lane → `FunctionalGroup` + `Kpi`s/`Objective`s; every loaded value becomes a traced `Claim`/`KpiItem`. Abstraction guard test: no fixture names in `src/`. |
+| **`missing[]` routing + honesty panel** | Unsubstantiated material must be shown, never dropped silently (hard rule) | LOW | [substrate] Composer routes any lane finding/KPI it cannot back with a `Trace` into `Surface.missing[]`; the panel already renders it. |
+| **Stable `R-NNN` id from the ledger; `Draft` state only** | Identity must be durable; nothing auto-publishes | LOW | [substrate] Composer requests the next `R-NNN` from the append-only ledger and emits a `Draft` `Surface`. It never touches the gate. |
+| **Owner quote slot per lane (`QuoteBlock`)** | Status reports carry a named human voice ("owner's read") | LOW | The `attr` is the owner; the quote **text must be a verbatim, sourced quote** (a `Claim`/`Trace`), not composer-authored commentary — see anti-features. |
+| **Fanout stub** | The report is the root of the promotion chain (Report → Article → Newsletter) | LOW | [substrate] `FanoutBlock` with links (may be a stub this milestone). |
+| **Deterministic, byte-stable output** | Re-composing the same config must produce the same report (like the learning surface's SITE-06 double-render rule) | MEDIUM | Total, stable ordering (config order for lanes; a defined sort key within a lane). No wall-clock, no set-iteration nondeterminism. |
 
 ### Differentiators (Competitive Advantage)
 
-Where Newsletters competes. These align with PROJECT.md Core Value: *"the trust-and-publish layer is the product."* No surveyed tool ships the full set.
+Where this composer beats a PowerPoint/Confluence workstream template. Align with Core Value.
 
-| Feature | Value Proposition | Complexity | Notes / Dependencies |
-|---------|-------------------|------------|----------------------|
-| **Review = a real git PR (merge publishes)** | Editorial tools gate with in-app comments; nobody makes the review a *version-controlled, diffable, attributable PR*. Gives free audit trail, blame, rollback, and reviewer identity | LOW (Rev1) | **[Rev1 ✓]** This is the strongest differentiator — it reframes "approval workflow" as "code review" and inherits Git's auditability for free. |
-| **Pluggable distill socket: by-hand / OSS / AI behind one interface** | Onyx/RAGFlow *are* the AI; they can't degrade to no-AI. A swappable backend that all emit the same typed `Distillation` lets a token-constrained operator run the whole spine with zero AI | HIGH | **[Rev2]** The contract shape is **[OPEN]**. Hardest + highest-value Rev2 item. Enabler for: format adapters, AI backend, no-AI mode. |
-| **Faithful, not suggestive (extract + trace, never editorialize)** | Every AI generation tool editorializes by design; that is exactly what breaks auditability. A distill step *forbidden* from emphasis/narrative is unique and is what makes the trace meaningful | MEDIUM | **[Rev2]** Enforcement rule on the socket output (extraction must map to source spans; no synthesized claims). Depends on: distill socket. Cross-listed as the discipline behind the **anti-feature** "editorializing distillation." |
-| **Manual capture as a first-class, deterministic path** | Digest/changelog tools assume automation; none treat "operator structured this by hand, no LLM" as the primary, supported workflow | LOW (Rev1) | **[Rev1 ✓]** `capture.py`: finished work session → Draft Report, no LLM. Primary path for the token-constrained operator, not a fallback. |
-| **Claim-level provenance UX (supported / unsupported / omitted, brushing-and-linking)** | PaperTrail (CHI'26) shows this UX *lowers misplaced trust* and supports overview→zoom→details-on-demand. Bringing that interaction model to a *publishing* tool (not just Q&A) is novel | MEDIUM | **[Rev2]** Renderer/template work: hover/highlight claim↔source span, gate badge, margin annotations (brief mentions margin annotations + color-coded SVG). Depends on: real source links, per-surface IDs. |
-| **One parameterized `SurfaceTemplate`, operators register their own surfaces** | Changelog tools hardcode channels; here report/article/newsletter/show are *configs*, and an operator can add a new surface without new classes | MEDIUM (Rev1 base) | **[Rev1 ✓]** Extensibility is the edge. Rev2: per-surface IDs (`EP01`, `R-001`, slug, issue/date) fix the numbering-collision bug. |
-| **Human-gated promotions (`Claim → KPI`, `Report → Article`)** | Promotion-with-peer-review across artifact types is unusual; it models how knowledge actually graduates (a finding becomes a metric; a report becomes a published article) | LOW (Rev1) | **[Rev1 ✓]** Already typed and gated. |
-| **Per-reader personalization from a *local* corpus** | Rasa.io/Ittybrief personalize via cloud engagement tracking; doing it from a self-hosted corpus (no telemetry) is rare and on-brand | HIGH | **[v2+ / boundary]** Personalization is typed config on the surface today; the *learning* engine is explicitly **V3 PulseIQ (out of scope)**. Keep the hook, defer the engine. |
-| **Token-faithful, no-JS, WCAG-AA standalone artifact** | Most tools require a hosted runtime/JS; emitting a self-contained accessible HTML file is a portability + trust differentiator | LOW (Rev1) | **[Rev1 ✓]** Renders without JavaScript; full light/dark via tokens. |
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| **Every KPI Δ and every finding traces to its YAML/source** | No status-report tool shows *where the number came from*; this one does, per lane | MEDIUM | The loader makes each loaded value a `Claim`/`KpiItem` traced to its YAML source (or a declared slot). This is the honesty story applied to numbers, not just prose. |
+| **Undefined-Δ is a first-class, honest state (not a fake 0)** | Practitioners hate reports that invent a baseline; showing "new this period / no prior value" is *more* trustworthy | LOW | See edge-case contract below. `delta=None, dir=None` renders as "—"/"new", not "0". This is a differentiator *because* competitors silently coerce. |
+| **Generic section abstraction (lane / project / interview)** | One composer shape serves three report kinds; orgs aren't boxed into one cut | MEDIUM | Build the `ReportSection` seam now even though only the swim-lane kind ships; project/interview kinds are deferred but must "slot in later" (`PROJECT.md`). |
+| **Config-only re-shaping for any org** | Point it at a new team's YAML and get their swim-lane report — no code change | MEDIUM | Enforced by the abstraction-guard test. This is the "not a fixed tool" promise made testable. |
+| **Composer is pure select/order/link (audit-clean by construction)** | The composition itself can be trusted because it *cannot* introduce unsourced facts | MEDIUM | The API only accepts already-traced `Claim`s/`KpiItem`s and arranges them. Makes the report as auditable as its inputs. |
 
-### Anti-Features (Deliberately NOT Built)
+### Anti-Features (Commonly Requested, Often Problematic)
 
-Documented to prevent scope creep and to protect the Core Value. The first two are non-negotiable per PROJECT.md.
+Every one of these violates *faithful, not suggestive* or the no-auto-publish / traced-claim hard rules.
 
-| Feature | Why Requested | Why Problematic | Alternative (what we do instead) |
-|---------|---------------|-----------------|----------------------------------|
-| **Auto-publish (any kind)** | "Just ship it on merge/schedule without a human" feels efficient; every changelog/digest tool offers scheduled auto-send | Violates the human-in-the-loop core; a single ungated mistake destroys the trust thesis that *is* the product | **No auto-publish path, ever.** Publish requires a human-merged PR. Scheduling sets cadence, never bypasses the gate. |
-| **Editorializing / suggestive distillation** | "Make the AI write a punchy narrative / pick the highlights" is the default ask for any generation tool | Synthesized emphasis can't be traced to a source span → breaks auditability; the trace becomes decorative | **Faithful extract + trace only.** Emphasis/narrative is the human's job (later, the configured corpus's). Distill output must map to source spans. |
-| **LLM as authority / required dependency** | "Just let the model decide what's true / always run the AI" | Couples the trust spine to a non-deterministic, token-costly, potentially-offline dependency; excludes the token-constrained primary user | **AI-optional.** `langchain` → optional extra; spine runs with zero AI. AI is one swappable socket, never the spine. |
-| **Telemetry / cloud engagement tracking for personalization** | Rasa.io-style "learn from clicks" is the standard personalization mechanism | Phone-home on content contradicts self-host + no-external-calls constraint | **Local corpus personalization** now (typed config); learning engine deferred to **V3 PulseIQ** (private, out of OSS scope). |
-| **Owning the problem-solving / working agent** | "Also let it *do* the work, not just report it" | Massive scope; not the trust-layer thesis; the working agent is the operator's | Newsletters owns **capture + trust + publish** only. Integrate with, don't replace, the operator's working agent. |
-| **Heavy in-app WYSIWYG editor + comment threads** | Editorial tools (Planable/Contentful) make this table stakes for *their* category | Re-implements what Git/PR review already gives for free; pulls toward a hosted SaaS shape and away from self-host portability | **Review happens in the PR.** Optional live editor/preview in the rendered Library is a *read/preview* affordance (brief: graft blog's live editor/preview pattern), not a parallel approval system. |
-| **Connector sprawl (40+ source integrations like Onyx)** | "Ingest from everything" looks competitive vs RAGFlow/Onyx | Each connector is maintenance + a place for un-traced data to leak in; dilutes the deterministic-extraction focus | **Format adapters first** (PPT / Power BI / Excel / Email) — deterministic, low-token, structure already in the file. Add connectors only behind the distill socket, demand-driven. |
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| **Composer writes a lane summary / "executive narrative"** | "Just summarise how the lane did" | Authors factual prose → editorialising; unauditable; breaks the core invariant | Select + order existing traced claims; if a summary is wanted it must itself be a reviewed `Claim`. Leave `prose`/narrative to the human. |
+| **Auto-fill a start value / baseline when config lacks one** | "So every KPI shows a Δ" | Invents a fact; makes movement look real when it isn't | Emit `delta=None` (undefined), route a note to `missing[]`, render "new/—". Never fabricate. |
+| **Composer flags a lane "at risk" / colours it red by inference** | "Highlight the lanes that need attention" | That's *emphasis/judgement* — the human's job (faithful-not-suggestive) | Show the Δ and direction faithfully; let the reviewer read the status. Status labels must be sourced claims, not composer verdicts. |
+| **Add a `start`/`baseline` field to the `Kpi` model** | "Cleaner than computing at compose time" | Deliberately deferred model change (Key Decision); widens the model before we've closed one loop | Composer holds the period-start value and computes Δ; model stays untouched this milestone. |
+| **Skip / hide empty or unowned lanes** | "A blank lane looks bad" | Silent omission — the reader can't tell "nothing happened" from "not reported"; hides gaps | Render the lane with an explicit empty/unowned state and route to `missing[]`/honesty panel. Absence must be visible. |
+| **Composer promotes/publishes the report when it looks complete** | "It's done, ship it" | Violates no-auto-publish, the single most important invariant | Always emit `Draft`; a human moves the gate. Composer never calls promote/publish. |
+| **AI backfills missing findings for a thin lane** | "Fill the gaps so the report is complete" | Fabrication behind a trust surface; AI-optional core forbids AI authority | Thin lane stays thin; gaps go to the honesty panel. AI (if any) may only help *select*, never *author*. |
+| **Hardcode a starter set of lanes/modules "for convenience"** | "Ship a working example fast" | Fixture names leak into `src/`; breaks the abstraction guard | Ship the worked example (`module-a`) as **config** in a fixture dir, loaded by the generic composer. |
+
+## The composition-API edge-case contract (the heart of this milestone)
+
+A good composer is defined by how it behaves at the boundaries. These are behaviour requirements, not
+nice-to-haves — each has a single, honest, deterministic answer. (Confidence: HIGH — derived from the
+live model + hard rules.)
+
+| Input condition | Required composer behaviour | Rationale |
+|-----------------|-----------------------------|-----------|
+| **Lane with zero KPIs** | Emit the lane section with an **empty `KpiStripBlock`** (or omit the strip but keep the lane heading + claims); do **not** invent KPIs. Note the absence in the panel if a KPI was expected. | A lane can legitimately be findings-only. Absence is data. |
+| **KPI with no period-start value (Δ undefined)** | `KpiItem.value` = close value; **`delta=None`, `dir=None`**; render "new" / "—". Route a `missing[]` note ("no start-of-period value for X"). | Δ = close − start is undefined without a start. Never coerce to 0 or fabricate a baseline. |
+| **KPI with a start but no close value** | Show the start as context or route to `missing[]` ("no close value for X"); `delta=None`. Do not compute a Δ against a guessed close. | Symmetric to the above; the movement is genuinely unknown. |
+| **Unowned lane** | Render the lane with an explicit **"owner: unassigned"** marker; omit/blank the owner quote slot (do not fabricate a quote); optionally route to `missing[]`. | RACI gap must be visible, not hidden. A missing owner is a finding. |
+| **Empty lane set (module has no lanes configured)** | Emit a valid `Draft` `Surface` with the hero + an **empty-state** body and an honesty panel stating no lanes were configured. Do **not** error out silently or emit nothing. | A composer that returns nothing is indistinguishable from a crash; the empty state is honest and testable. |
+| **Lane finding with no `Trace`** | Do **not** place it in the `ClaimsBlock`; route the text to `Surface.missing[]`. | [substrate hard rule] Every published claim ≥1 Trace; unsubstantiated → `missing[]`. |
+| **Duplicate lane ids / duplicate KPI labels in config** | Fail loudly at load time (validation error) rather than silently merging or last-wins. | Ambiguous config is an authoring bug; determinism requires it be caught. |
+| **Δ present but direction ambiguous (Δ = 0)** | `delta` shows "0"/"no change", `dir=None` (neither up nor down). | Zero movement is a real, distinct state from "up a tiny bit" or "undefined." |
 
 ## Feature Dependencies
 
 ```
-Distill socket (one interface, swappable backends)        [Rev2, OPEN contract]
-    ├──enables──> Format adapters (PPT/Excel/Email/Power BI)   [Rev2]
-    ├──enables──> AI distill backend (optional extra)          [Rev2]
-    ├──enables──> By-hand backend = capture.py                 [Rev1 ✓]
-    └──constrained-by──> "Faithful, not suggestive" rule       [Rev2]
-                              └──guarantees──> meaningful Claim(+Trace)
+[Swim-lane binding + traced YAML loader]
+    └──requires──> [KpiItem / Claim / Trace types]            (substrate ✓)
+    └──requires──> [FunctionalGroup / Kpi / Objective models] (substrate ✓, models.py)
 
-Per-surface IDs (EP01 / R-001 / slug / issue-date)        [Rev2]
-    ├──requires──> nothing (foundational fix)
-    ├──enables──> Real traceable source links                  [Rev2]
-    ├──enables──> Status board by gate state                   [Rev2]
-    └──enables──> Cross-links between surfaces                 [Rev2]
+[Module-scope Report composer]
+    └──requires──> [Swim-lane binding + traced YAML loader]   (its input)
+    └──requires──> [Start→close Δ compute]                    (into KpiItem.delta)
+    └──requires──> [Per-lane section grouping / ReportSection abstraction]
+    └──requires──> [R-NNN ledger + Draft Surface + REPORT preset] (substrate ✓)
+    └──requires──> [missing[] routing + honesty panel]        (substrate ✓)
 
-Real source links  ──enables──>  Claim-level provenance UX     [Rev2]
-                                  (supported/unsupported/omitted,
-                                   brushing-and-linking, margin annotations)
+[Worked synthetic Module Report (module-a)]
+    └──requires──> [Module-scope Report composer]
+    └──requires──> [Library / renderer]                       (substrate ✓)
 
-IA split (Home vs Library status-board)  ──requires──> per-surface IDs
-                                          ──enables──> real navigation (4 links → 4 destinations)
-
-Review = git PR  [Rev1 ✓]  ──conflicts──>  in-app approval workflow / WYSIWYG  [anti-feature]
-AI-optional core ──conflicts──>  LLM-as-required-dependency                    [anti-feature]
-Human review gate ──conflicts──>  auto-publish / scheduled auto-send           [anti-feature]
-Faithful extraction ──conflicts──>  editorializing distillation                [anti-feature]
+[Abstraction guard test] ──enforces──> [Config-driven lanes/owners]
+[Δ compute at compose time] ──conflicts──> [start/baseline field on Kpi]  (deliberately excluded)
+[Composer authoring prose] ──conflicts──> [faithful-not-suggestive]        (forbidden)
 ```
 
 ### Dependency Notes
 
-- **Distill socket gates almost all Rev2 backend work.** Its contract is **[OPEN]** in the brief; it must be designed before format adapters or an AI backend can be built against a stable interface. It is the critical-path Rev2 item.
-- **Per-surface IDs are the foundational renderer fix.** The numbering-collision bug (IDs derived from list position) blocks real source links, the status board, and cross-links. Cheap to do, unblocks several Rev2 site items.
-- **"Faithful, not suggestive" is a constraint on the socket, not a separate component.** It must be enforced where backend output enters the pipeline (every emitted claim maps to a source span; nothing synthesized). It is what makes `Claim(+Trace)` worth trusting.
-- **Provenance UX depends on real source links existing first.** The PaperTrail-style supported/unsupported/omitted interaction (and margin annotations) needs clickable, addressable sources and claim IDs underneath it.
-- **The four hard conflicts are the anti-features.** Each competing-category "table stake" (in-app approval, required AI, auto-send, editorialized copy) directly conflicts with a Newsletters differentiator. Keeping them out is a feature.
+- **Composer requires the traced loader:** the composer only *arranges* traced inputs; the loader is
+  what turns YAML values into `Claim`/`KpiItem` carrying `Trace`s. Build the loader first.
+- **Δ-compute conflicts with a `Kpi.start` field:** by decision, the composer holds the start value and
+  computes; adding a model field is the excluded alternative, not a parallel option.
+- **Section abstraction enables later kinds:** build `ReportSection` generic now so project/interview
+  report kinds slot in without reworking the composer (`PROJECT.md` unit-of-work model).
+- **Abstraction guard gates everything config:** the no-fixture-names-in-`src/` test is the executable
+  form of "abstract everything"; it must pass before the milestone is done.
 
 ## MVP Definition
 
-> "MVP" here = the **Rev2 milestone slice**, since Rev1 already ships the spine.
+### Launch With (v1.1)
 
-### Launch With (Rev2 core)
+- [ ] **Traced YAML loader** — lane → `FunctionalGroup`+`Kpi`s/`Objective`s; every value a traced `Claim`/`KpiItem` — the composer's only trustworthy input source.
+- [ ] **Module-scope Report composer** — per-lane `KpiStripBlock` (Δ at compose time) + `ClaimsBlock`, owner attribution + quote slot, fanout stub; emits `Draft` `Surface(REPORT)` with `R-NNN`. The milestone.
+- [ ] **Full edge-case contract** — zero KPIs, undefined Δ, unowned lane, empty lane set, untraced finding all handled per the table — this is what makes the API *good*, not just present.
+- [ ] **Worked synthetic Module Report (`module-a`)** — config in a fixture dir, rendered into `content/`, Library- and gate-visible with claim-beside-trace + honesty panel — proves the whole path.
+- [ ] **Abstraction guard test** — no fixture/org names in `src/`; config-driven lane set proven.
 
-- [ ] **Distill socket interface** — defines the backend contract; everything else hangs off it. *Critical path; resolve the [OPEN] contract shape first.*
-- [ ] **By-hand backend formalized as a socket backend** — `capture.py` reframed to emit `Distillation` through the socket; proves the no-AI path end-to-end.
-- [ ] **"Faithful, not suggestive" enforcement** — output validation that claims map to source spans; cheap to state, defines the product.
-- [ ] **Per-surface IDs** — fixes numbering collisions; unblocks links, board, cross-links.
-- [ ] **Real traceable source links** — cited sources become clickable repo/file links; the minimum credible provenance UX.
-- [ ] **AI-optional packaging** — move `langchain` to an optional extra; spine installs and runs with zero AI deps. *Validates the whole thesis.*
-- [ ] **Rev2 site IA fix** — split real Home from Library status-board; four nav links → four destinations.
+### Add After Validation (v1.x)
 
-### Add After Validation (Rev2.x)
+- [ ] **Signals-voice PR/summary bodies** — `ship` workflow PRs read as dispatches from diff + verbatim gate output (in-milestone stretch; must not weaken any gate).
+- [ ] **Relative Δ (%) alongside absolute** — trigger: reviewers ask for percentage movement; keep faithful (only when both start & close exist).
+- [ ] **Per-lane risk/dependency section** — trigger: teams want RACI-style risk lanes; must be sourced claims, not composer verdicts.
 
-- [ ] **Format adapters (PPT / Excel / Email / Power BI)** — once the socket contract is stable; start with the format with the most structure-already-in-the-file (Excel/openpyxl is the cleanest deterministic win). *Trigger: socket proven with by-hand + AI backends.*
-- [ ] **Claim-level provenance UX** (supported/unsupported/omitted, brushing-and-linking, margin annotations) — *trigger: real source links shipped and a reviewer asks "show me what's NOT covered."*
-- [ ] **AI distill backend** behind the socket — *trigger: deterministic backends shipped; AI used only for the messy residue.*
-- [ ] **Status board + cross-links + clickable fan-out diagram** — *trigger: per-surface IDs landed.*
+### Future Consideration (v2+)
 
-### Future Consideration (v2+ / explicit boundary)
-
-- [ ] **Per-reader corpus personalization engine (learning over runs)** — *defer: this is V3 PulseIQ, private + out of OSS scope. Keep the typed personalization hook on surfaces; do not build the learning engine in V2.*
-- [ ] **Additional ingest connectors (Slack/Confluence/etc.)** — *defer: connector sprawl is an anti-feature until demand-driven; format adapters cover the primary case.*
+- [ ] **Project-kind and interview-kind reports** — deferred by decision; the section abstraction must already accommodate them.
+- [ ] **Cross-lane rollup → weekly Newsletter** — the `PROJECT.md` "weekly cut across all swim lanes"; depends on multiple lane reports existing first.
+- [ ] **`Kpi.start`/baseline as a real model field** — only if compose-time derivation proves insufficient across many report kinds.
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Distill socket interface | HIGH | HIGH | P1 |
-| AI-optional packaging (langchain → extra) | HIGH | LOW | P1 |
-| "Faithful, not suggestive" enforcement | HIGH | MEDIUM | P1 |
-| Per-surface IDs | MEDIUM | LOW | P1 |
-| Real traceable source links | HIGH | LOW | P1 |
-| Rev2 site IA split (Home / Library board) | MEDIUM | MEDIUM | P1 |
-| By-hand backend through socket | HIGH | LOW | P1 |
-| Format adapters (PPT/Excel/Email/Power BI) | HIGH | MEDIUM | P2 |
-| Claim-level provenance UX | HIGH | MEDIUM | P2 |
-| AI distill backend | MEDIUM | MEDIUM | P2 |
-| Status board / cross-links / fan-out diagram | MEDIUM | MEDIUM | P2 |
-| Corpus personalization *engine* | HIGH | HIGH | P3 (V3 boundary) |
-| Extra source connectors | LOW | MEDIUM | P3 |
+| Traced YAML loader | HIGH | MEDIUM | P1 |
+| Module-scope Report composer | HIGH | MEDIUM | P1 |
+| Start→close Δ at compose time | HIGH | MEDIUM | P1 |
+| Edge-case contract (undefined Δ, empty/unowned lanes, empty set) | HIGH | MEDIUM | P1 |
+| `missing[]` routing per lane | HIGH | LOW | P1 |
+| Generic `ReportSection` abstraction | MEDIUM | MEDIUM | P1 |
+| Worked `module-a` report in Library | HIGH | LOW | P1 |
+| Abstraction guard test | HIGH | LOW | P1 |
+| Owner quote slot (sourced) | MEDIUM | LOW | P2 |
+| Fanout stub | LOW | LOW | P2 |
+| Signals-voice PR bodies | MEDIUM | MEDIUM | P2 |
+| Relative Δ (%) | MEDIUM | LOW | P3 |
+| Project/interview report kinds | MEDIUM | HIGH | P3 |
 
-**Priority key:** P1 = Rev2 must-have · P2 = add after Rev2 core validates · P3 = defer / out of OSS scope.
+**Priority key:** P1 = must have for the milestone · P2 = should have · P3 = future.
 
 ## Competitor Feature Analysis
 
-| Feature | Onyx / RAGFlow (grounded answers) | ReleaseNotes.io / LaunchNotes (changelog) | PaperTrail / GenProve (provenance) | Rasa.io / Ittybrief (digest) | **Newsletters approach** |
-|---------|-----------------------------------|-------------------------------------------|------------------------------------|------------------------------|--------------------------|
-| Provenance | Cited answer, doc-level link | Minimal / none | Sentence-level, supported/unsupported/**omitted** | None | **Claim(+Trace) + `missing[]`**, PaperTrail-style UX in a *publishing* tool |
-| Review/approval | None (chat) | In-app draft→sign-off | N/A (research UI) | None | **Review = git PR; merge publishes** |
-| Multi-surface fan-out | Single chat surface | One source → web/widget/email | N/A | One digest | **One record → report/article/newsletter/show via one `SurfaceTemplate`** |
-| Personalization | Permission-scoped retrieval | Segment by plan/region | N/A | ML on cloud engagement | **Local-corpus config now; learning = V3, out of scope** |
-| Extraction backend | LLM-required RAG | Git history / manual | LLM-required | LLM-required | **Pluggable socket: by-hand / OSS / AI; degrades to no-AI** |
-| Editorializing | Yes (generates prose) | Yes (rewrites for audience) | No (extracts) | Yes | **No — faithful extract + trace only** |
-| Auto-publish | N/A | Scheduled auto-send | N/A | Scheduled auto-send | **Never — human-merged PR only** |
-| Hosting / privacy | Self-host option | Mostly SaaS | Research prototype | SaaS, telemetry | **Self-host, MIT, no telemetry, no calls on content** |
+| Feature | PowerPoint/SlideTeam workstream template | Confluence/Jira status report | Our Approach |
+|---------|------------------------------------------|-------------------------------|--------------|
+| Per-lane KPI + owner | Manual, hand-typed each period | Semi-automated from Jira fields | Config-driven; loaded values are traced claims |
+| Metric Δ | Hand-computed, easily stale/wrong | Auto from tracked fields, no provenance shown | Computed at compose time, **traced to source** |
+| Missing/undefined data | Silently blank or faked | Blank or "N/A" | First-class `missing[]` + honesty panel; undefined Δ shown honestly |
+| Prose/narrative | Human writes freely | Human writes freely | Composer never authors; select/order/link only |
+| Publishing | Email/attach, no gate | Page publish, no evidence gate | `Draft` only; human gate; no auto-publish |
+| Reusability across orgs | Copy-paste template | Per-instance config | YAML config, abstraction-guard enforced |
 
 ## Sources
 
-Web-sourced (provider seam disabled in this environment → built-in WebSearch; confidence MEDIUM where a finding is corroborated across categories, LOW where single-source). No OSS competitor implements the integrated whole, so the *combined* product UX is inferred.
-
-- Onyx/Danswer — grounded cited answers, self-host, connectors: https://onyx.app/ , https://github.com/eea/danswer , https://www.seaflux.tech/blogs/onyx-ai-enterprise-search-assistant/
-- RAGFlow / Unstructured — pluggable document extraction, format parsers, connectors: https://deepwiki.com/infiniflow/ragflow , https://github.com/Unstructured-IO/unstructured , https://docs.unstructured.io/open-source/introduction/overview
-- DocPipeline — pluggable extraction-backend abstraction (swap engines without changing logic): https://www.docpipeline.net/
-- Changelog/release-notes multi-audience fan-out, segmentation, two-stage curation: https://www.releasenotes.io/ , https://www.appcues.com/blog/changelog-vs-release-notes , https://userorbit.com/blog/best-product-changelog-and-release-notes-software
-- Internal-comms / editorial approval workflows & cadence: https://www.contentful.com/blog/tasks-and-comments-supercharge-your-content-approval-workflow/ , https://planable.io/blog/communications-calendar/ , https://www.prdaily.com/how-to-create-an-internal-email-editorial-calendar-for-your-comms-team/
-- Claim/evidence provenance UX (supported/unsupported/**omitted**, brushing-and-linking, details-on-demand; trust calibration): PaperTrail, CHI'26 — https://arxiv.org/abs/2602.21045 , https://dl.acm.org/doi/10.1145/3772318.3791101
-- Provenance research norms (sentence-level attribution; faithfulness ≠ correctness; citation hallucination): GenProve https://arxiv.org/html/2601.04932v2 , CiteCheck https://arxiv.org/html/2605.27700v1 , "Correctness is not Faithfulness" https://arxiv.org/pdf/2412.18004 , TROVE https://arxiv.org/pdf/2503.15289
-- Personalized digest norms (interest profile, relevance ranking, learn-from-engagement): https://www.junia.ai/blog/ai-tools-newsletters , https://www.sciencedirect.com/science/article/pii/S187705092401408X
-- Internal project context: .planning/PROJECT.md , .planning/brief.md
+- [SlideTeam — Workstream Status Report templates](https://www.slideteam.net/blog/top-10-workstream-status-report-template-with-samples-and-examples) — confirms per-lane KPIs, accomplishments, risks, dependencies, ownership as the expected content set (MEDIUM).
+- [Atlassian — Swimlane diagrams: ownership & accountability](https://www.atlassian.com/work-management/project-management/project-planning/swimlane-diagram) — lanes encode clear per-lane ownership (RACI) (MEDIUM).
+- [ProjectManager — Swimlane diagram template](https://www.projectmanager.com/templates/swimlane-diagram-template) — swim lane = responsibility grouping (MEDIUM).
+- [Ahrefs — dashboard metrics: delta over a period](https://help.ahrefs.com/en/articles/5373022-understanding-the-metrics-in-the-dashboard-overview) — Δ = end-of-period − start-of-period convention (MEDIUM).
+- [Datadog — metric change / delta checks](https://www.datadoghq.com/blog/alerting-101-metric-checks/) — delta and no-stable-baseline handling as a recognised concern (MEDIUM).
+- Live repo (HIGH): `src/newsletters/semantic.py` (`KpiItem`, `KpiStripBlock`, `ClaimsBlock`, `Surface.missing[]`), `src/newsletters/templates.py` (`REPORT` slots), `docs/surfaces.md` (Report + faithful-not-suggestive precedent), `.planning/PROJECT.md` (milestone scope, Key Decisions).
 
 ---
-*Feature research for: semantic information distillation framework (Newsletters Rev2)*
-*Researched: 2026-06-14*
+*Feature research for: config-driven swim-lane module Report composer (v1.1)*
+*Researched: 2026-07-02*

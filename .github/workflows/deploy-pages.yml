@@ -1,54 +1,105 @@
-name: Deploy web/ to GitHub Pages
+# Publish the record to GitHub Pages (v1.2, PUB-01/02) — the ONE publish channel.
+#
+# WHAT PUBLISHES: the rendered record — the committed corpora assembled by
+# `newsletters assemble` (publish.assemble_site): content/rev1/site at the ROOT,
+# content/work/site at /work/, content/module/site at /module/, plus .nojekyll and the
+# base-path-absolute 404.html. The web/ Next.js app is NOT deployed (DEF-13: it stays
+# in-repo until it consumes real corpus data — placeholder content must not wear the
+# product's URL).
+#
+# HOW IT PUBLISHES: a single-commit force-push to the `gh-pages` branch — the channel
+# GitHub Pages is configured to serve from (Settings → Pages → "Deploy from a branch").
+# This is a deliberate architecture decision (v1.2 research + RETRO 2026-07-02 "two
+# gates"): the previous actions/deploy-pages workflow failed 4/4 runs, rejected by the
+# `github-pages` environment's protection rules — a repo SETTING invisible to the
+# workflow file, even from main. This channel has ONE visible gate (`contents: write`
+# below). gh-pages is a MIRROR, not a record: history of what published lives on main;
+# each publish commit names its source SHA. Switching to the environment channel is
+# DEF-14, a maintainer settings decision.
+#
+# WHAT GUARDS IT (PUB-04/05 — the same gates CI runs on every PR, re-run here):
+#   1. `newsletters check` per corpus — no unreviewed/unsafe surface publishes.
+#   2. tests/test_publish.py — assembled-tree links resolve, committed==fresh (no drift),
+#      fonts present, generated-marker on every page. No bash re-implementation.
+# The workflow republishes ONLY what a human already merged to main — it never renders
+# fresh content into production (assemble copies committed bytes; the sole rendered file
+# is the deterministic, tested 404 chrome).
 
-# Builds the Next.js app in web/ as a static export and publishes it to
-# GitHub Pages (https://<owner>.github.io/newsletters/). Runs on the default
-# branch, on this feature branch (so the work can be previewed before merge),
-# and on manual dispatch.
+name: Publish the record to GitHub Pages
+
 on:
   push:
-    branches: [main, claude/new-session-kz7u69]
-    paths: ['web/**', '.github/workflows/deploy-pages.yml']
+    branches: [main]
+    paths:
+      - "content/**"
+      - "src/newsletters/**"
+      - "tests/test_publish.py"
+      - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write # push to gh-pages; no pages:/id-token: on this channel
 
-# One deployment at a time; let an in-flight run finish.
+# One publish at a time; let an in-flight publish finish.
 concurrency:
-  group: pages
+  group: pages-publish
   cancel-in-progress: false
 
 jobs:
-  build:
+  publish:
+    # workflow_dispatch from any non-main ref is a no-op: publishing is human-gated by
+    # PR review INTO main — there is no feature-branch path to production.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: web
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-      - run: npm ci
-      - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: web/out
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install (test + config extras — PyYAML for the module corpus; non-AI)
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[test,config]"
+
+      - name: "Gate 1 — merge-block every corpus (no unsafe surface publishes)"
+        run: |
+          newsletters check --corpus rev1
+          newsletters check --corpus work
+          newsletters check --corpus module
+
+      - name: "Gate 2 — the published-tree guarantees (links/drift/fonts/marker)"
+        run: python -m pytest tests/test_publish.py -q
+
+      - name: "Preflight (warn-only) — Pages must still serve from the gh-pages branch"
+        # If a maintainer ever flips Settings → Pages → Source to "GitHub Actions", pushes
+        # to gh-pages silently stop publishing. Surface that here instead of going dark.
+        # (`build_type: legacy` == deploy-from-branch.) The endpoint may 403 for the
+        # default token — warn-only, never a failed publish.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          info=$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq '.build_type + " " + (.source.branch // "-")' 2>/dev/null) || {
+            echo "::notice::Pages settings not readable with this token — skipping preflight"; exit 0; }
+          echo "Pages config: ${info}"
+          case "$info" in
+            legacy\ gh-pages) echo "Pages serves from gh-pages — OK" ;;
+            *) echo "::warning::Pages source is '${info}', not 'branch: gh-pages' — this push will NOT go live. Fix in Settings > Pages." ;;
+          esac
+
+      - name: Assemble the published tree (the canonical function, not bash cp)
+        run: newsletters assemble --out _site --base-path /newsletters/
+
+      - name: Publish — single-commit force-push to gh-pages
+        # Plain git, no third-party action to pin/audit. Force-push keeps gh-pages a
+        # single-commit mirror (tiny, idempotent); provenance lives in the commit subject.
+        run: |
+          cd _site
+          git init -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Publish record from ${GITHUB_SHA}"
+          git push --force "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" gh-pages

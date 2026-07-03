@@ -4,6 +4,127 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
+## 2026-07-03 — The published site rotted because publishing had three channels and zero tests
+
+**Friction observed**
+
+Live forensics (v1.2 research doc) found the "deployed" site was a 2-week-stale *hand-pushed*
+`gh-pages` snapshot; the automated workflow built a DIFFERENT site (the placeholder `web/` app)
+and had failed 4/4 runs — **including run #3 from `main`**, which invalidates the "merging to
+main will deploy" assumption the two-gates entry below left standing; and no test anywhere saw
+the *assembled* tree, so `/module/…` 404'd live and every work/module page's "Start here"/Home/
+fan-out link pointed at a nonexistent corpus-local `index.html`. Each corpus was individually
+green; the composition was broken. The repo's own record believed the site was fine.
+
+**Rules hardened**
+
+- *One publish channel, and it republishes only what a human already merged.* The deploy
+  workflow re-runs the merge-block gate and the byte-drift checks over the **committed**
+  corpora, assembles via the same tested function everything else uses (`publish.assemble_site`
+  — never ad-hoc `cp` in YAML), and pushes through the channel with the fewest invisible gates
+  (single-commit force-push to `gh-pages`: one visible `contents: write` permission, no
+  environment allowlist). Manual `gh-pages` pushes are retired.
+- *Test the composition, not just the parts.* The published tree is a first-class test subject
+  (`tests/test_publish.py`, PR-blocking): assembled-tree link resolution, committed==fresh for
+  ALL corpora, fonts-present, generated-marker. The assembled-tree link test caught the live
+  dead-nav bug on its first run — a per-corpus test structurally never could.
+- *A "next step: publish" left manual will silently rot.* The 6/19 UAT snapshot was correct the
+  day it was pushed and wrong within two weeks. If publishing is a standing intention, it must
+  be a workflow, not a memory.
+
+## 2026-07-02 (late) — Pages deploy: a workflow change cannot see a repo-settings gate
+
+**Friction observed**
+
+PR #8 extended the Pages workflow to publish the report corpora and to deploy from the
+integration branch — the build succeeded, but the DEPLOY job was rejected: the
+`github-pages` environment's protection rule (Settings → Environments, a repo setting,
+invisible to the workflow file and to CI) only allows deployments from approved branches.
+The /reports/ URLs 404'd while every gate we could see was green; found only when the
+Editor-in-Chief asked for the preview.
+
+**Rule hardened**
+
+- *An outward-facing deploy has TWO gates: the workflow (in-repo, we can change it) and
+  the environment protection rule (repo settings, maintainer-only).* When shipping a
+  deploy-from-a-new-branch change, verify the environment allowlist covers that branch —
+  or state plainly in the PR that the maintainer must allow it / merge to an allowed
+  branch before the deploy can land. "The workflow is correct" ≠ "the deploy will run."
+
+## 2026-07-02 — Session: v1.1 overnight run (Phases 1–3 shipped; one stall JJ caught live)
+
+**Friction observed**
+
+1. **A background CI-wait stalled the run — three compounding mistakes in one decision.** After
+   shipping PR #6's body I gated the merge on a *backgrounded* poll loop: (a) the container
+   restarted and killed it — the EXACT failure class already hardened in the 2026-06-18 entry
+   ("a completion notification is not liveness"), violated again; (b) the loop used
+   unauthenticated `curl` to api.github.com, which returns empty in this environment, so it
+   could never succeed; (c) the head commit was docs-only and never triggered CI at all —
+   zero check runs would ever appear. JJ caught the silence and flagged it. The gates had
+   already been independently re-run locally; only the merge click was pending.
+2. **Recurring smaller class, positive note:** the abstraction guard (LANE-03) fired three times
+   tonight on genuine leaks (a planned default path, a CLI docstring, a planted self-test) — a
+   rule encoded as a test did its job repeatedly where a convention would have silently rotted.
+
+**Friction observed (morning review, from JJ directly)**
+
+3. **The PRs fixed hype but not audience.** The Signals dispatch removed boilerplate and tied
+   claims to evidence — and was still unreadable to the person it was for: "I don't understand
+   what the shit is going on." The bodies assumed a co-engineer; the reviewer is a CLIENT being
+   taught. And the deliverable (the rendered report) wasn't one click away — the Pages deploy
+   only published the web app, never the report corpora, so "review" meant reading diffs.
+
+**Rules hardened**
+
+- *The reviewer is a client being taught.* Every PR body now MUST open with a plain-terms
+  "Start here" section — what we built / why it matters to you / how to review with clickable
+  links, the rendered artifact first. Encoded in ship.md's generate_pr_body + enforced by
+  `tests/test_signals_voice.py` (a reverted contract is a RED suite, not a vibe).
+- *If the deliverable is visual, deploy it.* The Pages workflow now publishes the rendered
+  corpora at `/reports/{rev1,work,module}/` alongside the web app — a review link, not a diff.
+- *Never gate forward progress on a background wait.* At a decision point, check external state
+  SYNCHRONOUSLY through the authenticated channel (GitHub MCP tools here — plain curl to
+  api.github.com is dead in this environment), act on what you find, and move on. Background
+  monitors are for *notification*, never for *sequencing*.
+- *Before waiting on CI, confirm CI was actually triggered for that SHA* (docs-only commits may
+  not trigger it). Waiting on a run that doesn't exist looks identical to a slow run.
+- *When local enforced gates are green and CI's jobs are a strict subset of what was re-run
+  locally, a docs-only head commit does not block the merge* — verify the post-merge run on the
+  integration branch instead.
+
+**Friction observed (deep-review loop, rounds 1–8)**
+
+4. **The milestone shipped functionally but was never formally closed per GSD.** All 4 phases were
+   built, verified, and merged (PRs #4–#8) — but there were **no per-phase VERIFICATION/VALIDATION/
+   LEARNINGS**, no `MILESTONES.md`, no retrospective, no archive, no tag, and STATE/ROADMAP/PROJECT
+   carried internal contradictions (STATE frozen mid-Phase-2 with a "3 plans" metrics table; ROADMAP
+   Phase-3 checkboxes unticked and Phase-4 "Plans: TBD"; the ROADMAP five-section criterion vs the
+   shipped six-section dispatch). "Green tests + merged PRs" felt like "done", so the GSD close ritual
+   — the part that produces the *learning* artifacts — was silently skipped. Shipped ≠ closed.
+5. **A self-verifying builder cannot see its own self-consistent blind spots.** The overnight run
+   verified every phase against its own plan and passed — yet the drift above (and the R5 "weakest
+   link", the R7 unguarded arms, the R8 ontology drift) was invisible to that inline verification
+   *because it was self-consistent with the builder's own frame*. It took a **fresh-context, adversarial
+   deep-review loop** — reading the live repo with standing lenses (delta-to-reality / drift / total-
+   history honesty) rather than re-checking intent — to surface what the builder could not see about
+   itself. The code enforces its ontology in tests, but the tests prove enums/verbs disjoint, not the
+   *prose*; only an outside read caught the compass still saying "promotion chain".
+
+**Rules hardened**
+
+- *A milestone is not done when the code is green — it is done when it is CLOSED per GSD.* Before
+  declaring a milestone complete: per-phase VERIFICATION/VALIDATION/LEARNINGS exist, the compass
+  (STATE/ROADMAP/PROJECT/WHERE-WE-ARE) is internally consistent with the live repo, and the
+  `audit-milestone → complete-milestone` ritual (archive + RETROSPECTIVE + tag) has run. "Merged PRs"
+  is a build signal, not a close signal. (This loop is the retroactive execution of that rule.)
+- *Independent, fresh-context review catches what inline verification structurally cannot.* Self-
+  verification checks the work against the builder's own frame, so self-consistent blind spots survive
+  it. For anything load-bearing (trust invariants, ontology, the promise ledger), run a fresh-context
+  review that reads the LIVE object with adversarial lenses — the value it buys is *independence, not
+  correctness*. (Generalises "the agent says green ≠ green" from executors to the builder's own
+  verification pass.)
+
 ## 2026-06-19 — Session: autonomous Phases 8–13 (the cut to UAT)
 
 **Friction observed**

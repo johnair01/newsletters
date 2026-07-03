@@ -94,10 +94,45 @@ jobs:
           python -m pip install --upgrade pip
           pip install ".[test]"
 
-      - name: Run the merge-block checker on the corpus (AI-free)
-        # `newsletters check` runs review_blockers across the corpus's PUBLISHED surfaces and exits
-        # nonzero on any blocker — so an unsafe surface fails the build and cannot merge.
-        run: newsletters check
+      - name: Install the [config] extra for the module corpus (PyYAML — non-AI, lazy)
+        # The module corpus's loader lazy-imports PyYAML behind the [config] extra
+        # (v1.1 LANE-04). PyYAML is not an AI dependency and never imports at module top
+        # level, so the AI-optional property is untouched — the bare-install job above
+        # remains the canonical AI-free source of truth (PKG-03) and does NOT get this.
+        run: pip install ".[config]"
+
+      - name: Run the merge-block checker on ALL corpora (AI-free) — PUB-05
+        # `newsletters check` runs review_blockers across each corpus's PUBLISHED surfaces
+        # and exits nonzero on any blocker — an unsafe surface cannot merge. v1.2 closes the
+        # gap where only rev1 was gated in CI (work/module drifted ungated).
+        run: |
+          newsletters check --corpus rev1
+          newsletters check --corpus work
+          newsletters check --corpus module
+
+  site-integrity:
+    # PUB-01..05 (v1.2): the published-tree guarantees run on EVERY push/PR — assembled-tree
+    # link resolution, committed==fresh drift (all corpora), fonts-present, generated-marker —
+    # via the SAME tests the deploy workflow re-runs before publishing (tests/test_publish.py).
+    # One definition of "publishable"; no bash re-implementation anywhere.
+    name: site integrity (PUB-01..05)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install with test + config extras (PyYAML for the module corpus; non-AI)
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[test,config]"
+
+      - name: Run the published-tree guarantees + the site/render guards
+        run: |
+          python -m pytest tests/test_publish.py tests/test_render.py tests/test_site.py \
+                           tests/test_worksurface.py tests/test_modulesite.py -q
 
   import-linter:
     # PKG-04 (static contract, standing every push): forbid any core->AI import edge.
