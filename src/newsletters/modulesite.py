@@ -185,8 +185,11 @@ def build_module_site(
     for page in site.pages():
         p = out / page.href
         # Pass the resolved Site + this Page so nav/breadcrumb/prev-next resolve neighbors.
+        # home_href climbs to the site root: the module corpus has NO index.html of its own,
+        # so "Start here"/Home/empty-hub links point at the assembled tree's front door.
         p.write_text(
-            render_surface(page.surface, site=site, page=page), encoding="utf-8"
+            render_surface(page.surface, site=site, page=page, home_href="../index.html"),
+            encoding="utf-8",
         )
         written.append(p)
 
@@ -201,6 +204,7 @@ def build_module_site(
                 ("The Rev1 record", "../index.html"),
                 ("The work record", "../work/library.html"),
             ),
+            home_href="../index.html",
         ),
         encoding="utf-8",
     )

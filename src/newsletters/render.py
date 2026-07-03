@@ -624,29 +624,35 @@ def _block_html(b, site: Site | None = None, sources: dict[str, Source] | None =
 _NAV_KIND: dict[str, str] = {"Newsletters": "newsletter", "Articles": "article", "The Show": "show"}
 
 
-def _nav_targets(site: Site) -> dict[str, str]:
+def _nav_targets(site: Site, home_href: str = "index.html") -> dict[str, str]:
     """Resolve each spine label to a real, existing destination (SITE-04).
 
-    ``Start here`` is always ``index.html``. Each surface-type hub resolves to the
+    ``Start here`` is always ``home_href``. Each surface-type hub resolves to the
     first ``Page.href`` of its Collection (Newsletters→``newsletter``, Articles→
-    ``article``, The Show→``show``), falling back to ``index.html`` only when a
+    ``article``, The Show→``show``), falling back to ``home_href`` only when a
     collection is empty — so the nav never carries a ``None``/dead href (T-09-05).
+
+    ``home_href`` defaults to the corpus-local ``index.html`` (the rev1 record, which
+    fronts the assembled site). Sub-corpus builders (work/module) pass ``../index.html``:
+    those corpora have NO index.html of their own, so "Start here"/Home/empty-hub links
+    must climb to the site's front door — the assembled-tree link test (PUB-03) is the
+    guard that caught the dead corpus-local fallback this replaces (v1.2 Phase 2).
     """
-    targets: dict[str, str] = {"Start here": "index.html"}
+    targets: dict[str, str] = {"Start here": home_href}
     first_by_kind = {c.kind: (c.pages[0].href if c.pages else None) for c in site.collections}
     for label, kind in _NAV_KIND.items():
-        targets[label] = first_by_kind.get(kind) or "index.html"
+        targets[label] = first_by_kind.get(kind) or home_href
     return targets
 
 
-def _fanout_box_links(site: Site) -> dict[str, str]:
+def _fanout_box_links(site: Site, home_href: str = "index.html") -> dict[str, str]:
     """Map the fan-out SVG box labels to a real destination href so the diagram navigates.
 
     The Show / The Article / Newsletters resolve to their nav-target hub; The Report (which
     is intentionally OUTSIDE the four-item nav spine, N1) resolves to the first report Page,
     falling back to ``library.html``. Labels with no resolvable target are simply omitted —
     :func:`~newsletters.diagrams.fanout` then leaves that box static (never a dead anchor)."""
-    targets = _nav_targets(site)
+    targets = _nav_targets(site, home_href)
     first_report = next(
         (c.pages[0].href for c in site.collections if c.kind == "report" and c.pages),
         "library.html",
@@ -751,17 +757,18 @@ def _collection_for(site: Site, page: Page) -> Collection | None:
     return None
 
 
-def _breadcrumb(site: Site, page: Page) -> str:
+def _breadcrumb(site: Site, page: Page, home_href: str = "index.html") -> str:
     """``Home › {Collection.display_name} › {Page.title}`` — the per-surface trail (SITE-04).
 
-    Home links to ``index.html``; the Collection segment links to that surface-type's
-    resolved hub (the nav target); the current Page is plain text (no link, ``--text``).
-    Mono 11px with ``›`` separators in ``--line`` (the gate-separator glyph).
+    Home links to ``home_href`` (corpus-local ``index.html`` for rev1; ``../index.html``
+    for the sub-corpora, which have no index of their own); the Collection segment links to
+    that surface-type's resolved hub (the nav target); the current Page is plain text (no
+    link, ``--text``). Mono 11px with ``›`` separators in ``--line``.
     """
     col = _collection_for(site, page)
-    hub = _nav_targets(site).get(_active_for(page.surface), "index.html") if col else "index.html"
+    hub = _nav_targets(site, home_href).get(_active_for(page.surface), home_href) if col else home_href
     sep = '<span class="sep">&rsaquo;</span>'
-    parts = [f'<a href="index.html">Home</a>{sep}']
+    parts = [f'<a href="{_e(home_href)}">Home</a>{sep}']
     if col is not None:
         parts.append(f'<a href="{_e(hub)}">{_e(col.display_name)}</a>{sep}')
     parts.append(f'<span class="here">{_e(page.title)}</span>')
@@ -841,6 +848,7 @@ def render_surface(
     theme: str = "light",
     site: Site | None = None,
     page: Page | None = None,
+    home_href: str = "index.html",
 ) -> str:
     """Render one ``Surface`` to a complete, standalone HTML page.
 
@@ -851,7 +859,7 @@ def render_surface(
     omitted (no neighbors to resolve).
     """
     t = surface.template
-    targets = _nav_targets(site) if site is not None else None
+    targets = _nav_targets(site, home_href) if site is not None else None
     meta_bits = [
         f"{t.display_name} &middot; {t.cadence.label}",
         f"scope: {t.scope.value}",
@@ -887,7 +895,9 @@ def render_surface(
     )
     # Breadcrumb (above the masthead) + prev/next (foot of the surface) resolve neighbors
     # from the Site; only emitted on the build path where both are supplied (SITE-04).
-    crumb = _breadcrumb(site, page) if site is not None and page is not None else ""
+    crumb = (
+        _breadcrumb(site, page, home_href) if site is not None and page is not None else ""
+    )
     prevnext = _prevnext(site, page) if site is not None and page is not None else ""
     # PROV-03: the honesty panel renders on EVERY surface, after the blocks — never hidden,
     # never collapsed; a clean surface shows the positive confirmation (T-10-08).
@@ -981,6 +991,7 @@ def render_library(
     *,
     theme: str = "light",
     records: Sequence[tuple[str, str]] | None = None,
+    home_href: str = "index.html",
 ) -> str:
     """Render the Library — a three-column gate-state status board (SITE-03).
 
@@ -998,7 +1009,7 @@ def render_library(
         'approved; the Article is a lesson awaiting peer review; the Newsletter re-cuts the week '
         'per reader; the Show records the process.</p></div>'
         '<figure class="diagram" style="margin-top:24px">'
-        '<div class="dh">How it fans out</div>' + _fanout_svg(_fanout_box_links(site))
+        '<div class="dh">How it fans out</div>' + _fanout_svg(_fanout_box_links(site, home_href))
         + '<figcaption>One reviewed record, four surfaces — the Newsletter re-cuts per '
         'reader from their own private corpus.</figcaption></figure></div>'
     )
@@ -1009,7 +1020,7 @@ def render_library(
         body=body,
         active="Start here",
         theme=theme,
-        targets=_nav_targets(site),
+        targets=_nav_targets(site, home_href),
     )
 
 
