@@ -82,12 +82,16 @@ what matters.
 
 ### Active
 
-<!-- Next-milestone scope. Empty at v1.1 close — the maintainer sets the next milestone. -->
+<!-- Next-milestone scope. Set 2026-07-03 by the Editor-in-Chief: v1.2 The Published Record. -->
 
-- (none yet — v1.1 closed 2026-07-02; the fix-batch PR (B1–B20) and the next milestone are the
-  maintainer's calls. Candidate next: DEF-04 owner-audit workflow or DEF-05 quarter-editorial
-  ARTICLE, with DEF-11's admission requirements (require content-addressed traces at the socket)
-  drawn from `reviews/05-trust-invariants.md`.)
+- **Milestone v1.2 — The Published Record: one channel, production-ready** (opened 2026-07-03;
+  set by the Editor-in-Chief after live publish forensics found the deployed site is a stale
+  hand-pushed snapshot and the automated deploy has failed 4/4 runs while building the wrong
+  artifact — see `.planning/research/2026-07-03-pages-publish-forensics.md`). Scope: PUB-01..05
+  (`.planning/REQUIREMENTS.md`) — the rendered record IS the published site (rev1 root +
+  /work/ + /module/, cross-linked, styled 404); one deploy channel republishes exactly what a
+  human merged to main (gate-checked, force-push to gh-pages); linkability/drift/gating become
+  PR-blocking tests. The fix-batch PR (B1–B20) and DEF-04/05/11 remain queued behind it.
 
 ### Validated in v1.1 (2026-07-02, Phases 1–4)
 

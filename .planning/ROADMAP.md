@@ -1,177 +1,126 @@
-# Roadmap: Newsletters — Milestone v1.1 (Swim-Lane Module Report)
+# Roadmap: Newsletters — Milestone v1.2 (The Published Record)
 
-> ## ✅ v1.1 SHIPPED 2026-07-02 — MILESTONE COMPLETE
-> All 4 phases (12 plans) complete; 12/12 requirements satisfied. Formally closed per GSD at
-> deep-review loop Round 10 (audit-milestone → complete-milestone). Frozen snapshot archived at
-> `.planning/milestones/v1.1-ROADMAP.md`; requirements archived at
-> `.planning/milestones/v1.1-REQUIREMENTS.md`; audit at `.planning/milestones/v1.1-MILESTONE-AUDIT.md`;
-> phase dirs at `.planning/milestones/v1.1-phases/`. Carry-forward: the B1–B20 fix-batch backlog
-> (`reviews/2026-07-02-deep-review/07-tests-as-promises.md`) and DEF-01..12 (below). The next
-> milestone is set via `/gsd-new-milestone`.
+> **Fresh file for v1.2.** v1.1 (Swim-Lane Module Report) SHIPPED 2026-07-02 and is archived:
+> roadmap at `.planning/milestones/v1.1-ROADMAP.md`, requirements at
+> `.planning/milestones/v1.1-REQUIREMENTS.md`, audit at `.planning/milestones/v1.1-MILESTONE-AUDIT.md`.
+> Phase numbering resets to 1–2 for this milestone (the v1.1 phase dirs are archived; no collision).
 
-> **Fresh file for v1.1.** The v1.0 (Rev2) roadmap and its Phases 1–14 are **archived in git
-> history** — the v1.0 phase directories are archived, so numbering **resets to Phase 1–4** for
-> this milestone with no collision. The milestone seed, branch naming (`phase-01..04`), and the
-> run plan (`/gsd autonomous --to 4`) all assume the 1–4 numbering used here.
-
-**Milestone:** v1.1 Swim-Lane Module Report
-**Defined:** 2026-07-02
+**Milestone:** v1.2 The Published Record: one channel, production-ready
+**Defined:** 2026-07-03
 **Granularity:** fine
-**Phases:** 4 (locked by approved milestone scope — not to be added to or split)
-**Coverage:** 12/12 v1.1 requirements mapped ✓
+**Phases:** 2 (locked by approved milestone scope)
+**Coverage:** 5/5 v1.2 requirements mapped ✓ (PUB-01..05 — see `.planning/REQUIREMENTS.md`)
+**Research:** `.planning/research/2026-07-03-pages-publish-forensics.md` (live-verified evidence)
 
 ## Overview
 
-The trust spine already ships (`Source → Claim(+Trace) → Distillation → Surface`, the review gate,
-the renderer, the merge-block gate). This milestone bolts on the **missing composer**: the smallest
-fully-real, config-driven machine that cuts one owned module across its swim lanes into a reviewed,
-evidence-traced Report. The journey is strictly linear for the core: a traced YAML **loader** turns
-per-module swim-lane config into content-addressed `Claim`/`KpiItem`s (Phase 1); a **composer**
-arranges those traced inputs into a module-scope `Surface(REPORT, Draft)` with compose-time deltas
-and honest `missing[]` routing (Phase 2); a **worked synthetic example** (`module-a`, fabricated
-naming) proves the whole path end-to-end into the Library (Phase 3). A fourth, independent phase
-makes the `ship` workflow's PR bodies read as faithful Signals dispatches (Phase 4). The overriding
-principle — **ABSTRACT EVERYTHING** — is enforced from Phase 1: models in code, module/lane/owner
-specifics in config, no fixture names in `src/`.
+The product renders a reviewed, evidence-traced record — but the **publish system doesn't ship
+it**: the live site is a stale hand-pushed `gh-pages` snapshot, the automated deploy builds the
+wrong artifact (the placeholder `web/` app) and has failed 4/4 runs (including from `main`), and
+no test anywhere covers the assembled published tree. This milestone makes the published site a
+*product output*: the rendered record IS the site, one workflow republishes exactly what a human
+merged, and the linkability/drift/gating invariants become PR-blocking tests instead of
+discipline. Design authority for new UI: `docs/design-system.md` + the Claude design handoffs in
+`design-reference/` (esp. `signals-navigation/`: *no surface a dead-end*).
 
-## Enforced gate set (definition of "green" for every phase)
+## Enforced gate set (definition of "green" for every phase — carried from v1.1)
 
-A phase is green only when **all** of the following pass, re-run independently (agent "green" ≠ green):
+Re-run independently (agent "green" ≠ green):
 
-1. **pytest** — full suite, including the new adversarial guard tests each phase lands
-2. **lint-imports** — import-linter contracts (AI-optional core + no-external-write held)
-3. **`newsletters check`** — the unforked merge-block gate, run over **all corpora** (`rev1`, `work`, and, from Phase 3, `module`)
-4. **byte-stable double-render** — SITE-06 invariant holds over every rendered output
-5. **bare-install CI** — `pip install .` runs the spine with zero YAML / zero AI reachable
+1. **pytest** — full suite (626 at open) incl. each phase's new guard tests
+2. **lint-imports** — contracts held (AI-optional core; no-external-write)
+3. **`newsletters check`** — over ALL corpora (rev1, work, module)
+4. **byte-stable double-render** — committed == fresh for every corpus (incl. regenerated output)
+5. **bare-install CI** — untouched; stays the AI-free source of truth
 
-`mypy` / `black` / `isort` are held to a **no-NEW-failures** standard versus the recorded
-**2026-07-02 baseline** (the repo pre-dates a global format pass: ~59 files, 9 pre-existing mypy
-errors). Cleanup of that debt is out of scope for this milestone.
-
-> **Phase-1 circuit breaker:** If Phase 1 does not finish **cleanly green** on the enforced gate
-> set above, the run **STOPS**. Everything downstream consumes the loader's traced output; an
-> un-honest or non-deterministic loader must not be built upon.
+`mypy`/`black`/`isort`: no-NEW-failures vs the 2026-07-02 baseline (carried).
 
 ## Phases
 
-- [x] **Phase 1: Swim-lane binding + traced YAML loader** - config → content-addressed traced `Claim`/`KpiItem`s, honest routing, abstraction guard (`swimlane.py`) (completed 2026-07-02)
-- [x] **Phase 2: Module-scope Report composer** - traced bindings → `Surface(REPORT, Draft)`, compose-time Δ, faithfulness holes closed by new tests (`compose.py`)
-- [x] **Phase 3: Worked synthetic Module Report** - `module-a` config renders into the Library as a third `module` corpus with its own ledger
-- [x] **Phase 4: Signals-voice PR/summary** - `ship` workflow PR bodies read as evidence-first Signals dispatches
+- [ ] **Phase 1: Site IA & linkability** (PUB-03)
+- [ ] **Phase 2: One publish channel** (PUB-01, PUB-02, PUB-04, PUB-05)
 
 ## Phase Details
 
-### Phase 1: Swim-lane binding + traced YAML loader
+### Phase 1: Site IA & linkability
 
-**Goal**: An operator can declare a module's swim lanes in YAML, and a deterministic, lazy-loaded
-loader binds each lane to its `FunctionalGroup`/`Kpi`s/`Objective`s as content-addressed traced
-inputs — no `models.py` change, no fixture names in `src/`, zero silent drops.
-**Depends on**: Nothing (first phase). **Gates the whole milestone — circuit breaker applies.**
-**Requirements**: LANE-01, LANE-02, LANE-03, LANE-04
+**Goal**: No corpus is a dead end. Each corpus's chrome pages (Home/Library) carry a cross-corpus
+"Records" strip designed per the design system + the `signals-navigation` handoff, a
+design-system `404.html` renderer exists for the assembled site, and every corpus regenerates
+byte-stably with the new chrome.
+**Depends on**: Nothing (first phase).
+**Requirements**: PUB-03
 **Success Criteria** (what must be TRUE):
 
-  1. Loading an arbitrary configured lane set produces one `SectionBinding` per lane bound to its `FunctionalGroup`+`Kpi`s/`Objective`s at the parsed-dict level, with zero changes to `models.py` (proven by test).
-  2. Every value the loader reads becomes a `Claim`/`KpiItem` minted **only** via `Trace.from_source` against the raw file text (`Source.transcript == path.read_text()` verbatim), and `trace.is_addressed is True` for every one (adversarial test proves an un-addressed trace is caught, not silently passed — closes Hole B upstream).
-  3. The read-anchored coverage identity holds: every scalar **read** is either content-addressed or routed to `unextracted[]`/`missing` — `len(claims) + len(unextracted) == scalars walked`, with no silent drops on the trap fixture (duplicates/quotes/coercion/anchors/block scalars).
-  4. The abstraction-guard test **fails the suite** if any fixture/org-specific name (lane, module, owner id) appears in `src/newsletters/` — lane sets are proven config, not code.
-  5. `pip install .` (bare) imports the spine with `import yaml` unreachable; PyYAML lives behind a `[config]` extra, lazy-imported inside `swimlane.py` only.
-
-**Plans**: 4 plans
-
-  - [x] 01-01-PLAN.md — Lazy PyYAML boundary + `[config]` extra (LANE-04)
-  - [x] 01-02-PLAN.md — Swim-lane loader `swimlane.py`: config YAML → Source + traced SectionBinding[] (LANE-01, LANE-02)
-  - [x] 01-03-PLAN.md — Trap fixture + `test_swimlane.py`: coverage identity, Hole-B adversarial, determinism (LANE-01, LANE-02)
-  - [x] 01-04-PLAN.md — Abstraction-guard test + bare-install yaml-unreachable tests (LANE-03, LANE-04)
-
-### Phase 2: Module-scope Report composer
-
-**Goal**: Given traced bindings, the composer assembles one `Surface(REPORT, Draft)` per module —
-per-lane KPI strip (Δ at compose time) + traced claims, honest `missing[]` routing, stable `R-NNN` —
-selecting/ordering/linking traced material only, never authoring facts.
-**Depends on**: Phase 1 (consumes its `SectionBinding[]` output).
-**Requirements**: COMP-01, COMP-02, COMP-03, COMP-04
-**Success Criteria** (what must be TRUE):
-
-  1. The composer builds one `Surface(REPORT)` from an arbitrary configured lane set via a kind-agnostic `SectionBinding` seam (per lane: `KpiStripBlock` + `ClaimsBlock`) — project/interview report kinds could slot in with zero composer change (proven by a seam/second-kind test).
-  2. Start→close Δ is computed by one pure `compute_delta(start, close)` from two independently content-addressed endpoints into `KpiItem.delta`; a reproducibility test recomputes every rendered delta and asserts byte-equality; if either endpoint is absent, `delta=None`/`dir=None` + a `missing[]` note — never a fabricated `0`; no `Kpi` start/baseline field is added.
-  3. A test fails if the composer emits any claim with zero traces or any un-content-addressed trace (closes Hole B), and a numeral-free-prose guard fails if any non-`ClaimsBlock` block's text carries a digit run not drawn from a traced claim (closes Hole A) — `faithfulness.py`/`coverage.py` untouched.
-  4. The composed surface carries a stable `R-NNN` from `Ledger.ref_for` against its own `content/module/ids.json`, lands in `Draft` with an owner/manager quote slot and a `fanout` stub, and a no-auto-publish test proves it cannot reach `Published` without the gate.
-
-**Plans**: 4 plans
-
-  - [x] 02-01-PLAN.md — Additive `SectionBinding.kpi_endpoints` endpoint-pairing (references, not re-mints); Phase-1 gates stay green (COMP-01, COMP-02)
-  - [x] 02-02-PLAN.md — `compose.py` core: pure `compute_delta` + `compose_module_report` (per-lane strip+claims, deterministic Draft Surface, missing union) (COMP-01, COMP-02, COMP-03)
-  - [x] 02-03-PLAN.md — `compose.py` identity: sourced-or-omit quote, fanout stub, stable `R-NNN` via reused append-only `site.Ledger` (COMP-04)
-  - [x] 02-04-PLAN.md — `tests/test_compose.py` trust-guard suite: Holes A+B, delta-reproducibility, determinism, no-auto-publish, seam, edge cases (COMP-01..04)
-
-### Phase 3: Worked synthetic Module Report
-
-**Goal**: A committed synthetic `module-a` config composes and renders end-to-end (loader → composer
-→ ledger → render → Library) as a third `module` corpus with its own ledger, gate-visible and
-byte-stable.
-**Depends on**: Phase 2 (needs a working composer).
-**Requirements**: MODA-01, MODA-02
-**Success Criteria** (what must be TRUE):
-
-  1. A synthetic `module-a` config (fabricated naming only — `area-bem`, `module-a`, `owner-*`, `eng-NN`, `toolset-N`; nothing resembling real org/tool/metric nomenclature) composes and renders into `content/`, is visible in the Library with claim-beside-verbatim-trace and a populated honesty panel, and passes the synthetic-name check on committed content.
-  2. `newsletters check --corpus module` runs the **same unforked** merge-block gate on the `module` corpus (exit 0 clean; nonzero on a planted blocker) against a dedicated `content/module/ids.json` ledger whose first entry is `R-001`.
-  3. The SITE-06 byte-stable double-render invariant holds over the new `module` output (regenerates identically from `render.py`).
-
-**Plans**: 3 plans
-
-  - [x] 03-01-PLAN.md — Synthetic `module-a` config + `modulesite.py` builder (build_module_surfaces/build_module_site) + committed R-001 render (MODA-01)
-  - [x] 03-02-PLAN.md — Additive `--corpus module` CLI routing + gate-both-ways proof (clean exit 0 / planted blocker nonzero) (MODA-02)
-  - [x] 03-03-PLAN.md — End-to-end `test_modulesite.py`: traced+addressed, honesty panel, R-001 stable, byte-stable, no-external-call, committed==fresh-build, synthetic-name check (MODA-01, MODA-02)
-
-**UI hint**: yes
-
-### Phase 4: Signals-voice PR/summary
-
-**Goal**: The `ship` workflow generates PR/summary bodies that read as faithful, evidence-first
-Signals dispatches — built from the diff + verbatim gate output, weakening no gate.
-**Depends on**: Independent of Phases 1–3 (edits the ship workflow/script, not the composer);
-**ordered last** per milestone scope and because it *quotes* the `check` gate output the earlier
-phases produce.
-**Requirements**: VOICE-01, VOICE-02
-**Success Criteria** (what must be TRUE):
-
-  1. PR-body generation + `summary-standard.md` produce dispatches with exactly the sections: **Start here** (plain-terms, client-readable — what we built / why it matters / how to review, rendered artifact first) / The signal / What we learned / What's verified (verbatim gate output) / What's not here yet / How to verify — six sections, generated **from** the diff + gate output, with no AI framing and no hype. *(amended #8 — the "Start here" section was added in PR #8 after the original five-section criterion; the contract, guard, and tests all ship six.)*
-  2. Gate output appears **byte-verbatim** in the body (never paraphrased or softened), and the same numeral-free-unless-sourced rule applies to dispatch prose.
-  3. The voice change is proven by a test/snapshot and **weakens no existing check** (no gate edited or relaxed).
+  1. `render_home`/`render_library` accept an optional `records` sequence and render a Records
+     strip using existing `_CSS` tokens only (DM Mono eyebrow, hairline rules, radius 0); empty →
+     rendered output byte-identical to before the parameter existed (proven by test).
+  2. The strip appears on chrome pages ONLY (rev1 `index.html` + `library.html`; work + module
+     `library.html`); no per-surface page carries it (proven by test).
+  3. `render_404(base_path=…)` emits a page through `_page` (generated marker + full token CSS)
+     whose hrefs AND font urls are base-path-absolute, because GitHub Pages serves 404.html at
+     arbitrary depth (proven by test).
+  4. All three corpora are regenerated in the same commit; `test_committed_equals_fresh_build`
+     (module) and the double-render invariants stay green; every `ids.json` ledger is unchanged.
+  5. `tests/test_render.py::test_no_dead_link_every_internal_href_resolves` treats cross-corpus
+     hrefs (containing `/`) as out-of-corpus references whose resolver of record is Phase 2's
+     assembled-tree test — never silently skipped, listed explicitly.
 
 **Plans**: 1 plan
 
-  - [x] 04-PLAN.md — Signals-voice PR bodies + `summary-standard.md` (inline execution, JJ present): the six-section dispatch, verbatim gate output, no fact-asserting fallbacks, guarded by `test_signals_voice.py` (VOICE-01, VOICE-02)
+  - [ ] 01-01-PLAN.md — Records strip + 404 renderer + builder wiring + corpus regeneration + guard tests + `docs/surfaces.md` deltas
+
+### Phase 2: One publish channel
+
+**Goal**: One automated channel republishes exactly what a human merged: a typed assembly
+function composes the committed corpora into the published tree, four invariants
+(links/drift/fonts/marker) are PR-blocking tests, CI gates all three corpora, and the deploy
+workflow gate-checks then force-pushes `gh-pages` from `main` only.
+**Depends on**: Phase 1 (corpora final before assembly tests pin bytes; the assembled-tree link
+test resolves Phase 1's cross-corpus hrefs).
+**Requirements**: PUB-01, PUB-02, PUB-04, PUB-05
+**Success Criteria** (what must be TRUE):
+
+  1. `publish.assemble_site(out_dir, base_path=…)` (stdlib-only, AI-free, deterministic) composes
+     rev1→root, work→`work/`, module→`module/`, writes `.nojekyll` + `404.html`, copies committed
+     bytes verbatim (never a fresh render), and fails loudly on a missing corpus — proven by
+     tests incl. byte-stable double-assemble. `newsletters assemble` exposes it; `dist/` ignored.
+  2. `tests/test_publish.py` proves, on every PR: (a) every `href`/`src` in the assembled tree
+     resolves relative to its page (404.html's base-path-absolute links asserted against tree
+     root); (b) committed == fresh for rev1 AND work (module already guarded) + ledgers
+     append-only; (c) every font url referenced resolves to a shipped woff2 + the OFL licenses
+     travel; (d) every assembled page carries the generated-by marker.
+  3. CI runs a `site-integrity` job (the publish/render/site tests) on every push/PR, and the
+     merge-block job gates all three corpora; the bare-install job is untouched.
+  4. `deploy-pages.yml` triggers only on push to `main` (+ `workflow_dispatch` guarded to main),
+     needs only `contents: write`, re-runs `newsletters check` ×3 and `tests/test_publish.py`,
+     assembles via the CLI, and force-pushes a single commit to `gh-pages` naming the source SHA.
+     No `web/` build, no stale branch triggers, no third-party publish action, warn-only Pages
+     source preflight.
+
+**Plans**: 1 plan
+
+  - [ ] 02-01-PLAN.md — `publish.py` + `assemble` CLI + `test_publish.py` guarantees + CI wiring + `deploy-pages.yml` rewrite
 
 ## Progress
 
-**Execution Order:** Phases execute in numeric order: 1 → 2 → 3 → 4 (core is strictly linear
-1→2→3; Phase 4 is independent but ordered last).
+**Execution Order:** 1 → 2 (strictly ordered).
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Swim-lane binding + traced YAML loader | 4/4 | Complete   | 2026-07-02 |
-| 2. Module-scope Report composer | 4/4 | Complete | 2026-07-02 |
-| 3. Worked synthetic Module Report | 3/3 | Complete | 2026-07-02 |
-| 4. Signals-voice PR/summary | 1/1 | Complete | 2026-07-02 |
+| 1. Site IA & linkability | 0/1 | Not started | — |
+| 2. One publish channel | 0/1 | Not started | — |
 
-## Deferred — un-scheduled
+## Deferred — un-scheduled (carried from v1.1 close, unchanged)
 
-> The following 12 items are **recorded, not built** (§7 of the milestone seed). They have **no
-> phase number and no checkbox** — they are explicitly NOT scheduled work for v1.1.
-
-- **DEF-01** — Area roll-up scope (multi-module aggregation)
-- **DEF-02** — Project-kind report sections
-- **DEF-03** — Interview/sit-down-kind report sections
-- **DEF-04** — Owner-audit workflow (report routed to its swim-lane owner for review)
-- **DEF-05** — Quarter-editorial (ARTICLE) template in the Signal-01 shape (generic, synthetic)
-- **DEF-06** — Report→newsletter persona re-cut
-- **DEF-07** — Self-assessment leadership re-cut (`mapped_objective` spine)
-- **DEF-08** — Learning re-cut of the module report
-- **DEF-09** — MOR/IQ defect-project ↔ `Problem` tie-in
-- **DEF-10** — Any `Kpi` start/baseline model change
-- **DEF-11** — DistillPort AI backend (the robot journalist — designed separately, eval-first)
-- **DEF-12** — Problem Board Portfolio Surface (v1.0 Phase 14 carry-over, PROB-02/04)
+- **DEF-01..DEF-12** — see `.planning/milestones/v1.1-ROADMAP.md` §Deferred (area roll-up,
+  project/interview kinds, owner-audit, quarter-editorial, persona/leadership/learning re-cuts,
+  MOR/IQ↔Problem, Kpi baseline, DistillPort AI backend, Problem Board).
+- **DEF-13 (new, this milestone's scope decision)** — wire `web/` (the Signals Next.js app) to
+  the real corpus data; until then it is not deployed.
+- **DEF-14 (new)** — adopt the `actions/deploy-pages` environment channel iff the maintainer
+  aligns the repo settings (Pages source + environment allowlist); until then gh-pages push is
+  the one channel.
 
 ---
-*Roadmap created: 2026-07-02 for milestone v1.1. v1.0 Phases 1–14 archived in git history.*
+*Roadmap created: 2026-07-03 for milestone v1.2. v1.1 archived at `.planning/milestones/`.*

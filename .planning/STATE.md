@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: milestone
-status: completed
-stopped_at: "v1.1 CLOSED per GSD (deep-review loop Round 10): audit-milestone + complete-milestone done — 12/12 reqs, 4/4 phases, archived to milestones/. Next = maintainer's integration→main decision + the B1–B20 fix-batch PR."
-last_updated: "2026-07-02T21:05:00.000Z"
-last_activity: 2026-07-02 — deep-review loop Round 10 (formal milestone close: audit + archive + retrospective)
+milestone: v1.2
+milestone_name: The Published Record
+status: in_progress
+stopped_at: "v1.2 OPENED 2026-07-03 — requirements PUB-01..05 defined, roadmap (2 phases) written, research captured. Next: Phase 1 (Site IA & linkability)."
+last_updated: "2026-07-03T00:45:00.000Z"
+last_activity: 2026-07-03 — milestone v1.2 opened (publish-forensics research + requirements + roadmap)
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 12
-  completed_plans: 12
-  percent: 100
+  total_phases: 2
+  completed_phases: 0
+  total_plans: 2
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,87 +21,70 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-02)
 
 **Core value:** Make work legible and trustworthy — every published claim traces to evidence; nothing publishes without a human. The deterministic, auditable trust layer is what makes legibility believable; AI is an optional accelerator, never an authority.
-**Current focus:** Milestone v1.1 CLOSED (2026-07-02). Awaiting the maintainer: (1) the integration→main merge decision, (2) the B1–B20 fix-batch PR, (3) the next milestone (`/gsd-new-milestone`).
+**Current focus:** Milestone v1.2 — The Published Record: one channel, production-ready. The site a reader sees is exactly the reviewed record a human merged to main, republished by one automated channel, no dead link, no drift, no manual step.
 
 ## Current Position
 
-Phase: — (Milestone v1.1 closed 2026-07-02; phase dirs archived to `.planning/milestones/v1.1-phases/`)
-Plan: — (12 of 12 complete, archived)
-Status: **Milestone v1.1 CLOSED per GSD** — audit-milestone + complete-milestone done at deep-review loop Round 10 (audit → PROJECT evolution → archive → MILESTONES + RETROSPECTIVE). Requirements 12/12 satisfied; phases 4/4 verified + Nyquist-compliant. The maintainer owns: the integration→main merge, the B1–B20 fix-batch PR, and the next milestone. NEVER auto-merged/auto-tagged — main/tag are the maintainer hat.
-Last activity: 2026-07-02 — deep-review loop Round 10 (formal close)
-
+Phase: 1 of 2 (Site IA & linkability) — not started
+Plan: 01-01 — not started
+Status: Milestone v1.2 OPENED. Working branch `claude/github-pages-production-ready-du9ptu`
+(fast-forwarded onto the v1.1 integration branch — contains all of PR #20; sequencing note
+travels in the PR). Baseline gates re-run independently at open: 626 passed, lint-imports
+2 kept / 0 broken.
+Last activity: 2026-07-03 — milestone capture (research/requirements/roadmap)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed (v1.1): 12 across 4 phases (Phase 1: 4, Phase 2: 4, Phase 3: 3, Phase 4: 1).
-- v1.0 (Phases 1–14) shipped 2026-06; per-plan history archived in git.
+- v1.2: 0 plans complete (2 planned).
+- v1.1: 12 plans across 4 phases (closed 2026-07-02, archived). v1.0: Phases 1–14 (archived).
 
 **By Phase:**
 
 | Phase | Plans | Status |
 |-------|-------|--------|
-| 1 | 4 | Complete |
-| 2 | 4 | Complete |
-| 3 | 3 | Complete |
-| 4 | 1 | Complete |
+| 1. Site IA & linkability | 0/1 | Not started |
+| 2. One publish channel | 0/1 | Not started |
 
 **Recent Trend:**
 
-- All 4 phases complete + independently verified; deep-review loop (10 rounds) now backfilling
-  VERIFICATION/VALIDATION/LEARNINGS + reconciling the compass ahead of the formal Round-10 close.
-
-*Updated after each plan completion (per-plan durations for Phases 1–2 archived in git; the
-overnight autonomous run outpaced this table — see the deep-review triads for the honest per-phase record).*
+- Milestone opened from a live forensic investigation (see research doc) rather than a seed —
+  the publish system's failure was discovered by curling the live site and reading the
+  Actions run history, not from the repo's own record (which believed the site was fine).
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecting v1.1 work:
+Decisions are logged in PROJECT.md Key Decisions table. Decisions taken at v1.2 open
+(Editor-in-Chief, via structured question, 2026-07-03 — full rationale in
+`.planning/research/2026-07-03-pages-publish-forensics.md`):
 
-- [Milestone]: ABSTRACT EVERYTHING (JJ, 2026-07-02) — data models in code, module/lane/owner specifics in config; no fixture name in `src/`, enforced by the Phase-1 abstraction-guard test.
-- [Milestone]: Δ computed at compose time into `KpiItem.delta`; NO `Kpi` start/baseline model field (deferred, DEF-10).
-- [Research]: PyYAML `>=6.0.3` is the sole new dependency, behind a `[config]` extra, lazy-imported inside `swimlane.py` only (mirrors `_openpyxl_loader.py`); bare install stays YAML-free.
-- [Research]: Two-module split — `swimlane.py` (loader, only new I/O + YAML edge) and `compose.py` (pure in-memory composer) — confirmed default; gives the Phase-1/Phase-2 testable boundary.
-- [Research]: Worked example lands as a third `module` corpus with its OWN `content/module/ids.json` ledger (not an extension of `work`), preserving the sample/real/config boundary.
-- [Research]: The two structural faithfulness holes are closed by NEW additive tests — Hole B (un-addressed traces) upstream in Phase 1, Hole A (un-gated non-`ClaimsBlock` numerals) in Phase 2 — never by editing `faithfulness.py`/`coverage.py`.
-- [Phase ?]: Abstraction guard uses word-bounded, case-sensitive denylist matching so generic structural keys (lanes/owner/module) never false-positive; only concrete config values trip it (LANE-03)
-- [Phase ?]: New optional extras get the full [excel]-parallel gate set (extra-declared, no-top-level-import, imports-with-dep-blocked, teaching-error, returns-module, module-AI-free); applied for [config]/PyYAML (LANE-04)
-- [Phase 02]: 02-01: SectionBinding.kpi_endpoints (list[list[Claim]]) pairs each KPI's traced period endpoints by REFERENCE — coverage identity intact, no re-mint
-- [Phase 02]: 02-01: _mint_scalar returns the minted Claim (or None) so endpoints pair without re-minting; non-locatable endpoints contribute no reference (no fabricated delta)
-- [Phase 02]: 02-02: compute_delta is the single pure Δ derivation (Decimal + one regex); either endpoint absent/non-numeric -> (None,None) + missing[] note, Δ==0 -> dir=None, never a fabricated 0
-- [Phase 02]: 02-02: compose_module_report builds a byte-stable Draft REPORT Surface (created=EPOCH_ZERO explicit) from SectionBinding[] via the kind-agnostic seam; traced-or-missing routing; missing[] order-preserving union
+- [Milestone]: Site root = the rendered record (rev1 at root, /work/, /module/, cross-linked); `web/` is NOT deployed until it consumes real data (DEF-13).
+- [Milestone]: One publish channel = the deploy workflow force-pushes an assembled tree to `gh-pages` (the branch-serving channel proven live); the `actions/deploy-pages` environment channel is deferred to a maintainer settings decision (DEF-14).
+- [Milestone]: The workflow republishes committed bytes only (what was reviewed is what publishes); it re-runs `newsletters check` ×3 + the drift/link/fonts/marker tests before any push.
+- [Milestone]: Design authority for new UI (Records strip, 404) = `docs/design-system.md` + the Claude design handoffs in `design-reference/` (esp. `signals-navigation/`: no surface a dead-end).
+- [Milestone]: Base = the v1.1 integration branch (verified fast-forward); PR #20 sequencing is the maintainer's call, stated plainly in the PR body.
 
 ### Pending Todos
 
-[Ideas captured during sessions. No `.planning/todos/pending/` directory exists; the deep-review
-backlog B1–B20 lives in `reviews/2026-07-02-deep-review/07-tests-as-promises.md`.]
-
-None.
+None. (B1–B20 fix-batch backlog remains parked in `reviews/2026-07-02-deep-review/07-tests-as-promises.md`, maintainer-gated.)
 
 ### Blockers/Concerns
 
-[Issues that affect future work]
-
-- [Phase 1]: Scalar-location trap fixture (duplicates/quotes/coercion/anchors/block scalars) needs care — worth a focused pass on `adapters/normalize.py` cursor semantics before writing trap tests.
-- [Phase 1]: Do NOT let an executor "helpfully" fix the `models.py` `owner: str` vs `TeamMember` / `idsid` mismatch — typed-lane binding is deliberately out of scope (loader binds at parsed-dict level).
-- [Phase 2]: The delta-reproducibility trace pattern (delta = f(start-trace, close-trace)) is new to this codebase — confirm honesty-panel rendering of two endpoint traces beside one delta against `render.py` before fixing the API shape.
+- [Phase 2]: The gh-pages force-push erases the 3 manual UAT commits on that branch — intended (main is the record), but the PR must ask consent explicitly.
+- [Phase 2]: If the maintainer ever flips Pages source to "GitHub Actions", gh-pages pushes go dark — the workflow carries a warn-only preflight (`gh api repos/…/pages`) to surface it.
+- [Phase 1]: Corpora regenerate with new chrome — the ledgers (`content/*/ids.json`) MUST show no diff; any ledger change is a stop-the-line bug (append-only invariant).
 
 ## Deferred Items
 
-Items acknowledged and carried forward (v1.1 seed §7 — recorded, not built). Full list in ROADMAP.md.
-
-| Category | Item | Status | Deferred At |
-|----------|------|--------|-------------|
-| v1.1 seed | DEF-01..09 report-kind / re-cut / roll-up / owner-audit / tie-in variants | Deferred | Milestone v1.1 |
-| model | DEF-10 — any `Kpi` start/baseline model change | Deferred | Milestone v1.1 |
-| v2 | DEF-11 — DistillPort AI backend (robot journalist, eval-first) | Deferred | Milestone v1.1 |
-| carry-over | DEF-12 — Problem Board Portfolio Surface (v1.0 Phase 14, PROB-02/04) | Deferred | Milestone v1.1 |
+Carried from v1.1 (full list in `.planning/milestones/v1.1-ROADMAP.md`): DEF-01..12.
+New at v1.2 open: DEF-13 (wire `web/` to real data), DEF-14 (adopt the environment deploy
+channel iff maintainer aligns repo settings).
 
 ## Session Continuity
 
-Last session: 2026-07-02 — deep-review loop Round 10 (formal milestone close; LOOP COMPLETE)
-Stopped at: v1.1 CLOSED per GSD — archived to milestones/; audit + retrospective written. Maintainer owns integration→main + B1–B20 fix-batch + next milestone.
-Resume file: .planning/loops/2026-07-02-deep-review/STATE.md (round=10, LOOP COMPLETE); then MILESTONES.md + milestones/v1.1-MILESTONE-AUDIT.md
+Last session: 2026-07-03 — v1.2 milestone open (this session also ran the publish forensics)
+Stopped at: Milestone captured; Phase 1 next (context → plan → execute → verify per GSD).
+Resume file: this file + `.planning/ROADMAP.md` + `.planning/research/2026-07-03-pages-publish-forensics.md`
