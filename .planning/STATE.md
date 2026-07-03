@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: The Published Record
 status: in_progress
-stopped_at: "Phase 1 (Site IA & linkability) SHIPPED & VERIFIED 5/5 (PUB-03). Next: Phase 2 (One publish channel)."
+stopped_at: "Phases 1+2 SHIPPED & VERIFIED (5/5, 4/4). Milestone build complete — close: compass/RETRO/docs + ship PR + post-merge UAT."
 last_updated: "2026-07-03T00:45:00.000Z"
-last_activity: 2026-07-03 — Phase 1 shipped & verified (Records strip + 404; 629 tests)
+last_activity: 2026-07-03 — Phase 2 shipped & verified (one publish channel; 639 tests; live dead-nav bug caught+fixed)
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 2
-  completed_plans: 1
-  percent: 50
+  completed_plans: 2
+  percent: 100
 ---
 
 # Project State
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-07-02)
 
 ## Current Position
 
-Phase: 2 of 2 (One publish channel) — not started
-Plan: 02-01 — not started
+Phase: — (both phases complete, verified)
+Plan: — (2 of 2 complete)
 Status: Milestone v1.2 OPENED. Working branch `claude/github-pages-production-ready-du9ptu`
 (fast-forwarded onto the v1.1 integration branch — contains all of PR #20; sequencing note
 travels in the PR). Baseline gates re-run independently at open: 626 passed, lint-imports
@@ -45,7 +45,7 @@ Last activity: 2026-07-03 — milestone capture (research/requirements/roadmap)
 | Phase | Plans | Status |
 |-------|-------|--------|
 | 1. Site IA & linkability | 1/1 | Complete |
-| 2. One publish channel | 0/1 | Not started |
+| 2. One publish channel | 1/1 | Complete |
 
 **Recent Trend:**
 

@@ -38,7 +38,7 @@ Re-run independently (agent "green" ≠ green):
 ## Phases
 
 - [x] **Phase 1: Site IA & linkability** (PUB-03) — completed 2026-07-03, verified 5/5
-- [ ] **Phase 2: One publish channel** (PUB-01, PUB-02, PUB-04, PUB-05)
+- [x] **Phase 2: One publish channel** (PUB-01, PUB-02, PUB-04, PUB-05) — completed 2026-07-03, verified 4/4
 
 ## Phase Details
 
@@ -102,7 +102,7 @@ test resolves Phase 1's cross-corpus hrefs).
 
 **Plans**: 1 plan
 
-  - [ ] 02-01-PLAN.md — `publish.py` + `assemble` CLI + `test_publish.py` guarantees + CI wiring + `deploy-pages.yml` rewrite
+  - [x] 02-01-PLAN.md — `publish.py` + `assemble` CLI + `test_publish.py` guarantees + CI wiring + `deploy-pages.yml` rewrite (completed 2026-07-03)
 
 ## Progress
 
@@ -111,7 +111,7 @@ test resolves Phase 1's cross-corpus hrefs).
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Site IA & linkability | 1/1 | Complete | 2026-07-03 |
-| 2. One publish channel | 0/1 | Not started | — |
+| 2. One publish channel | 1/1 | Complete | 2026-07-03 |
 
 ## Deferred — un-scheduled (carried from v1.1 close, unchanged)
 
