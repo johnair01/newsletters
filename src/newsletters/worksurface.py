@@ -426,8 +426,19 @@ def build_work_site(
         written.append(p)
 
     # The Library index (the gate-state board) — the work corpus's own archive view.
+    # Records strip (PUB-03): the work corpus lives at work/ in the assembled published
+    # tree, so its neighbors are one level up — assembled-tree-relative by design.
     library = out / "library.html"
-    library.write_text(render_library(site), encoding="utf-8")
+    library.write_text(
+        render_library(
+            site,
+            records=(
+                ("The Rev1 record", "../index.html"),
+                ("The module record", "../module/library.html"),
+            ),
+        ),
+        encoding="utf-8",
+    )
     written.append(library)
 
     # Self-host the fonts beside the HTML so the work Library is zero-external-call (T-11-10).

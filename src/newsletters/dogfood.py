@@ -769,7 +769,7 @@ def build_site(out_dir: str | Path = "content/rev1/site") -> list[Path]:
     # Route split (SITE-02 / N4): the marketing Home owns index.html; the Library archive
     # moves to library.html. Per-surface {slug}.html filenames stay byte-stable (Phase-8 L3).
     index = out / "index.html"
-    index.write_text(render_home(site), encoding="utf-8")
+    index.write_text(render_home(site, records=_REV1_RECORDS), encoding="utf-8")
     written.append(index)
     # The onboarding path (LEARN-03) renders to its OWN page — an ordered track over
     # already-gated surfaces (show-ep01 → report-datamodel → learning-datamodel), resolved
@@ -789,7 +789,7 @@ def build_site(out_dir: str | Path = "content/rev1/site") -> list[Path]:
     # build (which owns content/rev1/), rather than in render.py: it is a deterministic,
     # render-output-derived injection at a STABLE anchor (the end of the Library masthead),
     # so the regen stays byte-stable and render.py keeps its disjoint ownership.
-    library_html = render_library(library)
+    library_html = render_library(library, records=_REV1_RECORDS)
     library_html = library_html.replace(
         _LIBRARY_MAST_ANCHOR,
         _LIBRARY_MAST_ANCHOR + _onboarding_callout(path),
@@ -799,6 +799,15 @@ def build_site(out_dir: str | Path = "content/rev1/site") -> list[Path]:
     written.append(library_page)
     return written
 
+
+# Cross-corpus Records strip targets (PUB-03): the rev1 corpus sits at the ROOT of the
+# assembled published tree, so its neighbors live under work/ and module/. The hrefs are
+# assembled-tree-relative by design — the builder owns its corpus's position, render.py stays
+# corpus-blind (01-CONTEXT d3); the assembled-tree link test is the resolver of record.
+_REV1_RECORDS = (
+    ("The work record", "work/library.html"),
+    ("The module record", "module/library.html"),
+)
 
 # The stable anchor that closes the Library masthead in render.render_library's output. The
 # onboarding-track callout is injected immediately AFTER it (deterministic → byte-stable).

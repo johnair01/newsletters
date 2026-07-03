@@ -11,6 +11,7 @@ Typed config drives the structure; only the prose lives in templated strings (De
 from __future__ import annotations
 
 import html
+from collections.abc import Sequence
 from typing import TypedDict
 
 from .diagrams import fanout as _fanout_svg
@@ -247,6 +248,17 @@ a.track-link:hover{border-bottom-color:var(--line)}
 .nl-foot{background:var(--chrome-bg);color:var(--chrome-dim);border-top:3px solid var(--color-brand-primary);padding:40px 44px;margin-top:50px;font-family:var(--font-mono);font-size:11px;letter-spacing:.04em}
 .nl-foot .row{max-width:1180px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:20px}
 .nl-foot a{color:var(--chrome-fg)}
+/* cross-corpus Records strip (PUB-03) — chrome pages only; existing tokens, radius 0 */
+.nl-records{max-width:1180px;margin:0 auto;padding:26px 44px 0;display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;color:var(--text-dim)}
+.nl-records .lab{font-size:10px;text-transform:uppercase;letter-spacing:.16em}
+.nl-records a{color:var(--text);border-bottom:1px solid var(--line)}
+.nl-records a:hover{color:var(--signal);border-bottom-color:var(--signal)}
+.nl-records .sep{color:var(--line)}
+/* 404 edge-state panel (PUB-03) — the gated-view device: a bordered card, 3px accent */
+.nf-wrap{max-width:720px;margin:0 auto;padding:96px 44px 120px}
+.nf-panel{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--signal);padding:44px 48px}
+.nf-title{font-size:44px;margin:14px 0 12px}
+.nf-links{display:flex;gap:14px;margin-top:26px;flex-wrap:wrap}
 /* library */
 .lib-surface{display:grid;grid-template-columns:64px 1fr 220px;gap:24px;align-items:baseline;padding:20px 0;border-bottom:1px solid var(--line)}
 .lib-idx{font-family:var(--font-display);font-size:30px;color:var(--signal)}
@@ -351,7 +363,7 @@ a.track-link:hover{border-bottom-color:var(--line)}
 .home-invite-panel{background:var(--color-surface-low);border-left:3px solid var(--color-accent);padding:40px 44px}
 .home-invite-cta{font-family:var(--font-display);font-style:italic;font-size:27px;line-height:1.32;max-width:640px}
 .home-invite-btns{display:flex;gap:14px;margin-top:26px;flex-wrap:wrap}
-@media(max-width:820px){.wrap{padding:40px 22px}.mast-title{font-size:34px}.lib-surface{grid-template-columns:44px 1fr}.lib-meta{grid-column:1/-1;text-align:left}.lib-board{grid-template-columns:1fr}.nl-crumb{padding:18px 22px 0}.nl-links{display:none}}
+@media(max-width:820px){.wrap{padding:40px 22px}.mast-title{font-size:34px}.lib-surface{grid-template-columns:44px 1fr}.lib-meta{grid-column:1/-1;text-align:left}.lib-board{grid-template-columns:1fr}.nl-crumb{padding:18px 22px 0}.nl-links{display:none}.nl-records{padding:26px 22px 0}.nf-wrap{padding:64px 22px 80px}}
 @media(max-width:980px){.nl-2col,.nl-demo-grid,.nl-how-grid{grid-template-columns:1fr}.demo-pick{position:static}.nl-practice-grid,.nl-pipe{grid-template-columns:1fr 1fr}.nl-surface-row{grid-template-columns:56px 1fr}.nl-surface-row .surface-meta{grid-column:1/-1;text-align:left}.home-h1{font-size:52px}}
 @media(max-width:720px){.nl-links{display:none}.nl-practice-grid,.nl-pipe{grid-template-columns:1fr}.dev-grid{grid-template-columns:1fr}.home-h1{font-size:40px}}
 """
@@ -671,6 +683,25 @@ def _nav(active: str, theme: str = "light", targets: dict[str, str] | None = Non
     )
 
 
+def _records_strip(records: Sequence[tuple[str, str]] | None) -> str:
+    """The cross-corpus Records strip (PUB-03): chrome pages only, never per-surface pages.
+
+    ``records`` is ``(label, href)`` pairs whose hrefs are relative to the ASSEMBLED published
+    tree (``work/library.html`` from the root corpus; ``../index.html`` from a subdir corpus) —
+    each *builder* declares its neighbors so this renderer stays corpus-blind (01-CONTEXT d3).
+    ``None``/empty → no markup at all: single-surface callers and per-surface pages are
+    untouched. Existing tokens only; the separator glyph matches the footer's ``&middot;``.
+    """
+    if not records:
+        return ""
+    sep = '<span class="sep">&middot;</span>'
+    links = sep.join(f'<a href="{_e(href)}">{_e(label)}</a>' for label, href in records)
+    return (
+        '<section class="nl-records" aria-label="Other records">'
+        f'<span class="lab">Records on this site</span>{links}</section>'
+    )
+
+
 def _footer() -> str:
     # The Library board is reached via the footer (it is intentionally outside the
     # four-item nav spine, N1 / SITE-04); the Report is reached via the board / Home §5.
@@ -945,7 +976,12 @@ def _board(site: Site) -> str:
     return f'<div class="lib-board">{cols}</div>'
 
 
-def render_library(site: Site, *, theme: str = "light") -> str:
+def render_library(
+    site: Site,
+    *,
+    theme: str = "light",
+    records: Sequence[tuple[str, str]] | None = None,
+) -> str:
     """Render the Library — a three-column gate-state status board (SITE-03).
 
     Page-driven (SITE-01): each card's lead label is the Page's stable ref/identity
@@ -966,7 +1002,7 @@ def render_library(site: Site, *, theme: str = "light") -> str:
         + '<figcaption>One reviewed record, four surfaces — the Newsletter re-cuts per '
         'reader from their own private corpus.</figcaption></figure></div>'
     )
-    body = f'<main class="wrap">{intro}{_board(site)}</main>'
+    body = f'<main class="wrap">{intro}{_board(site)}</main>{_records_strip(records)}'
     return _page(
         title="The Library",
         signal_css="var(--color-brand-primary)",
@@ -1388,7 +1424,12 @@ def _home_invitation() -> str:
     )
 
 
-def render_home(site: Site, *, theme: str = "light") -> str:
+def render_home(
+    site: Site,
+    *,
+    theme: str = "light",
+    records: Sequence[tuple[str, str]] | None = None,
+) -> str:
     """Render the marketing Home (SITE-02) → ``index.html``.
 
     The 8-section front door per ``docs/surfaces.md`` §"Home" and the approved
@@ -1409,6 +1450,7 @@ def render_home(site: Site, *, theme: str = "light") -> str:
             _home_thesis(),
             _home_developers(),
             _home_invitation(),
+            _records_strip(records),
         )
     )
     return _page(
@@ -1419,3 +1461,44 @@ def render_home(site: Site, *, theme: str = "light") -> str:
         theme=theme,
         targets=_nav_targets(site),
     )
+
+
+def render_404(*, base_path: str = "/newsletters/", theme: str = "light") -> str:
+    """Render the assembled site's ``404.html`` (PUB-03) — assembly chrome, not corpus content.
+
+    GitHub Pages serves ``404.html`` for ANY missing URL at ANY depth, so every href and font
+    URL here must be **absolute under** ``base_path`` — a relative ``fonts/…`` or
+    ``library.html`` would resolve against the missing URL's directory and dangle. Three
+    deterministic string passes make the ``_page`` chrome absolute: the nav targets are passed
+    absolute; the inline CSS's ``url('fonts/`` and the footer's ``href="library.html"`` are
+    rewritten. Nav targets all resolve to Home (hub specificity needs a ``Site``, which
+    assembly deliberately does not build — 01-CONTEXT d4); nothing here is ever a dead link.
+    The page renders through :func:`_page`, so it carries the generated marker and full token
+    CSS, and the edge-state panel reuses the gated-view device (bordered card, 3px accent).
+    """
+    bp = base_path if base_path.endswith("/") else base_path + "/"
+    home = f"{bp}index.html"
+    body = (
+        '<main class="nf-wrap"><div class="nf-panel">'
+        '<div class="sg-eyebrow">404 &middot; not in the record</div>'
+        '<h1 class="sg-display nf-title">This page isn&rsquo;t part of the reviewed record.</h1>'
+        '<div class="prose"><p>Nothing publishes here without passing the review gate — and '
+        "nothing reviewed lives at this address. The record itself is intact; this URL just "
+        "isn&rsquo;t in it.</p></div>"
+        '<div class="nf-links">'
+        f'<a href="{_e(home)}" class="sg-btn">Start here</a>'
+        f'<a href="{_e(bp)}library.html" class="sg-btn ghost">The Library</a>'
+        "</div></div></main>"
+    )
+    html_out = _page(
+        title="Not in the record",
+        signal_css="var(--color-accent)",
+        body=body,
+        active="",
+        theme=theme,
+        targets={label: home for label, _ in _NAV_ITEMS},
+    )
+    # Absolute-URL passes (deterministic; mirrors the dogfood anchor-injection precedent).
+    html_out = html_out.replace("url('fonts/", f"url('{bp}fonts/")
+    html_out = html_out.replace('href="library.html"', f'href="{bp}library.html"')
+    return html_out
