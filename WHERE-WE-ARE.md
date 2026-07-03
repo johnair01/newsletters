@@ -7,6 +7,20 @@
 
 ## Where we are right now
 
+**2026-07-03 (later) — v1.2 MERGED & LIVE. Post-merge UAT PASSED — the publish loop is closed.**
+The maintainer merged PR #20 + PR #21 together; the rewritten deploy workflow ran from the merge
+commit and **succeeded on its first try** (run #5 — the first successful automated Pages deploy
+in this repo's history; runs #1–4, old channel, all failed). Live verification (curled, not
+assumed): `/`, `/library.html`, `/work/library.html`, `/module/library.html`, and
+`/module/report-module-a.html` (that morning's 404) all **200**; a garbage path serves the
+styled "not in the record" **404**; the homepage bytes carry the generated-by marker; `gh-pages`
+holds **exactly one publish commit** naming the merge SHA (`528d092`). From here the loop is:
+merge to `main` → gates re-run → assemble → republish — no manual step, and a dead link /
+drifted corpus / unreviewed surface is blocked at PR time by the `site-integrity` CI job.
+**Next:** the Editor-in-Chief's pages review; then `/gsd-complete-milestone` for the formal
+v1.2 close (audit → archive → retrospective). Parked decisions unchanged: B1–B20 fix-batch,
+the `v1.1` tag, DEF-13 (wire `web/` to real data), DEF-14 (environment deploy channel).
+
 **2026-07-03 — MILESTONE v1.2 BUILT & VERIFIED: The Published Record — one channel,
 production-ready. Awaiting the maintainer's merge (the publish itself is the human gate).**
 The trigger: live forensics found the "deployed" site was a two-week-stale *hand-pushed*
