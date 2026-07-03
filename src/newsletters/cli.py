@@ -101,6 +101,37 @@ def build(
 
 
 @app.command()
+def assemble(
+    out: str = typer.Option(
+        "dist/site",
+        "--out",
+        help="Directory to assemble the publishable tree into (refuses a non-empty dir that "
+        "is not a previous assembly).",
+    ),
+    base_path: str = typer.Option(
+        "/newsletters/",
+        "--base-path",
+        help="URL prefix the tree is served under (GitHub project pages). Embedded ONLY in "
+        "404.html; every other page keeps relative links.",
+    ),
+) -> None:
+    """Assemble the published site tree (PUB-01/02): rev1 at the root + work/ + module/.
+
+    Copies the COMMITTED corpora byte-for-byte (what was reviewed is what publishes) and adds
+    the assembly chrome (.nojekyll + the base-path-absolute 404.html). This is the ONE
+    definition of "the site" — the same ``publish.assemble_site`` the tests and the deploy
+    workflow run. Lazy-imports the publish module so the bare install stays light.
+    """
+    from .publish import assemble_site
+
+    written = assemble_site(out, base_path=base_path)
+    for p in written:
+        typer.echo(f"  {p}")
+    typer.echo(f"\nassembled {len(written)} files -> {out}")
+    typer.echo(f"open {Path(out) / 'index.html'}")
+
+
+@app.command()
 def check(
     corpus: CorpusName = typer.Option(
         CorpusName.rev1,
