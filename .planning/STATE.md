@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: The Published Record
 status: in_progress
-stopped_at: "Phases 1+2 SHIPPED & VERIFIED (5/5, 4/4). Milestone build complete — close: compass/RETRO/docs + ship PR + post-merge UAT."
+stopped_at: "v1.2 SHIPPED as PR #21 (supersets PR #20 — sequencing is the maintainer's). Milestone closes formally after the merge + post-merge UAT (deploy green, live URLs 200, styled 404)."
 last_updated: "2026-07-03T00:45:00.000Z"
 last_activity: 2026-07-03 — Phase 2 shipped & verified (one publish channel; 639 tests; live dead-nav bug caught+fixed)
 progress:
@@ -85,6 +85,6 @@ channel iff maintainer aligns repo settings).
 
 ## Session Continuity
 
-Last session: 2026-07-03 — v1.2 milestone open (this session also ran the publish forensics)
-Stopped at: Milestone captured; Phase 1 next (context → plan → execute → verify per GSD).
+Last session: 2026-07-03 — v1.2 built, verified, shipped (PR #21)
+Stopped at: Awaiting the maintainer: PR #20/#21 sequencing + merge; then post-merge UAT (checklist in the PR body + WHERE-WE-ARE top entry); then /gsd-complete-milestone.
 Resume file: this file + `.planning/ROADMAP.md` + `.planning/research/2026-07-03-pages-publish-forensics.md`
