@@ -7,6 +7,32 @@
 
 ## Where we are right now
 
+**2026-07-03 — MILESTONE v1.2 BUILT & VERIFIED: The Published Record — one channel,
+production-ready. Awaiting the maintainer's merge (the publish itself is the human gate).**
+The trigger: live forensics found the "deployed" site was a two-week-stale *hand-pushed*
+`gh-pages` snapshot, the automated deploy built the WRONG artifact (the placeholder `web/`
+app) and had failed **4/4 runs — including from `main`** (so PR #20's "merge → deploy"
+premise was false), and no test saw the assembled tree — `/module/…` 404'd live, and every
+work/module page's Home/nav/fan-out link was dead (evidence:
+`.planning/research/2026-07-03-pages-publish-forensics.md`). What shipped (PUB-01..05,
+phases verified 5/5 + 4/4, **639 tests**): **(1) Site IA & linkability** — a cross-corpus
+**Records strip** on chrome pages (designed per `docs/design-system.md` + the
+`design-reference/signals-navigation/` handoff: *no surface a dead-end*), a design-system
+**404** ("not in the record", base-path-absolute by necessity), and sub-corpus nav that
+climbs to the site's front door (`home_href` — the live dead-nav bug, caught by the new
+assembled-tree test on its FIRST run, fixed at the renderer). **(2) One publish channel** —
+`publish.assemble_site` / `newsletters assemble` composes the committed corpora (rev1 root +
+`/work/` + `/module/` + `.nojekyll` + 404) byte-verbatim; `tests/test_publish.py` codifies
+the four guarantees (assembled links resolve · committed==fresh ALL corpora · fonts present ·
+marker everywhere) as PR-blocking CI (`site-integrity` job; merge-block now gates all three
+corpora); `deploy-pages.yml` rewritten to gate-then-force-push `gh-pages` **from `main`
+only** — the channel with one visible gate, deliberately avoiding the environment allowlist
+that killed every prior deploy (adopting it back is DEF-14; `web/` deploy is retired until it
+consumes real data, DEF-13). **Sequencing note:** this branch contains all of open **PR #20**
+(built on the v1.1 integration branch, verified fast-forward) — merge #20 first or merge this
+as its superset. **Post-merge UAT:** deploy run green → `/module/report-module-a.html` 200 →
+styled 404 on a garbage path → gh-pages = one publish commit naming the merge SHA.**
+
 **2026-07-02 (evening) — v1.1 FORMALLY CLOSED. The 10-round deep-review loop is COMPLETE (10/10,
 PRs #9–#17, every round its own reviewable PR).** The milestone audit **PASSED** (12/12
 requirements, three-source cross-check, 4/4 phases verified); the milestone is archived

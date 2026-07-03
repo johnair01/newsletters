@@ -4,6 +4,34 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
+## 2026-07-03 — The published site rotted because publishing had three channels and zero tests
+
+**Friction observed**
+
+Live forensics (v1.2 research doc) found the "deployed" site was a 2-week-stale *hand-pushed*
+`gh-pages` snapshot; the automated workflow built a DIFFERENT site (the placeholder `web/` app)
+and had failed 4/4 runs — **including run #3 from `main`**, which invalidates the "merging to
+main will deploy" assumption the two-gates entry below left standing; and no test anywhere saw
+the *assembled* tree, so `/module/…` 404'd live and every work/module page's "Start here"/Home/
+fan-out link pointed at a nonexistent corpus-local `index.html`. Each corpus was individually
+green; the composition was broken. The repo's own record believed the site was fine.
+
+**Rules hardened**
+
+- *One publish channel, and it republishes only what a human already merged.* The deploy
+  workflow re-runs the merge-block gate and the byte-drift checks over the **committed**
+  corpora, assembles via the same tested function everything else uses (`publish.assemble_site`
+  — never ad-hoc `cp` in YAML), and pushes through the channel with the fewest invisible gates
+  (single-commit force-push to `gh-pages`: one visible `contents: write` permission, no
+  environment allowlist). Manual `gh-pages` pushes are retired.
+- *Test the composition, not just the parts.* The published tree is a first-class test subject
+  (`tests/test_publish.py`, PR-blocking): assembled-tree link resolution, committed==fresh for
+  ALL corpora, fonts-present, generated-marker. The assembled-tree link test caught the live
+  dead-nav bug on its first run — a per-corpus test structurally never could.
+- *A "next step: publish" left manual will silently rot.* The 6/19 UAT snapshot was correct the
+  day it was pushed and wrong within two weeks. If publishing is a standing intention, it must
+  be a workflow, not a memory.
+
 ## 2026-07-02 (late) — Pages deploy: a workflow change cannot see a repo-settings gate
 
 **Friction observed**
