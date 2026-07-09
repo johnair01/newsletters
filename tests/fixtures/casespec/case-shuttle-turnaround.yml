@@ -1,0 +1,27 @@
+# SYNTHETIC TEST DATA — fabricated, Star-Trek-flavored content only (no real org/tool/
+# metric/site/program names). A well-formed Case Spec exercising the full authoring schema
+# (docs/case-spec.md): every narrative value is verbatim-locatable except the block-scalar
+# reasoning (traced to its raw block region); config carries org slots that must NEVER
+# appear in a claim. For tests only.
+case: Shuttlebay Turnaround Log
+problem: Pilots re-type the same turnaround note into three separate duty logs by hand.
+current_state: Each pilot writes a paper note and a duty officer re-keys it twice more.
+imagined_state: One structured entry, written once, that every duty log reads from.
+design:
+  inputs: the pilot's turnaround note, written exactly once
+  reasoning: one entry is the single record; the duty logs become views over it
+  outputs: three synchronized duty-log views derived from one entry
+  reusable_record: the entry schema travels to any bay that keeps turnaround records
+reasoning: |
+  I keep watching pilots retype the same note three times. The burden is not the
+  writing — it is the re-writing, and the drift between copies when one gets edited.
+  If the entry is structured once, the duty logs become views, and drift is impossible
+  by construction. That is the whole design.
+portable:
+  - the entry schema itself
+  - the write-once, view-many method
+  - this reasoning, in the author's voice
+config:
+  bay_system: Shuttlebay Ops Console Seven
+  log_registry: Duty Log Registry Gamma
+  turnaround_metric: Bay Cycle Chronometer Reading
