@@ -24,7 +24,7 @@ ships Draft and publishing still requires the recorded approval. Deterministic
 (`EPOCH_ZERO`, file-order, byte-identical double loads); PyYAML stays behind `[config]`.
 Docs: `docs/case-spec.md` (how to write one); decisions:
 `.planning/notes/2026-07-09-casespec-implementation-notes.md`; proof:
-`tests/test_casespec.py` (7 tests; full suite 468 green + import-linter contracts KEPT).
+`tests/test_casespec.py` (8 tests; full suite 470 passed / 152 skipped + import-linter contracts KEPT).
 
 **2026-07-03 (round 2) — `web/` DESIGN PREVIEW FIXED & DEPLOYED at `/web/`.** An audit of the
 Signals Navigation & IA implementation (work order: `.planning/notes/2026-07-03-web-round2-fixprompt.md`)

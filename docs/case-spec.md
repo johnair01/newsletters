@@ -46,8 +46,10 @@ Rules the loader enforces (teaching errors, never silent drops):
 
 ## What happens to it
 
-`newsletters.casespec.load_case_spec(path)` reads the file **verbatim** into a
-content-addressed `Source` (the transcript IS your file text) and mints one traced `Claim`
+`newsletters.casespec.load_case_spec(path)` reads the file as **newline-normalized text**
+(CRLF folds to LF; otherwise unaltered) into a content-addressed `Source` — the transcript
+is that normalized file text, and every span, offset, and hash addresses the same
+normalized text — and mints one traced `Claim`
 per authored value via `Trace.from_source` — real character spans of your file, so the
 span-containment faithfulness gate passes strictly, not by fallback. A multi-line
 `reasoning` block is traced to its raw block region in the file. `config:` values are
