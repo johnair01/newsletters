@@ -126,12 +126,27 @@ _SEED_SCHEME = frozenset(
     }
 )
 
-# All literal tokens, longest-first so an alternation prefers the most specific match.
-_DENY_LITERALS = tuple(
-    sorted(_FIXTURE_IDS | _SAMPLE_TEAM_NAMES | _SEED_SCHEME, key=len, reverse=True)
+# (4) Case Spec fixture config values — tests/fixtures/casespec/case-shuttle-turnaround.yml.
+#     The `config:` subtree is org-specific by definition (system/registry/metric names);
+#     these values must never be hardcoded into the loader/builder.
+_CASESPEC_CONFIG_VALUES = frozenset(
+    {
+        "Shuttlebay Ops Console Seven",
+        "Duty Log Registry Gamma",
+        "Bay Cycle Chronometer Reading",
+    }
 )
 
-# (4) Pattern-based ids from the seed scheme: `eng-NN` (numbered engineers) and `toolset-N`. These
+# All literal tokens, longest-first so an alternation prefers the most specific match.
+_DENY_LITERALS = tuple(
+    sorted(
+        _FIXTURE_IDS | _SAMPLE_TEAM_NAMES | _SEED_SCHEME | _CASESPEC_CONFIG_VALUES,
+        key=len,
+        reverse=True,
+    )
+)
+
+# (5) Pattern-based ids from the seed scheme: `eng-NN` (numbered engineers) and `toolset-N`. These
 #     cover the whole family without enumerating every index.
 _DENY_PATTERNS = (
     re.compile(r"\beng-\d{2,}\b"),
