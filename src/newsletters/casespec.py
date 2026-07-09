@@ -23,9 +23,11 @@ The contract (mirrors ``swimlane.py``):
   ``yaml.safe_load`` via the lazy ``[config]`` boundary (``_yaml_loader`` — no top-level
   ``import yaml`` anywhere here). ``Source.timestamp`` is ``EPOCH_ZERO``; fields are
   walked in FILE ORDER; two loads are byte-identical.
-* FAITHFUL, NOT SUGGESTIVE. A field's value is located VERBATIM in the raw file text
-  (forward-only cursor); a multi-line block scalar — whose logical value is not a verbatim
-  substring — is traced to the field's RAW BLOCK REGION and kept only if the live
+* FAITHFUL, NOT SUGGESTIVE. A field's value is located verbatim in the newline-normalized
+  file text (``read_text`` folds CRLF to LF; offsets, hashes, and spans all address that
+  same normalized text) via a forward-only cursor; a multi-line block scalar — whose
+  logical value is not a substring of that text — is traced to its RAW BLOCK REGION
+  (per item for a list) and kept only if the live
   span-containment gate entails it. Anything absent, empty, or unlocatable is disclosed in
   ``Distillation.missing[]`` — never fabricated, never silently dropped.
 * REASONING IS FIRST-CLASS. The author's ``reasoning`` survives VERBATIM into the surface
@@ -49,6 +51,7 @@ from ._yaml_loader import load_config as _parse_config
 from .adapters._timestamps import EPOCH_ZERO
 from .distill.faithfulness import SpanContainmentFaithfulness
 from .semantic import (
+    Block,
     Claim,
     ClaimsBlock,
     Distillation,
@@ -175,7 +178,9 @@ class _SpanMinter:
     A forward-only cursor (the ``swimlane._Minter`` precedent) so duplicate values get
     distinct offsets. Two strategies, in order: (1) exact verbatim ``str.find`` — the span
     IS the value; (2) for a block scalar (whose folded value is not a verbatim substring),
-    the field's raw BLOCK REGION located by a forward line scan — kept only if the live
+    a raw BLOCK REGION located by a forward line scan — the field's value block for a
+    mapping value, the ITEM's own region (after its ``-`` marker) for a sequence item, so
+    one block-scalar item never swallows its siblings' spans — kept only if the live
     span-containment gate entails the claim against that region. A value neither strategy
     can honestly pin is returned as a disclosure string (verbatim, for ``missing[]``).
     """
@@ -192,7 +197,9 @@ class _SpanMinter:
         self._line_offsets = offsets
         self._line_cursor = 0
 
-    def mint(self, key: str, value: str, topic: str) -> Union[Claim, str]:
+    def mint(
+        self, key: str, value: str, topic: str, *, list_item: bool = False
+    ) -> Union[Claim, str]:
         idx = self._raw.find(value, self._cursor)
         if idx != -1:
             end = idx + len(value)
@@ -203,7 +210,7 @@ class _SpanMinter:
             )
             self._advance(end)
             return claim
-        region = self._field_region(key)
+        region = self._item_region() if list_item else self._field_region(key)
         if region is not None:
             start, end = region
             claim = Claim(
@@ -252,6 +259,34 @@ class _SpanMinter:
             return start, end
         return None
 
+    def _item_region(self) -> Optional[tuple[int, int]]:
+        """The raw span of the next UNCONSUMED sequence item's value: after its ``-``
+        marker through deeper-indented lines. Per-item — never the whole list — so a
+        block-scalar item's region cannot swallow sibling items or advance the cursor
+        past them."""
+        for i in range(self._line_cursor, len(self._lines)):
+            line = self._lines[i]
+            stripped = line.lstrip()
+            if not (stripped.startswith("- ") or stripped.rstrip() == "-"):
+                continue
+            indent = len(line) - len(stripped)
+            start = self._line_offsets[i] + indent + 1  # after the '-' marker
+            if start < self._cursor:
+                continue  # this item is already consumed — never re-trace it
+            j = i + 1
+            while j < len(self._lines):
+                nxt = self._lines[j]
+                if nxt.strip() == "":
+                    j += 1
+                    continue
+                if len(nxt) - len(nxt.lstrip()) > indent:
+                    j += 1
+                    continue
+                break
+            end = self._line_offsets[j] if j < len(self._lines) else len(self._raw)
+            return start, end
+        return None
+
 
 def _absent(field: str) -> str:
     return f"field {field!r} is absent or empty — disclosed, never fabricated"
@@ -285,7 +320,9 @@ def load_case_spec(path: Union[str, Path], *, root: Optional[Path] = None) -> Ca
     Read-only, deterministic, AI-free. Edge policy mirrors ``swimlane.load_swimlanes``:
     the path resolves under ``root`` (default ``Path.cwd()``; escaping it raises
     ``ValueError``), a missing file raises ``FileNotFoundError``, non-UTF-8 raises
-    ``UnicodeDecodeError``. ``Source.transcript`` is the raw file text VERBATIM;
+    ``UnicodeDecodeError``. ``Source.transcript`` is the newline-normalized file text
+    (``read_text(encoding="utf-8")`` folds CRLF to LF; otherwise unaltered — and every
+    span, offset, and hash addresses that same normalized text);
     ``Source.timestamp`` is ``EPOCH_ZERO``. Schema violations raise teaching
     ``ValueError``s (see :func:`_validate`); everything absent/empty/unlocatable lands in
     ``Distillation.missing[]``. Every emitted claim passes the LIVE span-containment gate
@@ -310,11 +347,13 @@ def load_case_spec(path: Union[str, Path], *, root: Optional[Path] = None) -> Ca
     claims: list[Claim] = []
     missing: list[str] = []
 
-    def _route(key: str, value: Optional[str], topic: str) -> Optional[str]:
+    def _route(
+        key: str, value: Optional[str], topic: str, *, list_item: bool = False
+    ) -> Optional[str]:
         """Mint one non-empty value; return it for the spec (empty → None, disclosed later)."""
         if value is None or not value.strip():
             return None
-        minted = minter.mint(key, value, topic)
+        minted = minter.mint(key, value, topic, list_item=list_item)
         if isinstance(minted, Claim):
             claims.append(minted)
         else:
@@ -336,9 +375,12 @@ def load_case_spec(path: Union[str, Path], *, root: Optional[Path] = None) -> Ca
                 design[slot] = kept if kept is not None else ""
             spec_kwargs[_DESIGN_KEY] = design
         elif key == _PORTABLE_KEY and value is not None:
-            items = [value] if isinstance(value, str) else list(value)
+            is_list = not isinstance(value, str)
+            items = list(value) if is_list else [value]
             kept_items = [
-                item for item in items if _route(key, item, _PORTABLE_KEY) is not None
+                item
+                for item in items
+                if _route(key, item, _PORTABLE_KEY, list_item=is_list) is not None
             ]
             spec_kwargs[_PORTABLE_KEY] = kept_items
 
@@ -382,7 +424,7 @@ def build_case_report(
     panel). ``created=EPOCH_ZERO`` so two builds of the same load are byte-identical.
     """
     spec = load.spec
-    blocks: list = [
+    blocks: list[Block] = [
         ProseBlock(
             heading="The case, as authored",
             text=(
@@ -407,8 +449,11 @@ def build_case_report(
     if spec.reasoning:
         blocks.append(QuoteBlock(text=spec.reasoning, attr=author))
 
+    # Deterministic id: a filename already slugging to `case-...` is not double-prefixed.
+    slug = slugify(_stem(load.source.id)).removeprefix("case-") or "spec"
+
     return Surface(
-        id=surface_id or f"case-{slugify(_stem(load.source.id)) or 'spec'}",
+        id=surface_id or f"case-{slug}",
         template=REPORT,
         title=spec.case or _stem(load.source.id).replace("-", " ").title(),
         eyebrow="Report · case spec",

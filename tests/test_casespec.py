@@ -142,6 +142,45 @@ def test_trace_faithfulness() -> None:
                 assert not trace.is_stale_against(source)
 
 
+def test_portable_block_scalar_item_does_not_swallow_siblings(
+    tmp_path: pathlib.Path,
+) -> None:
+    """A block-scalar FIRST ``portable:`` item is traced to ITS OWN item region; a plain
+    sibling after it is still located verbatim and minted as a traced claim.
+
+    Regression: the field-region fallback used to trace the block item to the ENTIRE
+    ``portable:`` region and advance the cursor past it, so the plain sibling — a real
+    substring of the file — was falsely disclosed as unlocatable.
+    """
+    spec_text = (
+        "case: X\n"
+        "portable:\n"
+        "  - |\n"
+        "    a multi line portable item\n"
+        "    that folds across lines\n"
+        "  - a plain portable item that is a substring of the file\n"
+    )
+    path = tmp_path / "spec.yml"
+    path.write_text(spec_text, encoding="utf-8")
+    load = load_case_spec(path, root=tmp_path)
+
+    block_item, plain_item = load_config(spec_text)["portable"]
+    portable_claims = [c for c in load.distillation.claims if c.topics == ["portable"]]
+    texts = [c.text for c in portable_claims]
+    assert plain_item in texts, "plain sibling must be a traced claim, not a disclosure"
+    assert block_item in texts, "block-scalar item must be traced to its own region"
+    assert load.spec.portable == [block_item, plain_item]
+    assert not any("could not be located" in note for note in load.distillation.missing)
+
+    # Per-item spans, strictly entailed: the block item's span must NOT cover the sibling.
+    gate = SpanContainmentFaithfulness()
+    for claim in portable_claims:
+        assert gate.entails(claim)
+        assert all(t.is_addressed for t in claim.evidence)
+    block_span = portable_claims[texts.index(block_item)].evidence[0].span
+    assert plain_item not in block_span
+
+
 # --------------------------------------------------------------------------- #
 # 3 — missing[] honesty: absent fields disclosed, never fabricated
 # --------------------------------------------------------------------------- #
@@ -259,7 +298,8 @@ def test_config_never_in_claims() -> None:
 def test_lossless_roundtrip_and_determinism() -> None:
     """Raw file carried verbatim; loads, JSON round-trips, and builds are byte-identical."""
     for name in FIXTURES:
-        # Lossless: the Source transcript IS the authored file, byte for byte.
+        # Lossless: the Source transcript IS the authored file's newline-normalized
+        # text (read_text folds CRLF to LF; these LF-only fixtures survive unaltered).
         raw = (FIXTURE_DIR / name).read_text(encoding="utf-8")
         first = _load(name)
         assert first.source.transcript == raw
