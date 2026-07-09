@@ -4,6 +4,24 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
+## 2026-07-09 — `pip install -e ".[test,config]"` fails cold on a debian-managed PyYAML
+
+**Friction observed**
+
+On a fresh session container, the documented install failed outright: the environment ships
+a debian-packaged PyYAML 6.0.1 with no pip RECORD file, so pip's attempt to upgrade it to
+the `[config]` extra's `PyYAML>=6.0.3` aborts the WHOLE install ("Cannot uninstall PyYAML
+6.0.1, RECORD file not found") — the package itself never installs, and the baseline test
+run is blocked before any work starts.
+
+**Rule hardened**
+
+- *Known-good workaround, recorded here rather than rediscovered per session:*
+  `pip install -e ".[test,config]" --ignore-installed PyYAML` installs cleanly (verified:
+  `yaml.__version__` → 6.0.3, suite green). If this recurs across sessions, the durable fix
+  is a SessionStart hook or a documented bootstrap line in CONTRIBUTING.md — a friction met
+  twice without hardening is a bug.
+
 ## 2026-07-03 — The published site rotted because publishing had three channels and zero tests
 
 **Friction observed**

@@ -7,6 +7,25 @@
 
 ## Where we are right now
 
+**2026-07-09 — CASE SPEC AUTHORING PATH BUILT (branch `claude/case-spec-authoring`, awaiting
+review).** An engineer can now hand-author a **Case Spec** — the design-era Operating
+Agreement schema, revived deliberately: `case / problem / current_state / imagined_state /
+design(inputs→reasoning→outputs→reusable_record) / reasoning / portable / config` — as YAML
+in a PR, and `newsletters.casespec` lifts it through the existing zero-AI spine into a
+**Draft** `Surface(REPORT)`. Why it's shaped this way: the file text IS the evidence — the
+raw YAML becomes a content-addressed `Source` verbatim, every authored value is minted via
+`Trace.from_source` to a REAL character span of the file (so span-containment faithfulness
+passes on its strict branch, not the structural fallback), a block-scalar `reasoning` is
+traced to its raw block region and carried **byte-verbatim** into the surface as the
+author's-voice quote (first-class, never summarized), anything absent/empty is disclosed in
+`missing[]` (never fabricated), and `config:` values — the org specifics — are carried for
+binding but NEVER minted into a claim (guarded by test). The gate is untouched: the surface
+ships Draft and publishing still requires the recorded approval. Deterministic
+(`EPOCH_ZERO`, file-order, byte-identical double loads); PyYAML stays behind `[config]`.
+Docs: `docs/case-spec.md` (how to write one); decisions:
+`.planning/notes/2026-07-09-casespec-implementation-notes.md`; proof:
+`tests/test_casespec.py` (7 tests; full suite 468 green + import-linter contracts KEPT).
+
 **2026-07-03 (round 2) — `web/` DESIGN PREVIEW FIXED & DEPLOYED at `/web/`.** An audit of the
 Signals Navigation & IA implementation (work order: `.planning/notes/2026-07-03-web-round2-fixprompt.md`)
 found the components faithful but the packaging broken: `@font-face` URLs hardcoded a basePath
