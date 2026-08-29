@@ -609,6 +609,24 @@ def test_two_specs_in_one_corpus_refuse_loudly(tmp_path: Path) -> None:
     assert weeklysite._discover_spec(tmp_path).name == "weekly-2374-w41.yml"
 
 
+def test_discovery_honors_the_yaml_extension_too(tmp_path: Path) -> None:
+    """IN-05: a ``.yaml`` spec is DISCOVERED, not misreported as "the corpus is not populated".
+
+    Both extensions are conventional and many editors default-save ``.yaml``; the ``*.yml``-only
+    glob told that operator their populated corpus was empty. The ambiguity guard (WR-02) spans
+    both extensions — a ``.yml`` beside a ``.yaml`` is the same one-corpus-one-spec refusal.
+    """
+    corpus = tmp_path / "content" / "weekly"
+    corpus.mkdir(parents=True)
+    spec = corpus / "weekly-2374-w41.yaml"
+    spec.write_text("week: w41\n", encoding="utf-8")
+    assert weeklysite._discover_spec(tmp_path) == spec.resolve()
+
+    (corpus / "weekly-2374-w41.yml").write_text("week: w41\n", encoding="utf-8")
+    with pytest.raises(FileExistsError, match="one corpus, one spec"):
+        weeklysite._discover_spec(tmp_path)
+
+
 def test_inbox_symlink_escape_is_refused_before_the_read(tmp_path: Path) -> None:
     """IN-03: an ``inbox/*.eml`` symlinked OUT of the root is refused, in the teaching voice.
 

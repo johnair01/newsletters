@@ -184,7 +184,7 @@ newsletters assemble --out dist/site
 ```
 
 `newsletters build --corpus weekly` renders **the corpus at `content/weekly/`** — it discovers the
-single `*.yml` there rather than taking a `--spec`. To render your own week to HTML, **replace**
+single `*.yml`/`*.yaml` there rather than taking a `--spec`. To render your own week to HTML, **replace**
 the spec in that corpus directory (or copy the corpus and point the builder at your copy). One
 corpus, one week: a second spec file beside the first is **refused loudly, naming both files** —
 never silently ignored — because the committed spec *is* the corpus, and a build that quietly
