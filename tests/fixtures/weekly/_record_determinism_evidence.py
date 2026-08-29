@@ -44,17 +44,14 @@ import pptx
 from pptx import Presentation
 
 from newsletters.adapters._timestamps import EPOCH_ZERO
-
-HERE = pathlib.Path(__file__).parent
-sys.path.insert(0, str(HERE))
-
-from _determinism import (  # noqa: E402
+from newsletters.pptx_writer import (
     differing_parts,
     differing_zipinfo_fields,
     normalize_opc_zip,
     part_digest,
 )
 
+HERE = pathlib.Path(__file__).parent
 REPO_ROOT = HERE.parents[2]
 TEMPLATE = HERE / "template.pptx"
 EVIDENCE = (

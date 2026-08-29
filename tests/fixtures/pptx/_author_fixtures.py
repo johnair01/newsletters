@@ -29,16 +29,21 @@ because `prs.save()` is stable.** We additionally pin `core_properties.created`/
 FIXED datetime and recurse into the chart fixture's embedded `.xlsx`; the generator uses no `now()`
 and no `random`, so `sha256(file)` is stable across processes.
 
-ONE NORMALIZER CONTRACT (recorded 2026-08-29). `_normalize_zip` here and `normalize_opc_zip` in
-`tests/fixtures/weekly/_determinism.py` are the SAME contract with two call sites: rewrite every
-entry with a fixed `date_time`, preserve emitted entry order and `external_attr`, never touch part
-bytes. The weekly module is **canonical** (it also pins `create_system=0` and an explicit
-`compress_type`); Phase 2 moves it to `src/newsletters/_pptx_writer.py` behind the `[pptx]` extra,
-and `_author_fixtures._normalize_zip` delegates to it **then, not now**. Delegating now would swap
-this file's `_FIXED_ZIP_DATE_TIME` (2026-01-01) for the canonical DOS epoch (1980-01-01) and
-rebuild all nine golden binaries — a corpus regeneration inside a spec phase, which is exactly the
-stop-the-line bug the Phase 1 plan gates against. Two normalizers would otherwise drift for the
-same reason two epoch sentinels would; the delegation is scheduled, not optional.
+ONE NORMALIZER CONTRACT (recorded 2026-08-29; pointer updated by Phase 2 plan 02-01). `_normalize_zip`
+here and `normalize_opc_zip` in **`src/newsletters/pptx_writer.py`** are the SAME contract with two
+call sites: rewrite every entry with a fixed `date_time`, preserve emitted entry order and
+`external_attr`, never touch part bytes. The `src` module is **canonical** (it also pins
+`create_system=0` and an explicit `compress_type`); Phase 2 promoted it there verbatim from the now
+deleted `tests/fixtures/weekly/_determinism.py`, and the weekly fixture scripts import it directly.
+
+`_author_fixtures._normalize_zip` does **NOT** delegate to it yet: the delegation is carried to
+**Phase 4**, with its cost stated (02-01-PLAN decision P-08). Delegating swaps this file's
+`_FIXED_ZIP_DATE_TIME` (2026-01-01) for the canonical DOS epoch (1980-01-01) and adds
+`create_system=0`, so all nine golden binaries would have to be regenerated to stay correct — and
+Phase 2's own pre-verification gate (`git diff --exit-code -- tests/fixtures/pptx/*.pptx`) forbids
+exactly that. Phase 4 owns the committed==fresh `.pptx` gate work, which is where a deliberate
+corpus regeneration belongs. Two normalizers would otherwise drift for the same reason two epoch
+sentinels would; the delegation is scheduled, not optional.
 
 NOTE on the DETERMINISM ASSERTION (06-04 Task 2) — **SUPERSEDED for the WRITER side by
 `.planning/notes/2026-08-29-pptx-determinism-decision.md`.** The original reasoning, which remains

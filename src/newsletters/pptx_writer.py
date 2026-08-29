@@ -1,4 +1,39 @@
-"""The ONE OPC-zip normalizer + content-digest contract for the `.pptx` determinism spike.
+"""The `.pptx` writer's foundation: the ONE OPC-zip normalizer + the writer's shared constants.
+
+WHY THIS MODULE EXISTS (Phase 2 / WKLY-01, promoting `tests/fixtures/weekly/_determinism.py`).
+The Phase 1 determinism spike proved its finding inside `tests/`, which was right for a spike and
+wrong for a renderer: the normalizer is the mechanism the *writer* depends on, so leaving it under
+`tests/fixtures/weekly/` forced three importers to mutate `sys.path` to reach it (IN-03) and left
+the repo one careless copy-paste away from a second implementation of "make this deterministic".
+`.planning/notes/2026-08-29-pptx-determinism-decision.md` records the rule this promotion enforces:
+**ONE normalizer contract.** A second implementation drifts from the first exactly as a second
+epoch sentinel would, and the drift is invisible until a gate that trusted both goes red.
+
+THE FIX. The five public names below moved here VERBATIM — bodies, comments and the explanatory
+prose unchanged — so a reviewer can diff the move against the deleted fixture module and see that
+nothing was "tidied". Nothing was parameterized either: `date_time` and `create_system` are the
+exact axes the promotion exists to pin, so making them arguments would dissolve the contract while
+appearing to generalize it.
+
+SCOPE OF THE CLAIM (unchanged by the move). Full-file byte identity holds for a fixed
+(python-pptx, zlib) pair; `part_digest` is the implementation-independent, cross-environment
+assertion. The paragraphs below state this in full and are the canonical explanation in this repo.
+
+AI-OPTIONAL / BARE-INSTALL DISCIPLINE. Everything at module level here is **stdlib only**
+(`hashlib`, `io`, `zipfile`), so `newsletters.pptx_writer` imports on a bare `pip install .` with no
+`[pptx]` extra — which is what lets the duplicate-member and idempotence contracts run on the
+bare-install CI job. The writer half (plan 02-02) obtains python-pptx **lazily**, inside its render
+function, through the existing boundary `newsletters.adapters._pptx_loader._load_pptx()` — it does
+not re-implement that boundary and it does not widen it. There must therefore NEVER be a column-0
+``import pptx`` / ``from pptx ...`` line in this file. That is not a convention; it is enforced by
+`tests/test_ai_optional.py::test_pptx_writer_has_no_toplevel_pptx_import` (column-0 match) and
+`tests/test_ai_optional.py::test_pptx_writer_imports_without_pptx` (a real subprocess import with
+`pptx` blocked on `sys.meta_path`). This module is deliberately NOT re-exported from
+`newsletters/__init__.py`: that module imports its members eagerly, so widening it would widen the
+bare-install blast radius for zero benefit (the `adapters` precedent — callers say
+``from newsletters.pptx_writer import ...``).
+
+--- the promoted contract, verbatim from the Phase 1 spike ---------------------------------------
 
 WHY this exists. `python-pptx`'s `Presentation.save()` is deterministic in every respect the
 ROADMAP worried about — part traversal order, rId allocation, media dedup, core properties — with
@@ -67,6 +102,11 @@ __all__ = [
     "part_digest",
     "differing_parts",
     "differing_zipinfo_fields",
+    "SLOT_PREFIX",
+    "WATERMARK_NAME",
+    "MARKER",
+    "DRAFT_STATUS",
+    "WATERMARK_TEXT",
 ]
 
 # The earliest timestamp the DOS date format used inside a ZIP can represent. Any fixed instant
@@ -82,6 +122,32 @@ _COMPARED_FIELDS = (
     "external_attr",
     "CRC",
 )
+
+# --- the template contract's shared strings (decision note: "The template contract") ------------
+#
+# These are module constants for the same anti-drift reason `_pptx_loader.MISSING_PPTX_MESSAGE` is
+# one: the writer, its tests and the fixture authors must assert against ONE spelling of each, not
+# against a string literal copied into four files that silently diverge.
+
+# The reserved shape-name prefix: only shapes named `NL_*` are renderer slots, so an operator's
+# logo, footer and page number are not mistaken for unfilled slots (decision note, D-03).
+SLOT_PREFIX = "NL_"
+
+# The watermark shape's name — owned by the renderer, refused if the template already defines it
+# (measured W14: python-pptx writes two shapes with one name and raises nothing).
+WATERMARK_NAME = "NL_DRAFT_WATERMARK"
+
+# The generated-by marker, written to `cp:category` (decision note: provenance, NOT authenticity —
+# `cp:category` is operator-editable and an unmarked deck proves nothing).
+MARKER = "generated-by:newsletters"
+
+# The review-gate state written to `cp:contentStatus` while the Surface is not published (P-04:
+# implemented verbatim per the decision note — `"draft"` if not published else `""`).
+DRAFT_STATUS = "draft"
+
+# The watermark's text. A fixed literal, like every other watermark property, so the watermark
+# contributes nothing to non-determinism.
+WATERMARK_TEXT = "DRAFT"
 
 
 def _reject_duplicate_member_names(archive: zipfile.ZipFile) -> None:

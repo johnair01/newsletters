@@ -27,8 +27,8 @@ core property is therefore overwritten with a fabricated, neutral value and the 
 one fixed instant. `test_pptx_determinism.py` asserts the absence against the written
 `docProps/core.xml`, so a regeneration that forgot to scrub fails loudly.
 
-BYTE-REPRODUCIBILITY. The saved bytes are routed through `_determinism.normalize_opc_zip` BEFORE the
-file is written, so the committed binary is itself already normalized: rerunning this script on
+BYTE-REPRODUCIBILITY. The saved bytes are routed through `newsletters.pptx_writer.normalize_opc_zip`
+BEFORE the file is written, so the committed binary is itself already normalized: rerunning this script on
 identical inputs reproduces the committed file byte-for-byte within one (python-pptx, zlib) pair, and
 `normalize_opc_zip(committed) == committed` holds as an idempotence check anyone can run. No `now()`,
 no `random` — the only clock python-pptx would consult is the zip entry timestamp, and the normalizer
@@ -45,21 +45,25 @@ from __future__ import annotations
 
 import io
 import pathlib
-import sys
 from datetime import datetime
 
 from pptx import Presentation
 from pptx.util import Inches, Pt
 
+from newsletters.pptx_writer import normalize_opc_zip
+
 HERE = pathlib.Path(__file__).parent
-sys.path.insert(0, str(HERE))
-
-from _determinism import normalize_opc_zip  # noqa: E402
-
 TEMPLATE = HERE / "template.pptx"
 
 # A fixed instant pinned into docProps/core.xml so the deck embeds no wall-clock. Arbitrary and
 # stable — mirrors the `_FIXED` convention in tests/fixtures/pptx/_author_fixtures.py.
+#
+# DELIBERATELY NOT `EPOCH_ZERO`, and it must stay that way — this is a FALSIFIABILITY CONTROL
+# (02-01-PLAN P-05, which REJECTS the IN-04 proposal to consolidate the two literals). The writer
+# is specified to pin `dcterms:created`/`.modified` to EPOCH_ZERO; if the TEMPLATE already carried
+# EPOCH_ZERO, the marker read-back assertion in plan 02-02 would pass on a deck whose timestamps
+# the writer never touched. A template date the writer must overwrite is what makes that assertion
+# able to fail.
 _FIXED = datetime(2026, 1, 1, 0, 0, 0)
 
 # Fabricated, neutral core properties. Every one of these overwrites a stock-template value; the

@@ -35,10 +35,11 @@ determinism claim falsifiable.
 1-second gap is not guaranteed to cross a representable boundary. Three seconds is. The suite sleeps
 ONCE (module-scoped fixture) and shares the two payloads across all assertions.
 
-`_render_bytes` is the Phase 2 writer in miniature — open the template, fill the `NL_`-named shapes,
-pin the marker + gate core properties + `EPOCH_ZERO` timestamps, save to `BytesIO`. It lives in
-`tests/` deliberately and NEVER in `src/`: this phase produces measurement, not production surface
-(ROADMAP criterion 5). The `pptx` import sits behind `pytest.importorskip`, the only sanctioned way
+`_render_bytes` is the CONTAINER measurement, not a writer prototype — open the template, fill the
+`NL_`-named shapes as crudely as possible, pin the marker + gate core properties + `EPOCH_ZERO`
+timestamps, save to `BytesIO`. It lives in `tests/` deliberately and NEVER in `src/`: the real
+writer is `newsletters.pptx_writer`, and this function's naive fill must NOT be copied into it (see
+its docstring). The `pptx` import sits behind `pytest.importorskip`, the only sanctioned way
 for `tests/` to touch the optional extra at module scope — that is what keeps the bare-install CI
 gate green. A `pytestmark` skipif can NOT guard a module-level import: the marker is evaluated per
 collected test item, AFTER pytest has already imported the module, so a bare install would error at
@@ -50,7 +51,6 @@ from __future__ import annotations
 
 import io
 import pathlib
-import sys
 import time
 import zipfile
 
@@ -65,18 +65,15 @@ pptx = pytest.importorskip(
 Presentation = pptx.Presentation
 
 from newsletters.adapters._timestamps import EPOCH_ZERO  # noqa: E402
-
-FIXTURE_DIR = pathlib.Path(__file__).parent / "fixtures" / "weekly"
-TEMPLATE = FIXTURE_DIR / "template.pptx"
-
-sys.path.insert(0, str(FIXTURE_DIR))
-
-from _determinism import (  # noqa: E402
+from newsletters.pptx_writer import (  # noqa: E402
     differing_parts,
     differing_zipinfo_fields,
     normalize_opc_zip,
     part_digest,
 )
+
+FIXTURE_DIR = pathlib.Path(__file__).parent / "fixtures" / "weekly"
+TEMPLATE = FIXTURE_DIR / "template.pptx"
 
 # The generated-by marker and the review-gate state, carried in OPC core properties (0 extra parts,
 # survives a PowerPoint round-trip). The exact strings are Phase 2's to ratify; what THIS module
@@ -91,7 +88,18 @@ ALL_SHAPE_NAMES = sorted(SLOT_NAMES + ("Footer",))
 
 
 def _render_bytes(title: str) -> bytes:
-    """The Phase 2 writer in miniature: fill the named slots, pin the marker, save to memory.
+    """The CONTAINER measurement: fill the named slots crudely, pin the marker, save to memory.
+
+    NOT the writer, and NOT a writer prototype. What this function measures is the ZIP container's
+    behaviour across two real saves; what it does to the deck's *content* is deliberately the
+    naivest thing that works. Two of those naiveties must never reach
+    ``newsletters.pptx_writer``:
+
+    * ``text_frame.text = ...`` DESTROYS the operator's run and paragraph formatting (measured,
+      02-RESEARCH W3) — the real fill primitive reuses paragraph 0 and clones it per extra line.
+    * ``{shape.name: shape for shape in slide.shapes}`` is blind to shapes nested inside groups
+      (02-RESEARCH W17) and is last-wins on duplicate names — the real binding map recurses and
+      raises.
 
     Binds over ``slide.shapes`` and NOT ``slide.placeholders`` — the template's slots are operator
     textboxes, which are absent from the placeholders collection entirely (01-RESEARCH
