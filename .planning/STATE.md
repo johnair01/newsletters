@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: The Published Record
-status: in_progress
-stopped_at: "v1.2 MERGED (PRs #20+#21) & LIVE — deploy run #5 green (first-ever successful automated publish); post-merge UAT PASSED (all URLs 200 incl. module report, styled 404, marker, one gh-pages publish commit @ 528d092). Remaining: pages review (EiC), then /gsd-complete-milestone."
-last_updated: "2026-07-03T00:45:00.000Z"
-last_activity: 2026-07-03 — merged & live; UAT passed (deploy run #5 green; module report 200; styled 404)
+status: Awaiting next milestone
+stopped_at: "v1.2 closed & archived (EiC pages review approved 2026-08-29). Next: /gsd-new-milestone → v1.3 The Weekly, One Shot (seed committed at .planning/seeds/v1.3-weekly-one-shot.md)."
+last_updated: "2026-08-29T02:39:41.935Z"
+last_activity: 2026-08-29 — Milestone v1.2 completed and archived
 progress:
   total_phases: 2
-  completed_phases: 2
+  completed_phases: 0
   total_plans: 2
-  completed_plans: 2
-  percent: 100
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,13 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-02)
 
 ## Current Position
 
-Phase: — (both phases complete, verified)
-Plan: — (2 of 2 complete)
-Status: Milestone v1.2 OPENED. Working branch `claude/github-pages-production-ready-du9ptu`
-(fast-forwarded onto the v1.1 integration branch — contains all of PR #20; sequencing note
-travels in the PR). Baseline gates re-run independently at open: 626 passed, lint-imports
-2 kept / 0 broken.
-Last activity: 2026-07-03 — milestone capture (research/requirements/roadmap)
+Phase: Milestone v1.2 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-08-29 — Milestone v1.2 completed and archived
 
 ## Performance Metrics
 
@@ -88,3 +85,7 @@ channel iff maintainer aligns repo settings).
 Last session: 2026-07-03 — v1.2 merged & live; post-merge UAT PASSED (evidence on PR #21)
 Stopped at: Pages review (EiC), then /gsd-complete-milestone (audit → archive → retrospective).
 Resume file: this file + `.planning/ROADMAP.md` + `.planning/research/2026-07-03-pages-publish-forensics.md`
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone

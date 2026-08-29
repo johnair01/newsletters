@@ -103,7 +103,7 @@ Two human-first files at the repo root complement GSD's machine-state, never rep
 2. `docs/architecture.md` — the typed semantic model (Source / Distillation / Surface), the package API, MCP servers, tech stack.
 3. `docs/design-system.md` — exact tokens, type scale, components. Non-negotiable visual contract.
 4. `docs/surfaces.md` — per-view hi-fi specs for every screen.
-5. `.planning/ROADMAP.md` — **the current, live build plan (Rev2, 12 phases). Supersedes `docs/roadmap.md` for active work.** Work phases in order; don't skip ahead.
+5. `.planning/ROADMAP.md` — **the current, live build plan for the active milestone. Supersedes `docs/roadmap.md` for active work.** Work phases in order; don't skip ahead. (Closed milestones are archived under `.planning/milestones/`.)
 
 ## The design references are prototypes, not production code
 
@@ -124,9 +124,11 @@ them in the real stack using its components. `Newsletters - Home.html` is V1 —
 | reference  | `design-reference/` | Hi-fi HTML/JSX prototypes — the look-and-behavior contract, **not** production code. |
 | plan       | `.planning/`        | GSD's live plan: PROJECT / REQUIREMENTS / ROADMAP / STATE / research. |
 
-Current status lives in `.planning/STATE.md` and `WHERE-WE-ARE.md`. The Rev1 spine is merged on this
-branch; Rev2 (the distill **socket**, format adapters, AI-optional packaging, the site fix, learning
-surface) is the active 12-phase roadmap.
+Current status lives in `.planning/STATE.md` and `WHERE-WE-ARE.md`. Shipped: v1.0 Rev2 trust
+spine (distill socket, four format adapters, AI-optional packaging, site + learning surfaces,
+Problem entity), v1.1 swim-lane module composer, v1.2 the one-channel published record, plus the
+Case Spec authoring path. The active milestone's roadmap is `.planning/ROADMAP.md`; closed
+milestones are archived under `.planning/milestones/`.
 
 ## Conventions
 

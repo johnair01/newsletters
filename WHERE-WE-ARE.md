@@ -7,6 +7,25 @@
 
 ## Where we are right now
 
+**2026-08-29 — v1.2 FORMALLY CLOSED · v1.3 "THE WEEKLY, ONE SHOT" OPENING (branch
+`claude/new-session-gw8tik` — the session-designated branch, serving the seed's `gsd/v1.3-*`
+integration-branch role, same pattern as v1.1).** The Editor-in-Chief re-verified the live site
+(all key URLs 200, styled 404, marker) and approved the close: v1.2 archived
+(`.planning/milestones/v1.2-*` + `v1.2-phases/`), MILESTONES/PROJECT/RETROSPECTIVE updated,
+stale "Rev2 12-phase" note fixed in `CLAUDE.md`. **The ONE discussion round for v1.3 happened
+(kickoff Step 2) — four decisions recorded, no more questions this build; anything new is
+decided per these recommendations and logged:** (1) the weekly deck **reuses `REPORT`** with a
+`.pptx` renderer (an output format, not a new semantic kind); (2) asset provenance minimum =
+**folder + date + event label** (deep link optional — but REQUIRED for a BI screenshot standing
+in for values per WKLY-04); (3) template contract = **named placeholders**, fail-loud on
+missing/unknown names; (4) v1.2 close approved on live evidence. This is a fully autonomous
+run per the EiC's written authorization (kickoff Step 3): no between-phase human stop — **the
+human gate for this run is the final PR**; branch + PR only, never `main`; the content publish
+gate itself is untouched (the sample weekly ships Draft). Next: `/gsd-new-milestone` from
+`.planning/seeds/v1.3-weekly-one-shot.md` (seed committed @ `6e48e07`, current-state claims
+verified against the live repo), then Phase 1's `.pptx` determinism spike before anything
+depends on it.
+
 **2026-07-09 — CASE SPEC AUTHORING PATH BUILT (branch `claude/case-spec-authoring`, awaiting
 review).** An engineer can now hand-author a **Case Spec** — the design-era Operating
 Agreement schema, revived deliberately: `case / problem / current_state / imagined_state /

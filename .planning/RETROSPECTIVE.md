@@ -98,6 +98,60 @@
 
 ---
 
+## Milestone: v1.2 — The Published Record
+
+**Live:** 2026-07-03 · **Formally closed:** 2026-08-29
+**Phases:** 2 | **Plans:** 2
+
+### What Was Built
+
+One publish channel: `publish.assemble_site` composes committed corpus bytes verbatim into the
+published tree; four invariants (links/drift/fonts/marker) run as the PR-blocking `site-integrity`
+job; `deploy-pages.yml` gate-checks then force-pushes `gh-pages` from `main` only. Plus the
+cross-corpus Records strip + design-system 404 (no surface a dead-end), and — in the same window —
+the `web/` preview fix (round 2) and the Case Spec authoring path (PR #24).
+
+### What Worked
+
+- **Live forensics over repo belief.** The milestone was born from curling the live site and
+  reading the Actions history — the repo's own record believed the site was fine. Diagnose the
+  live object, not the repo's intent.
+- **The new assembled-tree test caught a real live bug (`home_href` dead nav) on its FIRST run** —
+  the strongest possible argument for testing the assembled artifact, not the parts.
+- **Choosing the proven channel (branch force-push) over the fashionable one** (environment
+  deploys, 4/4 failures) closed the loop; the fancier channel is DEF-14, a settings decision.
+
+### What Was Inefficient
+
+- The formal close lagged the ship by ~8 weeks — the milestone was live and UAT'd 2026-07-03 but
+  not closed until the v1.3 kickoff forced it. A milestone isn't done until the ritual runs.
+- Phase dirs carried no SUMMARY.md (PLAN/CONTEXT/VERIFICATION only), so `milestone.complete`'s
+  accomplishment extraction came up empty and the close was hand-authored again (same friction as
+  v1.1's close).
+
+### Patterns Established
+
+- **Republish committed bytes only** — the deploy step is never a second author.
+- **Placeholder data never wears the product's URL** — previews deploy labeled, under the record.
+- **File text IS the evidence** for authored specs (Case Spec) — the mechanism v1.3's Weekly Spec
+  inherits.
+
+### Key Lessons
+
+1. An automated publish channel is only real once it has succeeded end-to-end from `main` —
+   4 failed runs sat unnoticed because nothing watched the watcher; the warn-only preflight +
+   site-integrity job now watch it.
+2. Close milestones when they ship. A stale open milestone silently blocks the planning state
+   (STATE.md pointed at "pages review" for 8 weeks).
+
+### Cost Observations
+
+- Sessions: 2 (build+merge 2026-07-03; formal close 2026-08-29 at v1.3 kickoff)
+- Notable: post-merge UAT was live-verified twice (at merge, and at close) at trivial cost —
+  curl beats belief.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -106,6 +160,7 @@
 |-----------|----------|--------|------------|
 | v1.0 (Rev2) | ~6 (autonomous Phases 2–13, cross-AI review at Phase 1) | 14 | Established the trust spine + GSD four-beat loop; cross-AI peer review caught a circular import the in-flow checker passed; silent-drop bugs found + hardened (Phases 4/7) |
 | v1.1 | 1 build + 10 review rounds | 4 | Composer bolted on; **the close ritual itself became a deliverable** — a 10-round fresh-context deep-review loop retroactively produced the VERIFICATION/VALIDATION/LEARNINGS + cross-cut reviews that the inline autonomous build skipped. Independence recovered *after* the fact. |
+| v1.2 | 2 (build+merge; late formal close) | 2 | Milestone born from live forensics, not a seed; assembled-artifact testing caught a live bug on first run; the close ritual lagged the ship by 8 weeks (lesson: close when shipped) |
 
 ### Cumulative Quality
 
@@ -113,6 +168,7 @@
 |-----------|-------|------------------|----------------------------------|
 | v1.0 (Rev2) | 574 (at v1.1 start) | 2 KEPT | AI-optional core, distill socket, 4 format adapters, faithfulness gate, merge gate, Problem entity |
 | v1.1 | 626 | 2 KEPT | `[config]` PyYAML lazy boundary (bare install stays yaml-free); loader + composer + module corpus all AI-free |
+| v1.2 | 639 | 2 KEPT | `publish.py` stdlib-only, AI-free assembly; deploy gates AI-free; Case Spec path (post-window) zero-AI on the same spine |
 
 ### Top Lessons (Verified Across Milestones)
 

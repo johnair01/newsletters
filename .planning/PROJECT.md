@@ -20,6 +20,17 @@ surfaces where every claim traces to its evidence and nothing publishes without 
 deterministic, auditable trust layer is what makes that legibility *believable*; AI is an optional
 accelerator, never an authority. If everything else fails, *this* must hold.
 
+## Shipped Milestone: v1.2 The Published Record (Live 2026-07-03 · Closed 2026-08-29)
+
+**Delivered:** The published site is a product output. `publish.assemble_site` / `newsletters
+assemble` composes the committed corpora byte-verbatim into the published tree; four invariants
+(links resolve · no drift · fonts shipped · marker everywhere) are PR-blocking CI
+(`site-integrity`); `deploy-pages.yml` gate-checks then force-pushes `gh-pages` from `main` only.
+Deploy run #5 was the repo's first successful automated Pages publish; post-merge UAT and the EiC
+pages review verified live. Also in the window: the `web/` design preview fixed & deployed under
+`/web/` (DEF-13 amended), and the **Case Spec authoring path** (PR #24) — hand-authored YAML
+lifted through the zero-AI spine, author's voice byte-verbatim. See `.planning/MILESTONES.md`.
+
 ## Shipped Milestone: v1.1 Swim-Lane Module Report (Shipped 2026-07-02)
 
 **Delivered:** The smallest fully-real, config-driven Report composer that cuts one owned module
@@ -82,16 +93,28 @@ what matters.
 
 ### Active
 
-<!-- Next-milestone scope. Set 2026-07-03 by the Editor-in-Chief: v1.2 The Published Record. -->
+<!-- Next-milestone scope. Set 2026-08-29 by the Editor-in-Chief: v1.3 The Weekly, One Shot. -->
 
-- **Milestone v1.2 — The Published Record: one channel, production-ready** (opened 2026-07-03;
-  set by the Editor-in-Chief after live publish forensics found the deployed site is a stale
-  hand-pushed snapshot and the automated deploy has failed 4/4 runs while building the wrong
-  artifact — see `.planning/research/2026-07-03-pages-publish-forensics.md`). Scope: PUB-01..05
-  (`.planning/REQUIREMENTS.md`) — the rendered record IS the published site (rev1 root +
-  /work/ + /module/, cross-linked, styled 404); one deploy channel republishes exactly what a
-  human merged to main (gate-checked, force-push to gh-pages); linkability/drift/gating become
-  PR-blocking tests. The fix-batch PR (B1–B20) and DEF-04/05/11 remain queued behind it.
+- **Milestone v1.3 — The Weekly, One Shot** (opened 2026-08-29 from
+  `.planning/seeds/v1.3-weekly-one-shot.md`): a recurring module weekly becomes a product
+  output — existing adapters populate Sources, a weekly composer builds one
+  `Surface(REPORT, Draft)` with new block kinds (narrative / recognitions / team / asset), a
+  Weekly Spec YAML on the Case Spec mechanism carries the author's voice, and a deterministic
+  template-driven **PPTX renderer** emits the deck through the untouched review gate
+  (WKLY-01..06). The fix-batch PR (B1–B20) and DEF-04/05/11 remain queued behind it.
+
+### Validated in v1.2 (2026-07-03, Phases 1–2)
+
+- ✓ **One publish channel** — `publish.assemble_site` + `newsletters assemble` compose committed
+  bytes only; `deploy-pages.yml` gate-checks then force-pushes `gh-pages` from `main` only (PUB-01) — v1.2
+- ✓ **The published site is the rendered record** — rev1→root + `/work/` + `/module/`,
+  cross-linked, styled 404, `.nojekyll` (PUB-02) — v1.2
+- ✓ **No dead ends** — cross-corpus Records strip on chrome pages, 404 base-path-absolute,
+  `home_href` climb-to-front-door (PUB-03) — v1.2
+- ✓ **No drift, any corpus** — committed==fresh for ALL corpora + append-only ledgers as
+  PR-blocking tests (PUB-04) — v1.2
+- ✓ **Every corpus gated in CI** — `site-integrity` job + merge-block over rev1/work/module;
+  bare-install untouched (PUB-05) — v1.2
 
 ### Validated in v1.1 (2026-07-02, Phases 1–4)
 
@@ -129,6 +152,11 @@ what matters.
 
 ## Context
 
+- **Post-v1.2 state (2026-08-29).** The publish loop is closed: merge to `main` → gates re-run →
+  assemble → republish, no manual step. 639 tests green at v1.2 close; the Case Spec path
+  (PR #24) added `casespec.py` + `docs/case-spec.md` after. Live site verified 2026-08-29 (all
+  key URLs 200, styled 404, marker). Carried: B1–B20 fix-batch, DEF-01..14, `v1.1` tag
+  local-only (git proxy drops tag pushes — maintainer creates tags via Releases UI).
 - **Post-v1.1 state (2026-07-02).** The composer spine ships: `swimlane.py` (traced YAML loader),
   `compose.py` (pure composer), `modulesite.py` (module corpus builder), the `--corpus module` CLI,
   and the Signals-voice `ship` contract. 626 tests green (574 at v1.1 start), 2 import contracts
@@ -180,6 +208,10 @@ what matters.
 | Promotion chain Report → Article → Newsletter is the spine | Each human-gated; the real-world shape of the model's promotions | ⚠ Revisit — ontology drift: this is a **fan-out** (axis 2), not a promotion; "promotion" is reserved for `Claim→KPI`/`Report→Article` (reviews/08 D2) |
 | Abstract everything: models in code, specifics in config (v1.1) | Different modules/teams organize differently; hardcoded lanes = a fixed tool. JJ's fundamental principle, 2026-07-02 | ✓ Good — the strongest result of the milestone: the abstraction guard fired 3× on real leaks and out-enforced the plan's own defaults |
 | Report unit-of-work: swim-lane kind first; project/interview kinds deferred | Close one loop fully before widening; keep the section abstraction generic | ✓ Good — the kind-agnostic seam is proven by a second-kind ("risk register") test; other kinds slot in with zero composer change |
+| One publish channel = gate-then-force-push `gh-pages` from `main` only (v1.2) | The branch-serving channel is the one proven live; the environment channel killed 4/4 prior deploys (DEF-14 defers it to a maintainer settings decision) | ✓ Good — first-ever successful automated deploy (run #5); republish loop closed with zero manual steps |
+| Republish committed bytes only, never a fresh render at deploy (v1.2) | What was reviewed is what publishes — the deploy step must not be a second author | ✓ Good — committed==fresh is a PR-blocking test; drift is impossible to publish silently |
+| `web/` deploys as a labeled preview UNDER the record's URL, not at it (v1.2, DEF-13 amended) | Placeholder data must not wear the product's URL; a labeled `/web/` preview keeps design review honest | ✓ Good — root stays the record; `web-ci.yml` keeps the preview from rotting |
+| File text IS the evidence for authored specs (Case Spec, post-v1.2) | Author's voice byte-verbatim with real-span traces beats any paraphrase; `config:` bound, never claimed | ✓ Good — the mechanism v1.3's Weekly Spec builds on |
 | Δ computed at compose time into `KpiItem.delta`; no Kpi start/baseline field | Model change deferred deliberately; composer derives, model stays untouched | ✓ Good — `models.py` byte-unchanged; Δ reproducible from two content-addressed endpoints (DEF-10 deferred cleanly) |
 
 ## Evolution
@@ -200,4 +232,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-02 after completing milestone v1.1 (Swim-Lane Module Report) — full evolution review at close (deep-review loop Round 10)*
+*Last updated: 2026-08-29 after completing milestone v1.2 (The Published Record) — full evolution review at close; v1.3 (The Weekly, One Shot) opened from seed*
