@@ -95,6 +95,8 @@ from __future__ import annotations
 import hashlib
 import io
 import zipfile
+from collections.abc import Iterator, Mapping, Sequence
+from typing import Any
 
 __all__ = [
     "DOS_EPOCH",
@@ -107,6 +109,7 @@ __all__ = [
     "MARKER",
     "DRAFT_STATUS",
     "WATERMARK_TEXT",
+    "bind_slots",
 ]
 
 # The earliest timestamp the DOS date format used inside a ZIP can represent. Any fixed instant
@@ -266,3 +269,125 @@ def differing_zipinfo_fields(a: bytes, b: bytes) -> list[str]:
                 if getattr(info_a, field) != getattr(info_b, field):
                     differing.add(field)
     return sorted(differing)
+
+
+# ==================================================================================================
+# EVERYTHING ABOVE THIS LINE IS STDLIB AND BARE-IMPORTABLE.
+# EVERYTHING BELOW REQUIRES THE OPTIONAL ``[pptx]`` EXTRA **AT CALL TIME** — never at import time.
+#
+# The functions below take/return python-pptx objects, but they never import `pptx` at column 0.
+# The one lazy import per render lives inside `bind_slots` (the `MSO_SHAPE_TYPE` recursion
+# predicate); `render_surface_pptx_bytes` obtains the `pptx` module itself through the EXISTING
+# boundary `newsletters.adapters._pptx_loader._load_pptx()` rather than re-implementing it. Keep it
+# that way: `tests/test_ai_optional.py::test_pptx_writer_imports_without_pptx` imports this module
+# in a subprocess with `pptx` blocked on `sys.meta_path`, and it must keep passing.
+#
+# python-pptx `Presentation` and shape objects are typed `Any` throughout: python-pptx ships no
+# stubs and this repo deliberately does not add a `types-*` package (the `_pptx_loader.py`
+# precedent). Everything else here is fully annotated.
+# ==================================================================================================
+
+
+def _walk(shapes: Any, group_type: Any) -> Iterator[Any]:
+    """Every shape in a shapes collection, DESCENDING into group shapes.
+
+    The recursion is load-bearing, not defensive. `slide.shapes` is **top-level only** (measured,
+    02-RESEARCH W17, and re-proved in this repo by
+    `tests/test_pptx_writer.py::test_group_nesting_hides_a_slot_from_slide_shapes`): a textbox named
+    `NL_INSIDE_GROUP` nested inside a group is simply absent from it. So a flat
+    ``{shape.name: shape for shape in slide.shapes}`` comprehension is BLIND to a slot the operator
+    can see in their Selection Pane — content bound to that name would be rejected as *unknown*, and
+    the unfilled-slot refusal would never fire for it. Grouping boxes is ordinary PowerPoint
+    hygiene, so this is not an exotic case.
+
+    `group_type` is `MSO_SHAPE_TYPE.GROUP`, passed in rather than imported here so the predicate is
+    MEASURED (an enum comparison) rather than duck-typed, and so there is exactly ONE lazy
+    python-pptx import per render — in `bind_slots`, its only caller.
+    """
+    for shape in shapes:
+        yield shape
+        if shape.shape_type == group_type:
+            yield from _walk(shape.shapes, group_type)
+
+
+def bind_slots(prs: Any, slots: Mapping[str, Sequence[str]]) -> dict[str, Any]:
+    """Map every shape name in the deck to its shape, refusing every ambiguity rather than guessing.
+
+    Binds over ``slide.shapes`` (recursively — see :func:`_walk`) and NOT ``slide.placeholders``:
+    the latter holds only real placeholders keyed by ``idx``, and operator-added textboxes and
+    pictures are absent from it entirely (decision note, "The template contract").
+
+    Five refusals, in this order, each a ``ValueError`` in the house three-part teaching voice —
+    what was found, why it cannot be resolved silently, what the operator does next:
+
+    1. a **duplicate shape name** (legal in OOXML; copy-paste is how an operator makes one — a
+       last-wins map would silently DROP a slot, the exact failure D-03 exists to prevent);
+    2. the template already defining **WATERMARK_NAME** (the renderer owns that name and adds the
+       watermark itself; leaving it in the template writes two shapes under one name — measured,
+       W14, with no error — and defeats this map on the next render);
+    3. an **unknown content name** — content bound to a name the template does not contain;
+    4. an **unfilled reserved slot** — an ``NL_``-prefixed shape with no matching content (a
+       reserved-prefix slot left empty would ship a blank box to a reader). The ``NL_`` prefix is
+       what keeps this direction usable on a real deck: without it every operator logo, footer and
+       page number would be rejected;
+    5. a **slot that cannot hold text** — a group or a picture reports ``has_text_frame == False``,
+       so filling it would raise ``AttributeError``: a stack trace instead of a teaching error.
+
+    Returns the name→shape map. Mutates nothing.
+    """
+    # Lazy on purpose: `pptx` is the optional [pptx] extra and this module must stay importable on
+    # a bare install (see the banner above). One import per render, here, for `_walk`'s predicate.
+    from pptx.enum.shapes import MSO_SHAPE_TYPE  # type: ignore[import-untyped]  # noqa: PLC0415
+
+    by_name: dict[str, Any] = {}
+    for slide in prs.slides:
+        for shape in _walk(slide.shapes, MSO_SHAPE_TYPE.GROUP):
+            if shape.name in by_name:
+                raise ValueError(
+                    f"template has two shapes named {shape.name!r} — the name->shape binding is "
+                    "ambiguous. Duplicate shape names are legal in OOXML and copy-pasting a box in "
+                    "PowerPoint is how one is made, so a last-wins map would silently DROP a slot. "
+                    "Rename one in PowerPoint's Selection Pane (Alt+F10). Refusing to guess which "
+                    "slot the content belongs in."
+                )
+            by_name[shape.name] = shape
+
+    if WATERMARK_NAME in by_name:
+        raise ValueError(
+            f"the template already defines {WATERMARK_NAME!r}. That name is owned by the renderer, "
+            "which adds the Draft watermark itself; leaving it in the template would produce two "
+            "shapes with one name (measured: python-pptx writes both and raises nothing) and would "
+            "defeat the name->shape binding on the next render. Remove it from the template."
+        )
+
+    unknown = sorted(set(slots) - set(by_name))
+    if unknown:
+        raise ValueError(
+            f"Surface content is bound to placeholder name(s) {unknown!r} that this template does "
+            f"not contain. Named shapes in this template: {sorted(by_name)!r}. The renderer never "
+            "invents layout — add the shape to the template (name it in the Selection Pane, "
+            "Alt+F10) or fix the name in the content mapping."
+        )
+
+    unfilled = sorted(
+        name for name in by_name if name.startswith(SLOT_PREFIX) and name not in slots
+    )
+    if unfilled:
+        raise ValueError(
+            f"template placeholder(s) {unfilled!r} have no matching Surface content. A "
+            f"{SLOT_PREFIX!r}-prefixed slot left empty would ship a blank box to a reader — "
+            "refusing. Either populate it or remove the reserved prefix from the shape's name "
+            "(unprefixed shapes are the operator's: logos, footers, page numbers are never slots)."
+        )
+
+    for name in slots:
+        shape = by_name[name]
+        if not getattr(shape, "has_text_frame", False):
+            raise ValueError(
+                f"slot {name!r} is a {shape.shape_type} and cannot hold text (measured: group and "
+                "picture shapes report has_text_frame == False, so filling one raises "
+                "AttributeError rather than anything a reader of the traceback could act on). "
+                "Point the slot at a text box, or place this content as an asset."
+            )
+
+    return by_name

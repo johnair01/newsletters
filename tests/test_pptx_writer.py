@@ -72,6 +72,7 @@ from newsletters.pptx_writer import (  # noqa: E402
     SLOT_PREFIX,
     WATERMARK_NAME,
     WATERMARK_TEXT,
+    bind_slots,
     normalize_opc_zip,
     part_digest,
 )
@@ -437,4 +438,174 @@ def test_group_nesting_hides_a_slot_from_slide_shapes(tmp_path: pathlib.Path) ->
         "the group container acquired the reserved NL_ prefix — it would then be an unfilled "
         "reserved slot in every happy-path render, and the fail-loud contract would reject the "
         "deck it is supposed to accept"
+    )
+
+
+# --- SC-1: the binding map, and the five ambiguities it refuses ---------------------------------
+#
+# Every test below asserts the OFFENDER'S NAME is in the message. A refusal that does not name the
+# offender is not a teaching error: it tells the operator that something is wrong with a deck they
+# authored in PowerPoint and leaves them to bisect it by hand.
+
+
+def test_group_nested_slot_is_bound(tmp_path: pathlib.Path) -> None:
+    """The positive half of W17: a slot inside a group is BOUND, not silently dropped.
+
+    `test_group_nesting_hides_a_slot_from_slide_shapes` above proves the flat view cannot see
+    `NL_INSIDE_GROUP`. This proves `bind_slots` can — which is the whole reason `_walk` recurses.
+    Without the recursion this deck would fail twice over: the content would be rejected as an
+    unknown name, and "remove it from the content mapping" would then ship an empty box.
+    """
+    path = build_rich_template(tmp_path)
+    prs = Presentation(str(path))
+
+    bound = bind_slots(prs, RICH_SLOTS)
+
+    assert "NL_INSIDE_GROUP" in bound, (
+        "the group-nested slot is missing from the binding map — `_walk` stopped recursing into "
+        f"groups, so an operator's grouped box is invisible to the renderer. Bound: {sorted(bound)}"
+    )
+    assert set(bound) == RICH_SHAPE_NAMES, (
+        "the binding map is not the deck's full recursive shape inventory. Both fail-loud "
+        f"directions are computed from it, so a gap here is a silent drop. Bound: {sorted(bound)}"
+    )
+    assert bound["NL_INSIDE_GROUP"].has_text_frame is True, (
+        "the grouped slot bound to something that cannot hold text — `_walk` is yielding the group "
+        "container instead of its member"
+    )
+
+
+def test_unprefixed_shape_is_not_a_slot(tmp_path: pathlib.Path) -> None:
+    """The reserved prefix discriminates: the operator's own shapes are bound but never demanded.
+
+    This is what makes D-03 usable on a real deck. Without the `NL_` prefix, direction (b) of the
+    fail-loud contract would reject every operator logo, footer and page number as an unfilled slot.
+    `Footer` and `Narrative Group` are bound (so a duplicate of either is still caught) and neither
+    triggers the unfilled refusal.
+    """
+    path = build_rich_template(tmp_path)
+    prs = Presentation(str(path))
+
+    bound = bind_slots(
+        prs, RICH_SLOTS
+    )  # does NOT raise, though two shapes carry no content
+
+    for unprefixed in ("Footer", "Narrative Group"):
+        assert unprefixed in bound, (
+            f"{unprefixed!r} is not in the binding map — unprefixed shapes must still be BOUND "
+            "(the duplicate-name refusal is computed over all shapes, not just slots)"
+        )
+        assert unprefixed not in RICH_SLOTS, (
+            f"{unprefixed!r} acquired content, so this test no longer proves that an unprefixed "
+            "shape can be left unfilled"
+        )
+        assert not unprefixed.startswith(SLOT_PREFIX), (
+            f"{unprefixed!r} now carries the reserved prefix; the discrimination this test asserts "
+            "has been lost in the deck builder"
+        )
+
+
+def test_unknown_slot_name_raises(tmp_path: pathlib.Path) -> None:
+    """Fail-loud direction (a): content bound to a name the template does not contain.
+
+    The message must name the offender AND list the names the template does contain — otherwise
+    the operator's next move is a guess. `never invents layout` is the sentence that tells them the
+    fix is theirs (add or rename the shape), not the renderer's (fill by position).
+    """
+    path = build_rich_template(tmp_path)
+    prs = Presentation(str(path))
+    slots = {**RICH_SLOTS, "NL_NOPE": ["content for a slot that does not exist"]}
+
+    with pytest.raises(ValueError, match="NL_NOPE") as caught:
+        bind_slots(prs, slots)
+
+    message = str(caught.value)
+    assert "NL_WEEK_TITLE" in message, (
+        "the refusal does not list the names the template DOES contain, so the operator cannot see "
+        f"whether they mistyped a name or omitted a shape. Message: {message}"
+    )
+    assert "never invents layout" in message, (
+        "the refusal no longer states why the renderer will not resolve this itself (D-03). "
+        f"Message: {message}"
+    )
+
+
+def test_unfilled_reserved_slot_raises(tmp_path: pathlib.Path) -> None:
+    """Fail-loud direction (b): an `NL_` slot with no matching content, named in the message.
+
+    A reserved-prefix slot left empty would ship a blank box to a reader — the renderer's version
+    of publishing something nobody wrote.
+    """
+    path = build_rich_template(tmp_path)
+    prs = Presentation(str(path))
+    slots = {k: v for k, v in RICH_SLOTS.items() if k != "NL_LOWLIGHTS"}
+
+    with pytest.raises(ValueError, match="NL_LOWLIGHTS") as caught:
+        bind_slots(prs, slots)
+
+    assert "blank box" in str(caught.value), (
+        "the refusal no longer says what the operator would have shipped; the consequence is the "
+        f"reason this direction exists. Message: {caught.value}"
+    )
+
+
+def test_duplicate_shape_name_raises(tmp_path: pathlib.Path) -> None:
+    """A template with two shapes of one name is REFUSED, not last-wins-dropped (T-02-04).
+
+    Duplicate names are legal in OOXML and copy-paste is how an operator makes one. The naive
+    comprehension would bind the second and silently discard the first — the deck would render,
+    with one of the operator's slots quietly empty.
+    """
+    path = build_duplicate_name_template(tmp_path)
+    prs = Presentation(str(path))
+
+    with pytest.raises(ValueError, match="two shapes named 'NL_WEEK_TITLE'") as caught:
+        bind_slots(prs, {"NL_WEEK_TITLE": ["a line"]})
+
+    assert "Selection Pane" in str(caught.value), (
+        "the refusal no longer tells the operator WHERE to rename the shape (Alt+F10); a teaching "
+        f"error that stops at the diagnosis is half an error. Message: {caught.value}"
+    )
+
+
+def test_template_owning_watermark_name_raises(tmp_path: pathlib.Path) -> None:
+    """A template that already defines `NL_DRAFT_WATERMARK` is refused (T-02-05 / W14).
+
+    Measured: adding the watermark onto such a deck writes TWO shapes with one name and raises
+    nothing — so a "helpful" operator who copies the watermark into their template would silently
+    defeat the binding map on the next render.
+    """
+    path = build_watermark_owning_template(tmp_path)
+    prs = Presentation(str(path))
+
+    with pytest.raises(ValueError, match=WATERMARK_NAME) as caught:
+        bind_slots(prs, {"NL_WEEK_TITLE": ["a line"]})
+
+    assert "owned by the renderer" in str(caught.value), (
+        "the refusal no longer explains that the name is reserved, which is the one thing the "
+        f"operator needs to know to fix their template. Message: {caught.value}"
+    )
+
+
+def test_slot_without_text_frame_raises(tmp_path: pathlib.Path) -> None:
+    """A slot that cannot hold text gets a teaching error, never an `AttributeError` (T-02-13).
+
+    A group (like a picture) reports `has_text_frame == False`. Without this check the caller gets
+    a stack trace from deep inside python-pptx; with it, they get told what the shape is and what
+    to do instead.
+    """
+    path = build_nontext_slot_template(tmp_path)
+    prs = Presentation(str(path))
+    slots = {"NL_WEEK_TITLE": ["a line"], "NL_NOT_TEXT": ["content for a group"]}
+
+    with pytest.raises(ValueError, match="NL_NOT_TEXT") as caught:
+        bind_slots(prs, slots)
+
+    message = str(caught.value)
+    assert (
+        "cannot hold text" in message
+    ), f"the refusal no longer says what is wrong with the shape. Message: {message}"
+    assert "text box" in message and "asset" in message, (
+        "the refusal no longer offers the two things the operator can actually do (point the slot "
+        f"at a text box, or place the content as an asset). Message: {message}"
     )
