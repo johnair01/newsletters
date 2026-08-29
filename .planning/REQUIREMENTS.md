@@ -78,7 +78,7 @@ contract = named placeholders, fail-loud on missing/unknown names.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WKLY-01 | Phase 2 — Renderer | In progress (02-01 foundation done; the writer is 02-02, the proof + CI job 02-03) |
+| WKLY-01 | Phase 2 — Renderer | In progress (02-01 foundation + 02-02 the writer done; SC-1/SC-3/SC-4 proved. Remaining: 02-03 — the determinism proof and the `[pptx]` CI job, without which SC-2 and SC-5's "in CI" are unmet) |
 | WKLY-02 | Phase 3 — Weekly compose | Pending |
 | WKLY-03 | Phase 3 — Weekly compose | Pending |
 | WKLY-04 | Phase 3 — Weekly compose | Pending |

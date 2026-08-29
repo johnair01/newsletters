@@ -7,6 +7,49 @@
 
 ## Where we are right now
 
+**2026-08-29 (newest) — v1.3 PHASE 2: THE WRITER EXISTS AND A DECK ACTUALLY GETS WRITTEN
+(plan 02-02 of 3, branch `claude/new-session-gw8tik`).** Hand it a Surface, an operator's template
+and a `{shape name → lines}` mapping, and it produces a deterministic, watermarked, marked `.pptx`.
+Four things are worth understanding, because they are the *reasoning*, not just the output:
+
+- **The renderer refuses to guess, five different ways.** Content bound to a name the template does
+  not have; an `NL_` slot with nothing to put in it; two shapes sharing a name (legal in PowerPoint
+  — copy-paste is how you make one); a template that already owns the watermark name; a "slot" that
+  is a group or a picture and cannot hold text. Each one raises and *names the offender*, because a
+  refusal that does not tell you which box it means is a refusal you have to bisect by hand. The
+  alternative — a naive `{name: shape}` map — would silently drop a slot and ship a blank box to a
+  reader, which is the exact thing the fail-loud decision exists to prevent.
+- **We inherit the operator's formatting; we never build our own.** The obvious line every tutorial
+  writes (`text_frame.text = "..."`) is measurably destructive: it erases the run's 20pt bold *and*
+  the paragraph's bullet, and the deck still renders — quietly downgraded to theme defaults, which
+  no automated check in this repo could see. So paragraph 0 of the operator's box is treated as a
+  formatting **carrier**, and every extra line is a deep copy of it with the text swapped. python-
+  pptx has no bullet API at all, so a bullet can only ever be inherited. The moment the renderer
+  starts constructing formatting, it has started inventing layout — the one thing we said it must
+  never do. `fit_text()` is banned by name for the same family of reasons: it reads fonts installed
+  on *this machine*, so the output would stop being reproducible.
+- **The gate is read outward, never written back.** The watermark and the `contentStatus` field come
+  *from* `surface.is_published`. There is no assignment to any `Surface` field anywhere in the
+  writer — so there is no read-then-fix path, and therefore no auto-publish path. A test captures
+  the Surface before a render and asserts it is bit-for-bit identical after; `semantic.py` is
+  byte-unchanged.
+- **Every claim about a deck is checked by reopening the file we wrote.** Not the object in memory —
+  a writer that returned success without marking anything would pass any assertion made against
+  itself. And the two hardest properties are asserted in their *inverted* form too: a **Published**
+  deck must have **no** watermark and an empty status. Without that inversion, a renderer that
+  watermarked everything unconditionally would look perfect and would brand approved work as
+  unreviewed forever.
+
+Two questions are being **raised at the PR rather than decided quietly**: a Surface sitting in
+review is currently labelled `"draft"` exactly like an unreviewed one (the recorded decision says
+binary; the enum has three states — that is a real judgement call, not an implementation detail),
+and the decision note names the wrong OOXML element for the Surface id (`cp:identifier`; it is
+actually `dc:identifier` — wording only, no behaviour changes).
+
+Still honest about the green: **no CI job installs `[pptx]` yet**, so all 19 of these tests are
+skipped in CI. That is plan 02-03, together with the double-render determinism proof. And nobody has
+yet opened one of these decks in real PowerPoint — that human look is still the phase's gate.
+
 **2026-08-29 (later still) — v1.3 PHASE 2 STARTED: THE RENDERER'S FOUNDATION IS IN `src/`, AND IT
 IS GUARDED BEFORE IT DOES ANYTHING (plan 02-01 of 3, branch `claude/new-session-gw8tik`).** Still no
 deck is rendered — that is plan 02-02 — but the ground it stands on is now real production surface

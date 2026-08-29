@@ -4,6 +4,40 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
+## 2026-08-29 (latest) — Writing the writer: the near-misses were all *one-directional* proofs
+
+**Friction observed (v1.3 plan 02-02 — the writer)**
+
+1. **Two assertions would have been green while proving nothing, for the same reason.** The
+   Published-case test asks "no slide carries `NL_DRAFT_WATERMARK`" — written with a top-level scan
+   it would have been blind to a watermark nested in a group, i.e. the *exact* W17 hole the whole
+   phase exists to close, reintroduced inside the test meant to prove its absence. And SC-3's Draft
+   half would pass an unconditional watermark that branded approved work as unreviewed forever.
+   Both fixed by writing the inversion and by searching recursively.
+2. **I introduced a real isort failure and nearly logged it as pre-existing debt.** The lazy
+   `MSO_SHAPE_TYPE` import carried two trailing pragmas, overflowing isort's width. The 02-01 rule
+   below saved it: checking `git show b1369e0:src/newsletters/pptx_writer.py` showed the module was
+   isort-**clean** before this plan, so this one was mine — while `tests/test_pptx_writer.py`'s
+   failure genuinely was DEF-15. Same symptom, opposite verdicts, and only the check tells them
+   apart.
+3. **The GSD state handlers mangled the records for the third consecutive plan.**
+   `state.advance-plan` errored identically ("Cannot parse Current Plan or Total Plans"),
+   `state.update-progress` printed 83% while writing `percent: 25` and silently rewrote
+   `stopped_at` to an older wording, `state.record-metric` and `state.add-decision` both rejected
+   their documented arguments, and `roadmap.update-plan-progress` produced `In Progress|  |` again.
+   All repaired by hand.
+
+**Rules hardened**
+
+- *Assert the inversion, or you have not asserted the condition.* Any test of the form "X happens
+  when C" needs its sibling "X does **not** happen when not-C". A conditional behaviour proved in
+  one direction is indistinguishable from an unconditional one — and for gate-derived behaviour
+  (watermarks, publication status) the unconditional version is a product bug, not a test bug.
+- *A negative assertion must use the same search the positive one does.* "No watermark anywhere"
+  written with a shallower walk than the binder uses is a green that means "I did not look".
+- *The pre-existing-failure check cuts both ways.* Run it to avoid paying for inherited debt AND to
+  catch debt you just created. Assuming the answer either way is the mistake.
+
 ## 2026-08-29 (later) — Promoting a spike: the frictions were a self-contradicting gate, a
 ## formatter civil war, and the state handlers mangling records again
 
