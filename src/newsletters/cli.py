@@ -76,6 +76,13 @@ def build(
         help="Output directory for rendered HTML (defaults per corpus: "
         "content/{rev1,work,module,weekly}/site).",
     ),
+    author: str | None = typer.Option(
+        None,
+        "--author",
+        help="The byline for the weekly record (default: the spec's `config: author:` value; "
+        "one of the two must be given). Weekly-only — the other corpora carry their byline "
+        "in their own content.",
+    ),
 ) -> None:
     """Render a corpus's surfaces + the Library index to standalone HTML.
 
@@ -85,9 +92,20 @@ def build(
     surface). ``--corpus weekly`` renders the synthetic weekly record to
     ``content/weekly/site`` — the HTML only: the deck is a separate entry point
     (``newsletters weekly``), so rendering the site never drags the ``[pptx]`` extra in.
-    Lazy-imports only the selected builder so the bare install stays light + AI-free.
+    ``--author`` exists here because the weekly's no-byline error NAMES it (WR-03): the error
+    used to point at a flag only ``newsletters weekly`` had, so the operator following it hit a
+    second error. Lazy-imports only the selected builder so the bare install stays light +
+    AI-free.
     """
     target = out or _DEFAULT_OUT[corpus]
+
+    if author is not None and corpus is not CorpusName.weekly:
+        # Refuse rather than ignore: a silently-dropped byline is a name somebody thought they
+        # signed with. Only the weekly builder has an author seam this milestone.
+        raise typer.BadParameter(
+            f"--author applies to `--corpus weekly` only — the {corpus.value} corpus's byline "
+            "is authored inside its own content, not passed at build time."
+        )
 
     if corpus is CorpusName.work:
         from .worksurface import build_work_site
@@ -102,7 +120,13 @@ def build(
     elif corpus is CorpusName.weekly:
         from .weeklysite import build_weekly_site
 
-        written = build_weekly_site(target)
+        # The no-byline refusal (and any sibling refusal, e.g. a root-escaping asset) is a
+        # TEACHING error: echo its message and exit 1 instead of dumping a Typer traceback.
+        try:
+            written = build_weekly_site(target, author=author)
+        except ValueError as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(1) from exc
         index_name = "library.html"
     else:
         from .dogfood import build_site
@@ -200,13 +224,19 @@ def weekly(
     """
     from .weeklysite import build_weekly_deck
 
-    deck = build_weekly_deck(
-        out,
-        spec_path=spec,
-        lanes_path=lanes,
-        template=template,
-        author=author,
-    )
+    # A refusal (no byline, a root-escaping path) is a TEACHING error: echo its message and
+    # exit 1 rather than surfacing a raw Typer traceback (WR-03).
+    try:
+        deck = build_weekly_deck(
+            out,
+            spec_path=spec,
+            lanes_path=lanes,
+            template=template,
+            author=author,
+        )
+    except ValueError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
     digest = deck.with_suffix(deck.suffix + ".digest")
     typer.echo(f"  {deck}")
     typer.echo(f"  {digest}")

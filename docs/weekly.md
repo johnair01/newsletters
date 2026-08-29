@@ -188,9 +188,10 @@ single `*.yml` there rather than taking a `--spec`. To render your own week to H
 the spec in that corpus directory (or copy the corpus and point the builder at your copy). One
 corpus, one week: a second spec file beside the first is **refused loudly, naming both files** —
 never silently ignored — because the committed spec *is* the corpus, and a build that quietly
-rendered last week's file in place of yours would be a build you trusted wrongly. The deck command
-is the one that takes explicit paths. That asymmetry is the shipped surface today, stated rather
-than papered over.
+rendered last week's file in place of yours would be a build you trusted wrongly. Pass `--author
+"Your Name"` here too if your spec carries no `config: author:` — the same byline rule as the deck
+command. The deck command is the one that takes explicit paths. That asymmetry is the shipped
+surface today, stated rather than papered over.
 
 ## 7. Review
 

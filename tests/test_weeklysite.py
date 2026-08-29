@@ -798,6 +798,63 @@ def test_build_weekly_smoke(tmp_path: Path) -> None:
     )
 
 
+def test_build_weekly_author_flag_is_real_and_plumbed(tmp_path: Path) -> None:
+    """WR-03: the ``--author`` the no-byline error names EXISTS on ``build`` — and works.
+
+    The refusal message says "pass --author"; before this fix, the command most likely to raise
+    it (``newsletters build --corpus weekly``, the recipe's HTML path) exposed no such flag, so
+    the operator following the error hit a SECOND error. Three arms: the flag is exposed and
+    actually reaches the builder (the rendered byline carries the explicit name, overriding the
+    spec's ``config: author:``); a non-weekly corpus REFUSES it loudly rather than silently
+    dropping a name somebody thought they signed with; and the committed corpus is untouched by
+    the override build (the ledger re-save stays idempotent — the slug never derives from the
+    byline).
+    """
+    runner = CliRunner()
+    assert "--author" in runner.invoke(app, ["build", "--help"]).output
+
+    before = _content_fingerprint()
+    out = tmp_path / "signed"
+    result = runner.invoke(
+        app,
+        ["build", "--corpus", "weekly", "--out", str(out), "--author", "Kira Meru"],
+    )
+    assert result.exit_code == 0, result.output
+    page = (out / _report_page_name()).read_text(encoding="utf-8")
+    assert "Kira Meru" in page, "--author did not reach the rendered weekly byline"
+    assert _content_fingerprint() == before, (
+        "an --author override build moved a committed file under content/"
+    )
+
+    refused = runner.invoke(
+        app,
+        ["build", "--corpus", "module", "--out", str(tmp_path / "m"), "--author", "X"],
+    )
+    assert refused.exit_code != 0, refused.output
+    assert "--author applies to `--corpus weekly` only" in refused.stderr
+
+
+def test_build_weekly_no_byline_is_a_clean_refusal(monkeypatch, tmp_path: Path) -> None:
+    """WR-03: the no-byline refusal reaches the operator as a MESSAGE, not a Typer traceback.
+
+    The builder's ``ValueError`` is a teaching error; the CLI must echo it and exit 1 rather
+    than dump a stack trace under it. The raiser is injected at the module attribute the
+    command resolves at call time (the same seam ``test_check_weekly_blocks_on_planted_blocker``
+    proves), so no corpus edit is needed to reach the refusal.
+    """
+
+    def _refuse(*_a: object, **_k: object) -> list[Path]:
+        raise ValueError(weeklysite._NO_AUTHOR)
+
+    monkeypatch.setattr(weeklysite, "build_weekly_site", _refuse)
+    result = CliRunner().invoke(
+        app, ["build", "--corpus", "weekly", "--out", str(tmp_path / "o")]
+    )
+    assert result.exit_code == 1, result.output
+    assert weeklysite._NO_AUTHOR in result.stderr, result.stderr
+    assert "Traceback" not in result.stderr + result.output
+
+
 # --------------------------------------------------------------------------- #
 # Plan 04-03 Task 1 — the two doc-contract tests over `docs/weekly.md`.
 #
