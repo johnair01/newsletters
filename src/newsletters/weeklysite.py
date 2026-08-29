@@ -153,7 +153,20 @@ def _load_inbox_sources(root: Path | None) -> list[Source]:
     adapter = EmailAdapter()
     sources: list[Source] = []
     for path in sorted(corpus.glob(_INBOX_GLOB)):
-        rel = path.resolve().relative_to(root_path).as_posix()
+        # Root containment BEFORE the read: resolve() follows symlinks, so an inbox entry that
+        # is a symlink out of the root fails the relative_to() check before its bytes are ever
+        # touched. Re-raised in the corpus's refusal voice (IN-03, mirroring weeklyspec's
+        # _ASSET_ESCAPES_ROOT) rather than escaping as a bare 'not in the subpath' ValueError.
+        resolved = path.resolve()
+        try:
+            rel = resolved.relative_to(root_path).as_posix()
+        except ValueError as exc:
+            raise ValueError(
+                f"inbox message {path.name!r} resolves to {str(resolved)!r}, which is OUTSIDE "
+                f"the project root {str(root_path)!r} — REFUSING to read it. This is a refusal, "
+                "not an absence: a message that escapes the root is never parsed into evidence. "
+                "Move the file inside the project, or drop the symlink."
+            ) from exc
         source, _units, _unextracted = adapter.parse(path.read_bytes(), rel)
         sources.append(source)
     return sources

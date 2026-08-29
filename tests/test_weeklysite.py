@@ -609,6 +609,35 @@ def test_two_specs_in_one_corpus_refuse_loudly(tmp_path: Path) -> None:
     assert weeklysite._discover_spec(tmp_path).name == "weekly-2374-w41.yml"
 
 
+def test_inbox_symlink_escape_is_refused_before_the_read(tmp_path: Path) -> None:
+    """IN-03: an ``inbox/*.eml`` symlinked OUT of the root is refused, in the teaching voice.
+
+    The containment (``resolve()`` then ``relative_to(root)``) always held, but only as a bare
+    'not in the subpath' ``ValueError`` and with no pinning test — so a refactor to
+    ``os.path.relpath`` (which never raises) would have silently reopened the read. Pinned here:
+    the refusal names the file, where it resolves, and the root, and it fires BEFORE the bytes
+    are read (the target's content never becomes a ``Source``).
+    """
+    root = tmp_path / "project"
+    inbox = root / "content" / "weekly" / "inbox"
+    inbox.mkdir(parents=True)
+    outside = tmp_path / "outside.eml"
+    outside.write_text("From: escapee@example.invalid\n\nnot yours to parse")
+    (inbox / "escape.eml").symlink_to(outside)
+
+    with pytest.raises(ValueError, match="OUTSIDE") as excinfo:
+        weeklysite._load_inbox_sources(root)
+    message = str(excinfo.value)
+    assert "escape.eml" in message, message
+    assert "REFUSING to read it" in message, message
+
+    # …and a contained inbox still parses: the refusal is about ESCAPE, not about symlinks
+    # or the inbox per se.
+    (inbox / "escape.eml").unlink()
+    (inbox / "ok.eml").write_text("From: rota-desk@example.invalid\n\nfine")
+    assert len(weeklysite._load_inbox_sources(root)) == 1
+
+
 def test_build_from_foreign_cwd_honors_root(tmp_path: Path, monkeypatch) -> None:
     """WR-01: ``build_weekly_site(out, root=X)`` honors ``root`` EVERYWHERE, from any cwd.
 
