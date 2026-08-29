@@ -4,6 +4,19 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
+## 2026-08-29 — W28: the first hosted CI run falsified a "green" no local run could test
+
+**Friction.** PR #25's first `site-integrity` run failed 3 tests that had passed in every local
+run of the exact same command: Rich force-enables ANSI color when it detects GitHub Actions
+(GITHUB_ACTIONS/CI env), so Typer's `--help` output — plain text locally — arrived
+escape-coded on the runner, and the option-regex assertions matched nothing. This is the
+environment-detection twin of W21: the milestone spent four phases making "green because not
+run" impossible, and the first hosted run then surfaced "green because rendered differently".
+**Rule hardened:** an assertion over rendered CLI/console TEXT must pin the rendering
+environment (NO_COLOR, TERM, COLUMNS; CI-detection vars cleared) and strip ANSI before
+matching — exit codes never need this, text always does. Fixed in `tests/test_weeklysite.py`
+(`_help_output`), reproduced red locally under `GITHUB_ACTIONS=true` first, green after.
+
 ## 2026-08-29 (latest) — W27: the milestone's frictions, and what each one hardened into
 
 **Friction observed (v1.3 plan 04-03 — the operator recipe, the spec deltas, and the phase sweep).**
