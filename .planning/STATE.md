@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: milestone
-status: executing
+status: verifying
 stopped_at: "Completed 01-02-PLAN.md (recorded determinism decision); next: 01-03-PLAN.md"
-last_updated: "2026-08-29T03:49:46.495Z"
-last_activity: "2026-08-29 -- Phase 1 plan 01-01 complete (pptx determinism spike: BYTE-STABLE, evidence committed)"
+last_updated: "2026-08-29T03:59:57.651Z"
+last_activity: 2026-08-29 -- Phase 1 plan 01-03 complete (docs/weekly-spec.md written; architecture block-list drift fixed; compass + RETRO current)
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
-  percent: 0
+  completed_plans: 3
+  percent: 25
 ---
 
 # Project State
@@ -27,14 +27,14 @@ See: .planning/PROJECT.md (updated 2026-08-29)
 
 Phase: 1 (Specify + de-risk) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
-Last activity: 2026-08-29 -- Phase 1 plan 01-02 complete (the determinism/marker/template-contract decision recorded; contradicting docstring claims superseded)
+Status: Phase complete — ready for verification
+Last activity: 2026-08-29 -- Phase 1 plan 01-03 complete (docs/weekly-spec.md written; architecture block-list drift fixed; compass + RETRO current)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- v1.3: 2 plans complete (roadmap defined 2026-08-29; 4 phases).
+- v1.3: 3 plans complete (roadmap defined 2026-08-29; 4 phases). Phase 1 executed in 3 waves, ~48min total.
 - v1.2: 2 plans across 2 phases (closed 2026-08-29, archived).
 - v1.1: 12 plans across 4 phases (closed 2026-07-02, archived). v1.0: Phases 1–14 (archived).
 
@@ -42,7 +42,7 @@ Last activity: 2026-08-29 -- Phase 1 plan 01-02 complete (the determinism/marker
 
 | Phase | Plans | Status |
 |-------|-------|--------|
-| 1. Specify + de-risk | 2/3 | In Progress |
+| 1. Specify + de-risk | 3/3 | Plans complete — awaiting phase verification |
 | 2. Renderer (WKLY-01) | 0/0 (unplanned) | Not started |
 | 3. Weekly compose (WKLY-02/03/04) | 0/0 (unplanned) | Not started |
 | 4. Sample corpus + recipe (WKLY-05/06) | 0/0 (unplanned) | Not started |
@@ -53,6 +53,7 @@ Last activity: 2026-08-29 -- Phase 1 plan 01-02 complete (the determinism/marker
 |------|----------|-------|-------|
 | Phase 1 P01 | 12min | 3 tasks | 6 files |
 | Phase 1 P02 | 14min | 2 tasks | 3 files |
+| Phase 1 P03 | 22min | 3 tasks | 5 files |
 
 **Recent Trend:**
 
@@ -95,6 +96,9 @@ WHERE-WE-ARE.md):
 - [Phase 01-specify-de-risk]: Generated-by marker lives in OPC core properties (cp:category / cp:contentStatus / dcterms EPOCH_ZERO / cp:identifier), not a notes slide — zero new parts, asserted by reopening the WRITTEN file
 - [Phase 01-specify-de-risk]: Template contract: fill existing template slides (add_slide regenerates placeholder names); NL_ reserved prefix; the name-to-shape map raises on duplicate names; bind over slide.shapes
 - [Phase 01-specify-de-risk]: ONE normalizer contract: _determinism.normalize_opc_zip is canonical and _author_fixtures._normalize_zip delegates to it in Phase 2, not in a spec phase that would rebuild the golden corpus
+- [Phase 1]: The Weekly Spec's home is a new docs/weekly-spec.md — a sibling document AND a sibling loader — The casespec mechanism is reused verbatim (safe_load only, normalized file text as evidence, Trace.from_source spans, root containment, config bound but never claimed); the key set stays separate, because widening casespec's exactly-eight-key validator would make each format silently accept the other's fields (Q1)
+- [Phase 1]: AssetBlock.asset is REQUIRED — a provenance-less asset placement is unrepresentable, not merely policed — The type carries the invariant instead of a check somebody can forget to call, the same move GlossaryTerm.definition: Claim already makes in this codebase (D-02, threat T-01-18)
+- [Phase 1]: An asset path that escapes the project root RAISES; it is never routed to missing[] — missing[] is for content that is absent, never for a request the loader will not serve. Collapsing the two would let a future implementer 'disclose' a path traversal (T-01-16)
 
 ### Pending Todos
 
@@ -102,8 +106,8 @@ None. (B1–B20 fix-batch backlog remains parked in `reviews/2026-07-02-deep-rev
 
 ### Blockers/Concerns
 
-- [v1.3 Phase 1]: The `.pptx` determinism spike must retire the byte-stability risk (zips embed timestamps/ordering) BEFORE anything depends on the renderer — byte-stable, or a recorded content-stable definition with evidence.
-- [v1.3 Phase 3]: `render.py`'s block dispatch currently `return ""`s on an unrecognized block — new block kinds could be silently dropped from the HTML surface. Must be closed (render each kind, or fail loud) as a Phase 3 criterion.
+- [v1.3 Phase 1 — RETIRED 2026-08-29]: The `.pptx` byte-stability risk is closed. Measured on a real 3s-separated double write (`.planning/notes/2026-08-29-pptx-determinism-evidence.json`) and recorded as BYTE-STABLE via a declared post-save OPC-zip normalization, scoped to a fixed (python-pptx, zlib) pair; re-proved every run by `tests/test_pptx_determinism.py` (negative control included).
+- [v1.3 Phase 3]: `render.py`'s block dispatch ends in a bare `return ""`. It is UNREACHABLE today (all eleven union members have a branch), but adding four kinds without four branches makes it reachable and silent. The contract is now written in `docs/weekly-spec.md` §The four block kinds: Phase 3 adds four branches AND converts the fall-through into a teaching `raise` naming `block.kind`.
 - [Carried]: `v1.1`/`v1.2` tags exist locally only — the environment's git proxy drops tag pushes; maintainer creates them via the Releases UI.
 - [Carried]: ledgers (`content/*/ids.json`) are append-only — any diff on regenerate is a stop-the-line bug.
 
@@ -116,7 +120,14 @@ new at v1.3 open, the ADAPT-05 value-side extension (values come via export this
 
 ## Session Continuity
 
-Last session: 2026-08-29 — Phase 1 plan 01-02 executed: plan 01-01's committed measurement became
+Last session: 2026-08-29 — Phase 1 plan 01-03 executed: `docs/weekly-spec.md` written (281
+lines — the eight-key annotated schema, the seven loader rules, the four block kinds field by
+field, the asset-evidence record and its `missing[]` routing), `docs/architecture.md`'s
+pre-existing `diagram`/`glossary` block-list drift fixed in the same edit that added the four new
+kinds, the sibling pointer added to `docs/case-spec.md`, and the compass + RETRO brought current.
+Phase 1 has no production surface: `git diff --exit-code -- src/newsletters/` exits 0.
+
+Preceding session: 2026-08-29 — plan 01-02 turned plan 01-01's committed measurement into
 the recorded decision (`.planning/notes/2026-08-29-pptx-determinism-decision.md`, 340 lines) —
 BYTE-STABLE via a declared post-save OPC-zip normalization, scoped to a fixed (python-pptx, zlib)
 pair; the core-properties marker with its literal read-back assertion; the fill-existing-slides

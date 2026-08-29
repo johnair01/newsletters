@@ -70,7 +70,7 @@ name may leak into `src/`).
 
 ## Phases
 
-- [ ] **Phase 1: Specify + de-risk** — Weekly Spec schema + block kinds specified against `docs/architecture.md`; the `.pptx` determinism spike, decided on evidence up front
+- [x] **Phase 1: Specify + de-risk** — Weekly Spec schema + block kinds specified against `docs/architecture.md`; the `.pptx` determinism spike, decided on evidence up front (completed 2026-08-29)
 - [ ] **Phase 2: Renderer** (WKLY-01) — template-driven deterministic PPTX writer + generated-by marker + Draft watermark + gate wiring
 - [ ] **Phase 3: Weekly compose** (WKLY-02, WKLY-03, WKLY-04) — new block kinds, the Weekly Spec path, asset evidence, BI values via export
 - [ ] **Phase 4: Sample corpus + recipe** (WKLY-05, WKLY-06) — CI-rendered synthetic weekly + `docs/weekly.md` operator recipe
@@ -124,7 +124,7 @@ not shipped features. WKLY-01 is satisfied in Phase 2; WKLY-02 in Phase 3.
 
 - [x] `01-01-PLAN.md` — Determinism spike: real python-pptx double write across a time boundary, the spike as a durable test (part-digest / byte-equality / negative control), committed evidence, no production surface
 - [x] `01-02-PLAN.md` — The recorded decision: byte-stable via a declared zip normalization (scoped), the core-properties marker with its read-back assertion, the fill-existing-slides template contract; supersedes the contradicting fixture docstring
-- [ ] `01-03-PLAN.md` — `docs/weekly-spec.md` (schema + the four block kinds field-by-field + the asset-evidence record and its `missing[]` routing); `docs/architecture.md` block-list drift fixed and pointers wired
+- [x] `01-03-PLAN.md` — `docs/weekly-spec.md` (schema + the four block kinds field-by-field + the asset-evidence record and its `missing[]` routing); `docs/architecture.md` block-list drift fixed and pointers wired
 
 ### Phase 2: Renderer
 
@@ -244,7 +244,7 @@ operator through the loop on their own data, read-only and local.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Specify + de-risk | 2/3 | In Progress (3 plans, 3 waves) | - |
+| 1. Specify + de-risk | 3/3 | Complete (3 plans, 3 waves) | 2026-08-29 |
 | 2. Renderer | 0/0 | Not started | - |
 | 3. Weekly compose | 0/0 | Not started | - |
 | 4. Sample corpus + recipe | 0/0 | Not started | - |
