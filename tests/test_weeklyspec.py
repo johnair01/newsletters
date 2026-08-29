@@ -568,6 +568,44 @@ def test_full_spec_discloses_its_per_item_absences() -> None:
     assert load.spec.team[1].photo == ""
 
 
+def test_blank_list_items_are_dropped_with_a_positional_disclosure(
+    tmp_path: pathlib.Path,
+) -> None:
+    """WR-05 (03-review): a PRESENT-but-blank item inside a non-empty list is disclosed.
+
+    The banner promises "anything absent, empty or unlocatable lands in missing[]" (rule 4),
+    but a blank item inside a non-empty list (``["kept", ""]``, a ``~`` null entry, a blank
+    team line) was filtered out with NO disclosure — proven by execution in the review. The
+    author put a line there; its emptiness is now disclosed by position, never silently eaten.
+    """
+    text = (
+        "highlights:\n"
+        '  - "kept"\n'
+        '  - ""\n'
+        "  - ~\n"
+        "team:\n"
+        '  - name: "Kira Nerys"\n'
+        "    lines:\n"
+        '      - "carried"\n'
+        '      - ""\n'
+    )
+    path = tmp_path / "weekly-blank-items.yml"
+    path.write_text(text, encoding="utf-8")
+    load = load_weekly_spec(path, root=tmp_path)
+    notes = load.distillation.missing
+
+    # Nothing real is lost, and nothing blank is fabricated into the spec...
+    assert load.spec.highlights == ["kept"]
+    assert load.spec.team[0].lines == ["carried"]
+    # ...and every dropped blank is disclosed by its authored position.
+    assert any("'highlights[1]' is absent" in note for note in notes), notes
+    assert any("'highlights[2]' is absent" in note for note in notes), notes
+    assert any("'team[0].lines[1]' is absent" in note for note in notes), notes
+    # The kept lines are NOT disclosed — disclosure tracks the blanks, not the list.
+    assert not any("'highlights[0]'" in note for note in notes), notes
+    assert not any("'team[0].lines[0]'" in note for note in notes), notes
+
+
 # --------------------------------------------------------------------------- #
 # 6 — narrative reaches the typed spec byte-verbatim
 # --------------------------------------------------------------------------- #

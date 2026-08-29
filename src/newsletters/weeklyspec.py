@@ -738,11 +738,17 @@ def load_weekly_spec(
             if kept is not None:
                 spec_kwargs[key] = kept
         elif key in _NARRATIVE_KEYS and value is not None:
-            spec_kwargs[key] = [
-                item
-                for item in value
-                if _route(key, item, key, list_item=True) is not None
-            ]
+            kept_lines: list[str] = []
+            for index, item in enumerate(value):
+                if _route(key, item, key, list_item=True) is not None:
+                    kept_lines.append(item)
+                else:
+                    # WR-05 (03-review): a PRESENT-but-blank item ("" or ~) inside a non-empty
+                    # list was dropped with NO disclosure — contradicting the banner's "anything
+                    # absent, empty or unlocatable lands in missing[]" (rule 4). The author put
+                    # a line at this position; its emptiness is disclosed, never silently eaten.
+                    missing.append(absent(f"{key}[{index}]"))
+            spec_kwargs[key] = kept_lines
         elif key == _RECOGNITIONS_KEY and value is not None:
             recognitions: list[AuthoredRecognition] = []
             for item in value:
@@ -754,17 +760,25 @@ def load_weekly_spec(
             spec_kwargs[key] = recognitions
         elif key == _TEAM_KEY and value is not None:
             members: list[AuthoredMember] = []
-            for item in value:
+            for member_index, item in enumerate(value):
                 fields = {}
                 lines: list[str] = []
                 for field, field_value in item.items():  # file order within the mapping
                     if field == "lines":
-                        lines = [
-                            line
-                            for line in (field_value or [])
-                            if _route(field, line, f"{key}.{field}", list_item=True)
-                            is not None
-                        ]
+                        for line_index, line in enumerate(field_value or []):
+                            if (
+                                _route(field, line, f"{key}.{field}", list_item=True)
+                                is not None
+                            ):
+                                lines.append(line)
+                            else:
+                                # WR-05: a blank authored team line — same rule-4 disclosure
+                                # as a blank narrative item, named by its authored position.
+                                missing.append(
+                                    absent(
+                                        f"{key}[{member_index}].{field}[{line_index}]"
+                                    )
+                                )
                         continue
                     kept = _route(field, field_value, f"{key}.{field}")
                     fields[field] = kept if kept is not None else ""
@@ -1104,8 +1118,10 @@ def weekly_slots(load: WeeklySpecLoad, surface: Surface) -> dict[str, list[str]]
     so the slide carries THAT.
 
     Blank lines are impossible by construction rather than by filtering here: the loader drops
-    blank list items and leaves a blank scalar empty, so an authored section is either non-empty
-    real text or falsy and disclosed. Nothing authored is ever dropped in this function.
+    blank list items — DISCLOSING each by its authored position in ``missing[]`` (rule 4;
+    03-review WR-05) — and leaves a blank scalar empty, so an authored section is either
+    non-empty real text or falsy and disclosed. Nothing authored is ever dropped in this
+    function, and nothing dropped upstream went undisclosed.
 
     Args:
         load: the loaded weekly — the authored side, in file order.
