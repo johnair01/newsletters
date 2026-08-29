@@ -92,6 +92,7 @@ importable on a bare install and needs no skip guard. `tests/test_pptx_determini
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import io
 import zipfile
@@ -110,6 +111,7 @@ __all__ = [
     "DRAFT_STATUS",
     "WATERMARK_TEXT",
     "bind_slots",
+    "fill_slot",
 ]
 
 # The earliest timestamp the DOS date format used inside a ZIP can represent. Any fixed instant
@@ -391,3 +393,80 @@ def bind_slots(prs: Any, slots: Mapping[str, Sequence[str]]) -> dict[str, Any]:
             )
 
     return by_name
+
+
+def fill_slot(text_frame: Any, lines: Sequence[str]) -> None:
+    """Fill a template slot with N lines, PRESERVING the operator's paragraph and run formatting.
+
+    python-pptx exposes **no bullet API at all** — `_Paragraph`'s entire public surface is
+    ``add_line_break, add_run, alignment, clear, font, level, line_spacing, part, runs, space_after,
+    space_before, text`` (measured, W6) — so a bullet can only ever be *inherited*, never
+    synthesized. That single fact decides the primitive: paragraph 0 of the operator's slot is the
+    formatting carrier, and every additional line is a deep copy of it with its run's text replaced.
+    The moment the writer starts *building* formatting it has started inventing layout, which is the
+    one thing D-03 forbids.
+
+    THE TWO RULES THIS ENCODES — both are the ones a future editor is most tempted to "simplify":
+
+    (a) **Never assign ``text_frame.text`` on an operator's shape.** Measured (W3) on a box authored
+        20pt bold with a ``buChar`` bullet: the setter erases the run's ``rPr`` (20pt bold →
+        ``None``) AND the paragraph's ``pPr`` (the bullet vanishes), collapsing the frame to one
+        paragraph. The deck still renders — with the operator's formatting silently downgraded to
+        theme defaults. That is a visual regression NO automated check in this repo can see except
+        the fidelity tests in `tests/test_pptx_writer.py`. ``tf.clear()`` + ``add_paragraph()`` is
+        only half-safe and is therefore worse: it keeps p0's ``pPr`` but loses every run's ``rPr``,
+        and added paragraphs get no ``pPr`` at all (W4). A half-preserved deck is harder to notice
+        than an obviously-wrong one.
+
+    (b) **Never re-apply enumerated font properties after a ``tf.text`` assignment.** That copies
+        only the properties somebody thought to list; the deep copy carries the WHOLE ``rPr``/``pPr``
+        subtree, including theme references and language tags nobody would think to enumerate.
+
+    STANDING BAN — ``TextFrame.fit_text()`` must NEVER be used anywhere in this module (T-02-15).
+    Its ``_best_fit_font_size`` path locates a TrueType font file *installed on the current system*
+    (W7), which would make the output machine-dependent: the single most tempting non-determinism in
+    the library. Overflow is disclosed to a human (02-RESEARCH Pitfall 3), never "fixed" by shrinking
+    the font — faithful, not suggestive.
+
+    The lxml idiom ``el.getparent().remove(el)`` prunes surplus paragraphs and runs. It operates on
+    an ALREADY-PARSED tree and constructs no XML parser, so python-pptx's upstream
+    ``resolve_entities=False`` mitigation is not weakened (T-02-03). ``copy`` is stdlib, so this
+    function adds nothing to the module's bare-install surface.
+
+    Raises:
+        ValueError: if ``lines`` is empty (an empty slot ships a blank box to a reader), or if
+            paragraph 0 carries no run (nothing to inherit — Pitfall 6, an OBSERVED failure: a text
+            box with no typed characters really does have a paragraph with zero runs).
+    """
+    if not lines:
+        raise ValueError(
+            "refusing to fill a slot with no lines — an empty slot ships a blank box to a reader, "
+            "which is the same silent gap the unfilled-slot refusal exists to prevent. Either "
+            "supply at least one line or do not bind content to this slot."
+        )
+
+    p0 = text_frame.paragraphs[0]
+    for extra in list(text_frame.paragraphs)[1:]:
+        extra._p.getparent().remove(extra._p)
+
+    runs = p0.runs
+    if not runs:
+        raise ValueError(
+            "template slot's first paragraph carries no run, so there is no formatting to inherit "
+            "(measured: a text box with no typed characters has a paragraph with ZERO runs). The "
+            "renderer will not invent a font, size or bullet to put in its place. Type one "
+            "character of placeholder text into the shape in PowerPoint and re-save the template."
+        )
+    for surplus in runs[1:]:
+        surplus._r.getparent().remove(surplus._r)
+
+    # One deep copy of the carrier per EXTRA line, chained with `addnext` so document order matches
+    # `lines` order. The clone carries the whole rPr/pPr subtree — that is the entire point.
+    previous = p0._p
+    for _ in lines[1:]:
+        clone = copy.deepcopy(p0._p)
+        previous.addnext(clone)
+        previous = clone
+
+    for paragraph, line in zip(text_frame.paragraphs, lines):
+        paragraph.runs[0].text = line

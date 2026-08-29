@@ -73,6 +73,7 @@ from newsletters.pptx_writer import (  # noqa: E402
     WATERMARK_NAME,
     WATERMARK_TEXT,
     bind_slots,
+    fill_slot,
     normalize_opc_zip,
     part_digest,
 )
@@ -609,3 +610,142 @@ def test_slot_without_text_frame_raises(tmp_path: pathlib.Path) -> None:
         "the refusal no longer offers the two things the operator can actually do (point the slot "
         f"at a text box, or place the content as an asset). Message: {message}"
     )
+
+
+# --- Formatting fidelity: the only automated way to see 02-RESEARCH Pitfall 1 -------------------
+#
+# Every test below fills, SAVES, NORMALIZES and REOPENS THE WRITTEN BYTES before asserting. Never
+# assert against the in-memory object the fill just mutated: that object would report the operator's
+# formatting intact even if the write dropped it, which is precisely the failure being hunted.
+
+
+def _fill_and_reread(path: pathlib.Path, slots) -> "Presentation":
+    """Bind + fill every slot on the deck at `path`, then reopen the WRITTEN, normalized bytes."""
+    prs = Presentation(str(path))
+    bound = bind_slots(prs, slots)
+    for name, lines in slots.items():
+        fill_slot(bound[name].text_frame, lines)
+
+    buf = io.BytesIO()
+    prs.save(buf)
+    return Presentation(io.BytesIO(normalize_opc_zip(buf.getvalue())))
+
+
+def _paragraphs(prs, name: str):
+    """The paragraphs of the named slot, found through the RECURSIVE walk."""
+    shape = next(
+        candidate
+        for slide in prs.slides
+        for candidate in _walk(slide.shapes)
+        if candidate.name == name
+    )
+    return list(shape.text_frame.paragraphs)
+
+
+def test_fill_preserves_operator_formatting_on_every_line(
+    tmp_path: pathlib.Path,
+) -> None:
+    """Three lines into a 20pt bold slot read back as THREE 20pt bold lines (W3 / W5).
+
+    `NL_HIGHLIGHTS` carries three lines, so this exercises the clone path — paragraph 0 is reused
+    and paragraphs 1..n are deep copies of it. The size is asserted EXPLICITLY rather than "is not
+    None" because 02-RESEARCH Pitfall 1 names `font.size is None` as the only automated way to see
+    the silent-downgrade failure: the deck still opens, still passes every byte and digest
+    assertion, and has quietly lost the operator's formatting.
+    """
+    path = build_rich_template(tmp_path)
+    written = _fill_and_reread(path, RICH_SLOTS)
+
+    paragraphs = _paragraphs(written, "NL_HIGHLIGHTS")
+    assert len(paragraphs) == 3, (
+        "the three filled lines did not survive as three paragraphs — the clone chain lost a line "
+        f"or `tf.text` collapsed the frame. Found {len(paragraphs)}"
+    )
+    for index, paragraph in enumerate(paragraphs):
+        assert paragraph.runs, (
+            f"paragraph {index} came back with no run at all; there is nothing left carrying the "
+            "operator's formatting"
+        )
+        run = paragraph.runs[0]
+        assert run.font.size == Pt(20), (
+            f"paragraph {index}'s run size read back as {run.font.size!r}, not Pt(20)/254000 EMU. "
+            "A None here means the fill STOPPED INHERITING the operator's formatting: the deck "
+            "still renders, with their 20pt type silently downgraded to the theme default. That is "
+            "a visual regression no other check in this repo can see (02-RESEARCH Pitfall 1)."
+        )
+        assert run.font.bold is True, (
+            f"paragraph {index}'s bold read back as {run.font.bold!r} — same silent-downgrade "
+            "failure as the size above, same invisible-to-everything-else consequence"
+        )
+
+
+def test_fill_preserves_bullet_on_every_line(tmp_path: pathlib.Path) -> None:
+    """The `buChar` bullet survives on EVERY filled line, read back off the written bytes (W6).
+
+    python-pptx has no bullet API, so a bullet the fill dropped could never be put back by the
+    writer — it can only be inherited. This is the paragraph-level half of the fidelity claim (the
+    test above is the run-level half): `tf.clear()` + `add_paragraph()` would keep p0's bullet and
+    lose it on lines 2..n, which is exactly the half-preserved deck the primitive exists to avoid.
+    """
+    path = build_rich_template(tmp_path)
+    written = _fill_and_reread(path, RICH_SLOTS)
+
+    for index, paragraph in enumerate(_paragraphs(written, "NL_HIGHLIGHTS")):
+        properties = paragraph._p.find(qn("a:pPr"))
+        assert properties is not None, (
+            f"paragraph {index} has no pPr at all — the clone did not carry the operator's "
+            "paragraph properties, so its bullet, level and spacing are all gone"
+        )
+        assert properties.find(qn("a:buChar")) is not None, (
+            f"paragraph {index} lost its buChar bullet. python-pptx has NO bullet API, so a bullet "
+            "the fill drops cannot be restored by the writer — it can only be inherited (W6)"
+        )
+
+
+def test_unicode_and_xml_metacharacters_roundtrip(tmp_path: pathlib.Path) -> None:
+    """`café — "smart" … 🎯 <&>` reads back character for character (W11, threat T-02-14).
+
+    Slot content crosses from authored data into XML text nodes. python-pptx escapes it on the way
+    in and unescapes it on the way out; this asserts the round trip rather than assuming it, and it
+    is on the HAPPY path (the line lives in `RICH_SLOTS`) rather than in a special case nobody runs.
+    """
+    path = build_rich_template(tmp_path)
+    written = _fill_and_reread(path, RICH_SLOTS)
+
+    read_back = [
+        paragraph.runs[0].text for paragraph in _paragraphs(written, "NL_HIGHLIGHTS")
+    ]
+    assert read_back == RICH_SLOTS["NL_HIGHLIGHTS"], (
+        "the filled lines did not round-trip exactly. If only the metacharacter line differs, XML "
+        f"escaping is the suspect; if the order differs, the clone chain is. Read back: {read_back}"
+    )
+
+
+def test_empty_run_slot_raises(tmp_path: pathlib.Path) -> None:
+    """A slot whose paragraph 0 has ZERO runs raises a teaching error (Pitfall 6).
+
+    This is an OBSERVED failure, not defensive padding: a text box the operator "left blank on
+    purpose" has no typed characters and therefore no run, so the primitive has nothing to inherit
+    from. Without the raise the caller gets an `IndexError` from `paragraph.runs[0]`.
+    """
+    path = build_empty_run_template(tmp_path)
+    prs = Presentation(str(path))
+    bound = bind_slots(prs, {"NL_WEEK_TITLE": ["a line"]})
+
+    with pytest.raises(ValueError, match="carries no run") as caught:
+        fill_slot(bound["NL_WEEK_TITLE"].text_frame, ["a line"])
+
+    assert "one character of placeholder text" in str(caught.value), (
+        "the refusal no longer tells the operator the one thing that fixes it (type a character "
+        f"into the shape and re-save the template). Message: {caught.value}"
+    )
+
+
+def test_fill_with_no_lines_raises(tmp_path: pathlib.Path) -> None:
+    """An empty line list is refused: an empty slot ships a blank box to a reader."""
+    path = build_rich_template(tmp_path)
+    prs = Presentation(str(path))
+    bound = bind_slots(prs, RICH_SLOTS)
+
+    with pytest.raises(ValueError, match="no lines"):
+        fill_slot(bound["NL_WEEK_TITLE"].text_frame, [])
