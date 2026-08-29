@@ -121,6 +121,17 @@ the first-seen shape for unprefixed duplicates, which is deterministic and incon
 only `NL_*` shapes are the renderer's to fill. The regression test is
 `tests/test_pptx_writer.py::test_default_auto_named_multi_slide_deck_is_accepted`.
 
+#### Addendum (2026-08-29, Phase-2 code review): the `NL_` prefix now discriminates in BOTH directions
+
+The Phase-2 review (**WR-06**) found the reserved prefix discriminated one way only: an unfilled
+unprefixed shape was correctly not demanded, but content *bound to* an unprefixed name
+(`slots={"Footer": [...]}`) was silently filled — the last silent-write path into operator content.
+`bind_slots` now refuses any `slots` key that does not carry the `NL_` prefix, with a teaching
+error: only `NL_*` shapes are renderer slots; unprefixed shapes (logos, footers, page numbers) are
+the operator's and are never written. Together with the WR-02 clarification above, this makes the
+prefix the single load-bearing boundary in both directions: unprefixed shapes are never demanded,
+never filled, and never the subject of a duplicate refusal.
+
 ## The three assertions Phases 2 and 4 inherit
 
 | | Assertion | Where it runs | The failure it catches |

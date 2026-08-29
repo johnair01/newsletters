@@ -564,6 +564,33 @@ def test_unknown_slot_name_raises(tmp_path: pathlib.Path) -> None:
     )
 
 
+def test_content_bound_to_unprefixed_name_raises(tmp_path: pathlib.Path) -> None:
+    """WR-06: content bound to an UNPREFIXED shape name is refused, never silently filled.
+
+    `Footer` exists in the deck, so every other refusal passes it — before this fix the render
+    would overwrite the operator's own footer with renderer text, the exact "operator's
+    logo/footer modified" failure the committed-template test asserts against, with no teaching
+    error. The `NL_` prefix must discriminate in BOTH directions: unprefixed shapes are never
+    demanded AND never written.
+    """
+    path = build_rich_template(tmp_path)
+    prs = Presentation(str(path))
+    slots = {**RICH_SLOTS, "Footer": ["renderer text targeting the operator's footer"]}
+
+    with pytest.raises(ValueError, match="Footer") as caught:
+        bind_slots(prs, slots)
+
+    message = str(caught.value)
+    assert "never written" in message, (
+        "the refusal no longer states the contract (unprefixed shapes are the operator's and are "
+        f"never written), which is what tells the composer the bug is theirs. Message: {message}"
+    )
+    assert "reserved prefix" in message, (
+        "the refusal no longer offers the fix (rename the shape with the reserved prefix if it is "
+        f"meant to be a slot). Message: {message}"
+    )
+
+
 def test_unfilled_reserved_slot_raises(tmp_path: pathlib.Path) -> None:
     """Fail-loud direction (b): an `NL_` slot with no matching content, named in the message.
 

@@ -355,7 +355,7 @@ def bind_slots(
     the latter holds only real placeholders keyed by ``idx``, and operator-added textboxes and
     pictures are absent from it entirely (decision note, "The template contract").
 
-    Five refusals, in this order, each a ``ValueError`` in the house three-part teaching voice —
+    Six refusals, in this order, each a ``ValueError`` in the house three-part teaching voice —
     what was found, why it cannot be resolved silently, what the operator does next:
 
     1. a **duplicate `NL_`-prefixed shape name** (legal in OOXML; copy-paste is how an operator
@@ -369,12 +369,17 @@ def bind_slots(
     2. the template already defining **WATERMARK_NAME** (the renderer owns that name and adds the
        watermark itself; leaving it in the template writes two shapes under one name — measured,
        W14, with no error — and defeats this map on the next render);
-    3. an **unknown content name** — content bound to a name the template does not contain;
-    4. an **unfilled reserved slot** — an ``NL_``-prefixed shape with no matching content (a
+    3. an **unprefixed content name** — content bound to a name without the ``NL_`` prefix
+       (Phase-2 review WR-06). The prefix must discriminate in BOTH directions: an unprefixed
+       shape is never demanded (refusal 5), and it is never FILLED either — without this, a
+       composer bug or hand-written mapping targeting ``"Footer"`` would silently overwrite the
+       operator's own content, the one silent-write path the other refusals left open;
+    4. an **unknown content name** — content bound to a name the template does not contain;
+    5. an **unfilled reserved slot** — an ``NL_``-prefixed shape with no matching content (a
        reserved-prefix slot left empty would ship a blank box to a reader). The ``NL_`` prefix is
        what keeps this direction usable on a real deck: without it every operator logo, footer and
        page number would be rejected;
-    5. a **slot that cannot hold text** — a group or a picture reports ``has_text_frame == False``,
+    6. a **slot that cannot hold text** — a group or a picture reports ``has_text_frame == False``,
        so filling it would raise ``AttributeError``: a stack trace instead of a teaching error.
 
     Returns the name→shape map. Mutates nothing.
@@ -409,6 +414,15 @@ def bind_slots(
             "which adds the Draft watermark itself; leaving it in the template would produce two "
             "shapes with one name (measured: python-pptx writes both and raises nothing) and would "
             "defeat the name->shape binding on the next render. Remove it from the template."
+        )
+
+    unprefixed = sorted(name for name in slots if not name.startswith(SLOT_PREFIX))
+    if unprefixed:
+        raise ValueError(
+            f"content is bound to unprefixed shape name(s) {unprefixed!r} — only "
+            f"{SLOT_PREFIX!r}-prefixed shapes are renderer slots; unprefixed shapes are the "
+            "operator's (logos, footers, page numbers) and are never written. Rename the shape "
+            "with the reserved prefix if it is meant to be a slot."
         )
 
     unknown = sorted(set(slots) - set(by_name))
