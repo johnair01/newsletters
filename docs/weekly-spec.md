@@ -269,10 +269,23 @@ declares it; the loader enforces the consequence (a deep link, or the asset is n
 | `file` missing on disk, or its `sha256` ≠ the recorded value | not placed | `asset {key!r}: file {file!r} does not match its recorded content address — refusing to place a file that is not the one the record describes` |
 | `file` path escapes the project root | **`ValueError`** — fail loud, **not** `missing[]` | mirrors `casespec.load_case_spec`'s root containment: a refusal, not an absence |
 | all three minimums present, the link present when required, and the hash matches | an `AssetBlock` is minted, with ≥1 `Trace` into the record | — |
+| `team[].photo` names no `assets:` entry, or names an asset that was **not placed** | the member is carried; no photo is rendered | `team member {name!r}: photo key {key!r} names no placed asset — the member is carried, the photo is not` |
+| a recognition `source:` that resolves to no known `Source` | the recognition is carried with `evidence=[]`, exactly as if `source:` were absent (rule 6) — **never** a fabricated `Trace` | `recognition for {person!r}: source {source!r} does not resolve to a known Source — carried, with the unresolvable id disclosed` |
 
 The third row is the substitution case: a record that describes image A while image B sits on
 disk. Placing it would publish a picture the record does not vouch for, so the content address is
 checked at placement time, not trusted from authoring time.
+
+The last two rows route the *references* into and out of this record, so no authored-input failure
+mode is left to implementer discretion. A dangling `photo:` key is a `missing[]` disclosure, not a
+teaching error: unlike a mistyped top-level key (which risks dropping authored content), the
+member and their lines are fully carried — only the photo, which the provenance routing above may
+legitimately withhold anyway, is absent, and inventing or guessing an image would be worse than
+disclosing its absence. An unresolvable recognition `source:` gets the *absent-source* treatment
+rather than a minted empty `Trace` or a silent field drop: a `source:` that resolves to nothing is
+not evidence, and pretending otherwise — in either direction — would fabricate or erase exactly
+what `missing[]` exists to surface. The one difference from a truly absent `source:` is the
+disclosure text, which names the unresolvable id so the author can fix the typo.
 
 **Determinism of placed images** (measured in `01-RESEARCH`): media parts are numbered in add
 order, so iterating `assets:` in **spec file order** keeps `ppt/media/image1..N` stable across
