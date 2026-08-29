@@ -184,8 +184,11 @@ newsletters assemble --out dist/site
 ```
 
 `newsletters build --corpus weekly` renders **the corpus at `content/weekly/`** — it discovers the
-single `*.yml` there rather than taking a `--spec`. To render your own week to HTML, put your spec
-in that corpus directory (or copy the corpus and point the builder at your copy). The deck command
+single `*.yml` there rather than taking a `--spec`. To render your own week to HTML, **replace**
+the spec in that corpus directory (or copy the corpus and point the builder at your copy). One
+corpus, one week: a second spec file beside the first is **refused loudly, naming both files** —
+never silently ignored — because the committed spec *is* the corpus, and a build that quietly
+rendered last week's file in place of yours would be a build you trusted wrongly. The deck command
 is the one that takes explicit paths. That asymmetry is the shipped surface today, stated rather
 than papered over.
 

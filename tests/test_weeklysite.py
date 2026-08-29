@@ -512,6 +512,35 @@ def test_committed_equals_fresh_build(tmp_path: Path) -> None:
         ), f"{rel} differs between the committed corpus and a fresh build"
 
 
+def test_two_specs_in_one_corpus_refuse_loudly(tmp_path: Path) -> None:
+    """WR-02: a second ``*.yml`` beside the corpus spec is REFUSED, naming both files.
+
+    The trap this pins: drop ``weekly-2374-w42.yml`` beside the committed ``…-w41.yml`` and run
+    ``newsletters build --corpus weekly`` — the old sorted-glob-pick-first would deterministically
+    render LAST week's spec (w41 sorts first) with exit 0 and no hint a file was ignored, on
+    exactly the path ``docs/weekly.md`` §6 prescribes. One corpus, one spec is the committed
+    contract, so ambiguity is a teaching error, never a silent choice. The single-spec direction
+    is exercised by every builder test above; the .yml-free direction stays a FileNotFoundError.
+    """
+    corpus = tmp_path / "content" / "weekly"
+    corpus.mkdir(parents=True)
+    (corpus / "weekly-2374-w41.yml").write_text("week: w41\n", encoding="utf-8")
+    (corpus / "weekly-2374-w42.yml").write_text("week: w42\n", encoding="utf-8")
+
+    with pytest.raises(FileExistsError) as excinfo:
+        weeklysite._discover_spec(tmp_path)
+    message = str(excinfo.value)
+    assert "weekly-2374-w41.yml" in message, message
+    assert "weekly-2374-w42.yml" in message, message
+    assert "one corpus, one spec" in message, message
+
+    # Subdirectory files never collide with discovery (the glob is non-recursive): with one of
+    # the two moved into inbox/, discovery resolves the remaining single spec cleanly.
+    (corpus / "inbox").mkdir()
+    (corpus / "weekly-2374-w42.yml").rename(corpus / "inbox" / "weekly-2374-w42.yml")
+    assert weeklysite._discover_spec(tmp_path).name == "weekly-2374-w41.yml"
+
+
 def test_build_from_foreign_cwd_honors_root(tmp_path: Path, monkeypatch) -> None:
     """WR-01: ``build_weekly_site(out, root=X)`` honors ``root`` EVERYWHERE, from any cwd.
 

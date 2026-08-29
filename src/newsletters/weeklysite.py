@@ -100,17 +100,28 @@ def _discover_one_yml(root: Path | None, corpus_dir: str, what: str) -> Path:
     """Find the single committed ``*.yml`` under ``corpus_dir`` (generic, deterministic).
 
     Keeps the content-specific FILENAME out of source (LANE-03 abstraction guard): rather than
-    hardcode the committed file, we discover it. Each corpus is self-contained with exactly one
-    root-level config, so a SORTED glob is deterministic and byte-stable; the first entry is chosen
-    so the result never depends on filesystem order. ``Path.glob`` is NON-recursive, so the
-    corpus's ``inbox/``, ``assets/``, ``site/`` and ``deck/`` subdirectories never collide with it.
-    Returned ABSOLUTE so it resolves cleanly under any ``root`` the loader is given.
+    hardcode the committed file, we discover it. Each corpus is self-contained with exactly ONE
+    root-level config — and that "exactly one" is ENFORCED, not assumed (WR-02): two specs under
+    one corpus have no honest meaning in the committed==fresh model (which of them IS the
+    corpus?), and silently picking the alphabetically-first would deterministically render LAST
+    week's file for the operator who dropped this week's beside it. ``Path.glob`` is
+    NON-recursive, so the corpus's ``inbox/``, ``assets/``, ``site/`` and ``deck/``
+    subdirectories never collide with it. Returned ABSOLUTE so it resolves cleanly under any
+    ``root`` the loader is given.
     """
     corpus = (Path(root) if root is not None else Path.cwd()) / corpus_dir
     candidates = sorted(corpus.resolve().glob("*.yml"))
     if not candidates:
         raise FileNotFoundError(
             f"no {what} '*.yml' found under {corpus} — the corpus is not populated"
+        )
+    if len(candidates) > 1:
+        raise FileExistsError(
+            f"multiple {what} '*.yml' under {corpus}: {[c.name for c in candidates]} — one "
+            "corpus, one spec: the committed spec IS the corpus (committed==fresh), so a second "
+            "file beside it would silently be ignored, and the ignored one might be yours. "
+            "Replace the spec, copy the corpus, or pass an explicit path "
+            "(`newsletters weekly --spec/--lanes`) to choose."
         )
     return candidates[0]
 
