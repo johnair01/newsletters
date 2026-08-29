@@ -288,3 +288,40 @@ def test_duplicate_member_names_are_refused_loudly() -> None:
         differing_parts(clean, shadowed)
     with pytest.raises(ValueError, match="duplicate member names.*evil.xml"):
         differing_zipinfo_fields(shadowed, clean)
+
+
+def test_committed_template_is_scrubbed_and_normalized() -> None:
+    """The fail-loud scrub guard `_author_template.py` promises (01-RESEARCH §Pitfall 6).
+
+    `Presentation()` with no argument loads python-pptx's bundled default template, whose
+    `docProps/core.xml` ships ``last_modified_by = "Steve Canny"`` and ``comments = "generated
+    using python-pptx"``. A regeneration of `template.pptx` that forgot `_CORE_PROPERTIES` would
+    commit a third party's name and a foreign tool's marketing string into the fixture corpus —
+    this test is what makes that regeneration fail loudly, asserting against the COMMITTED bytes
+    (never a freshly rendered deck, which the module-scoped writer scrubs separately).
+
+    The final assertion enforces `_author_template.py`'s other standing claim: the committed
+    binary is already normalized, so ``normalize_opc_zip(committed) == committed``.
+    """
+    raw = TEMPLATE.read_bytes()
+
+    with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+        core_xml = archive.read("docProps/core.xml")
+    assert b"Steve Canny" not in core_xml, (
+        "the committed template still carries python-pptx's stock author — the regeneration "
+        "skipped the _CORE_PROPERTIES scrub in _author_template.py"
+    )
+    assert b"python-pptx" not in core_xml, (
+        "the committed template still carries the stock 'generated using python-pptx' string — "
+        "the regeneration skipped the _CORE_PROPERTIES scrub in _author_template.py"
+    )
+
+    cp = Presentation(str(TEMPLATE)).core_properties
+    assert cp.author == "newsletters fixture author", cp.author
+    assert cp.last_modified_by == "newsletters fixture author", cp.last_modified_by
+
+    assert normalize_opc_zip(raw) == raw, (
+        "the committed template is not its own normalization — _author_template.py routes the "
+        "bytes through normalize_opc_zip BEFORE writing, so the committed artifact must be a "
+        "fixed point of the normalizer"
+    )
