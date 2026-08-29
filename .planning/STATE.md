@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 04-02-PLAN.md — the weekly is wired into publish/CLI/CI/deploy and the deck gate is proven; next: 04-03-PLAN.md (docs/weekly.md, the operator recipe — WKLY-06)"
-last_updated: "2026-08-29T10:05:00.000Z"
-last_activity: 2026-08-29 — Phase 4 plan 02 executed (WKLY-05 COMPLETE: the fourth corpus registered everywhere, `check --corpus weekly` proven to block, tier-2 deck gate)
+stopped_at: "Completed 04-03-PLAN.md — Phase 4 is complete (3/3 plans; WKLY-05 + WKLY-06 closed). Next: phase verification, then the milestone PR."
+last_updated: "2026-08-29T10:15:00.000Z"
+last_activity: 2026-08-29 — Phase 4 plan 03 executed (WKLY-06 COMPLETE: docs/weekly.md executed end to end, three doc-guard tests, the four-corpora spec deltas, the phase gate sweep)
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 13
-  completed_plans: 12
-  percent: 75
+  completed_plans: 13
+  percent: 100
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-08-29)
 
 ## Current Position
 
-Phase: Phase 4: Sample corpus + recipe (WKLY-05..06) — in progress (2/3 plans)
-Plan: 04-02 complete (WKLY-05 CLOSED); next 04-03 (`docs/weekly.md` — the operator recipe, WKLY-06)
-Status: Ready to execute
-Last activity: 2026-08-29 — Phase 4 plan 02 executed (the fourth corpus registered in publish/CLI/both workflows/all four Records strips; `check --corpus weekly` proven to BLOCK; the `[pptx]`-gated tier-2 deck gate)
+Phase: Phase 4: Sample corpus + recipe (WKLY-05..06) — plans complete (3/3), awaiting phase verification
+Plan: 04-03 complete (WKLY-06 CLOSED); next: `/gsd-verify-work` for Phase 4, then the milestone PR
+Status: Ready to verify
+Last activity: 2026-08-29 — Phase 4 plan 03 executed (`docs/weekly.md` written AND executed against the committed corpus; three doc-guard tests; the four-corpora spec deltas incl. the deploy-pages header comment; the ten-row gate sweep re-run independently)
 
 ## Performance Metrics
 
@@ -45,7 +45,7 @@ Last activity: 2026-08-29 — Phase 4 plan 02 executed (the fourth corpus regist
 | 1. Specify + de-risk | 3/3 | Plans complete — awaiting phase verification |
 | 2. Renderer (WKLY-01) | 3/3 | Plans complete — awaiting phase verification (SC-1..SC-5 proved locally; the `pptx` job's first CI green and the real-PowerPoint open are PR-review items) |
 | 3. Weekly compose (WKLY-02/03/04) | 4/4 | Plans complete — awaiting phase verification. 03-01 landed the four block kinds, their render branches and the replacement gate freeze; 03-02 landed the promoted `SpanMinter` and the Weekly Spec load half; 03-03 closed WKLY-03 (asset routing) and the composition half of WKLY-02 (`build_weekly_report`); 03-04 closed WKLY-04 (values via the existing ADAPT-03 adapter) and SC-5 (`weekly_slots` + the end-to-end deck), and added the `weekly` CI job — the first job that runs the compose path at all |
-| 4. Sample corpus + recipe (WKLY-05/06) | 2/3 | In progress. **WKLY-05 is COMPLETE.** 04-01 landed the committed `content/weekly/` corpus (spec · `.eml` · PNG · template copy · `R-001` ledger · `site/` · `deck/` + digest sidecar), `weeklysite.py`, the promoted `tests/_corpus_scan.py` scanner and the `newsletters weekly` command. 04-02 wired the fourth corpus into all seventeen integration sites — `_CORPUS_LAYOUT`, the `build`/`check` selector, both workflow gates, all four Records strips, the four builder-regenerated chrome pages — and proved the two things the corpus could not prove about itself: `check --corpus weekly` FIRES on a planted blocker, and the committed deck equals a fresh render under `part_digest`. Remaining: 04-03 (`docs/weekly.md`, WKLY-06) |
+| 4. Sample corpus + recipe (WKLY-05/06) | 3/3 | Plans complete — awaiting phase verification. **WKLY-05 and WKLY-06 are both COMPLETE.** 04-03 landed `docs/weekly.md` (the eight-step operator recipe, every fenced command EXECUTED against the committed corpus in document order — the deck regeneration reproduced the committed bytes and `git status` stayed clean), three doc-guard tests (the recipe's commands validated against the LIVE Typer app with a non-vacuity floor; the recipe's trust anchors; the four-corpora shape of `architecture`/`surfaces`/`CLAUDE`/`content README`), the spec deltas that made those four documents true again plus the deploy-pages header comment 04-02 had recorded, and the phase's ten-row gate sweep re-run independently (862/0 · 2 kept · 4 cleans · 15 mypy · 69 black · no new isort · ledgers clean). Earlier: **WKLY-05 is COMPLETE.** 04-01 landed the committed `content/weekly/` corpus (spec · `.eml` · PNG · template copy · `R-001` ledger · `site/` · `deck/` + digest sidecar), `weeklysite.py`, the promoted `tests/_corpus_scan.py` scanner and the `newsletters weekly` command. 04-02 wired the fourth corpus into all seventeen integration sites — `_CORPUS_LAYOUT`, the `build`/`check` selector, both workflow gates, all four Records strips, the four builder-regenerated chrome pages — and proved the two things the corpus could not prove about itself: `check --corpus weekly` FIRES on a planted blocker, and the committed deck equals a fresh render under `part_digest`. Remaining: 04-03 (`docs/weekly.md`, WKLY-06) |
 
 **Per-plan execution:**
 
@@ -63,6 +63,7 @@ Last activity: 2026-08-29 — Phase 4 plan 02 executed (the fourth corpus regist
 | Phase 3 P04 | 14min | 3 tasks | 7 files |
 | Phase 4 P01 | 22min | 3 tasks | 24 files |
 | Phase 4 P02 | 28min | 3 tasks | 15 files |
+| Phase 4 P03 | 22min | 3 tasks | 9 files |
 
 **Recent Trend:**
 
@@ -168,6 +169,11 @@ WHERE-WE-ARE.md):
 - [Phase 4-02]: `deploy-pages.yml`'s "WHAT PUBLISHES" header comment still enumerates three corpora. Left deliberately stale to hold the one-added-line/zero-deletion criterion in the one file where the diff IS the evidence — RECORDED in `04-02-SUMMARY.md` rather than fixed silently, as a one-line follow-up for the PR review.
 - [Phase 4-01]: isort/black hygiene was fixed on this plan's OWN files only (no repo-wide reformat; DEF-15 stays maintainer-gated). No import in them is a multi-line parenthesized one — that shape is exactly what isort and black disagree about. A `black` run that reformatted two untouched `cli.py` lines was reverted by hand, so the `cli.py` diff is a pure 69-line insertion with 0 deletions.
 
+- [Phase 4-03]: `docs/weekly.md` documents the CLI **as it ships**, including the two asymmetries an operator would otherwise find the hard way: `build --corpus weekly` renders the corpus at `content/weekly/` and takes no `--spec` (only the deck command takes explicit paths), and there is **no `--workbook` flag** — carrying an export's claims into a weekly is a Python-API seam this milestone (`resolve("excel")` → `SectionBinding` → `build_weekly_report(..., bindings=[...])`). Both stated out loud rather than implied by a flag that does not exist.
+- [Phase 4-03]: The doc-contract test drives its expected set from the LIVE Typer app (invoke `<command> --help`, parse the option tokens out of the help body), never from a hand-written list, and carries a `>= 4` command-line floor plus two discriminating arms. A regex that silently matches nothing passes forever — which is the precise failure a doc-contract test exists to prevent.
+- [Phase 4-03]: `test_docs_describe_four_corpora` asserts over PROSE — code fences and HTML comments stripped, whitespace collapsed — because `three committed corpora` spans a hard line break in `docs/architecture.md`. A raw `in` check would have passed on the stale document; the first in-memory mutation used to prove the guard discriminates initially did nothing for exactly that reason, and that near-miss is recorded in the summary.
+- [Phase 4-03]: `deploy-pages.yml`'s stale "WHAT PUBLISHES" comment (recorded-not-fixed by 04-02) is PAID. It costs that file's one-added-line/zero-deletion diff shape — now 5 insertions / 2 deletions vs the milestone base — and **every changed line is a comment**: gates, conditions, steps and the publish command are byte-unchanged, quoted in full in the summary rather than asserted.
+
 ### Pending Todos
 
 None. (B1–B20 fix-batch backlog remains parked in `reviews/2026-07-02-deep-review/07-tests-as-promises.md`, maintainer-gated.)
@@ -245,7 +251,45 @@ mine?" tax. Maintainer-gated because the fix is a repo-wide reformat.
 
 ## Session Continuity
 
-Last session: 2026-08-29 — **Phase 4 plan 04-02 executed. WKLY-05 is CLOSED.** The fourth corpus
+Last session: 2026-08-29 — **Phase 4 plan 04-03 executed. WKLY-06 is CLOSED and Phase 4 is
+complete (3/3 plans).** `docs/weekly.md` now takes an operator who is not the author from a
+template deck / workbook export / `.eml` drop / photo folder through authoring, composing,
+rendering and reviewing — read-only, local, nothing committed, nothing published — and **all six
+of its fenced commands were EXECUTED against the committed corpus in document order**, with the
+deck-regenerating one reproducing the committed deck AND sidecar **byte for byte** (`64d296e5…`,
+`c93497c4…`; digest `d61ce632…396259`) and `git status --porcelain` empty afterwards. The two
+things execution forced into the DOC rather than into a summary: `build --corpus weekly` takes no
+`--spec` (it renders the corpus), and there is no `--workbook` flag (the export path is a
+Python-API seam) — both now stated beside the "no CSV reader / no Power BI value reader" scope
+line. Three guards keep it that way: the commands are validated against the LIVE Typer app with a
+`>= 4` floor and two discriminating arms (renaming `--lanes` → `--lane` gives `unknown option
+--lane on weekly`), the recipe's trust anchors are a presence guard (read-only · stays on your
+machine · no network · commits nothing · the named gate · `word_wrap` · the scope statement), and
+`test_docs_describe_four_corpora` holds four documents to the shipped shape. That last one taught
+the lesson worth carrying: it reads prose with fences stripped and whitespace collapsed, because
+`three committed corpora` spans a line break — the first mutation written to prove the guard
+discriminates silently did nothing, and a raw `in` check would have passed on a stale document.
+Spec deltas landed in the same change that made them stale (CLAUDE.md's own rule): the
+`--corpus` section of `architecture.md` was stale at **two** corpora and is now a four-row table
+naming each builder, default out dir and its own ledger; §9 says four and records the deck's
+non-publication as STRUCTURAL (`assemble_site` copies `content/*/site` only) with the costed
+one-task reversal named but not built; `surfaces.md`, `CLAUDE.md` and `content/README.md`
+("Empty until then", untrue since v1.1) fixed; and `deploy-pages.yml`'s header comment — 04-02's
+recorded follow-up — paid, comment-only, with the full diff quoted. Gate sweep, re-run
+independently, once each: **862 passed / 0 skipped** (baseline 859/0, +3 guards); `lint-imports`
+**2 kept / 0 broken**; **four** `check` cleans; committed==fresh 49 passed + deck tier 1 (2) +
+tier 2 (6); `ci.yml` **0 deleted lines** and the `bare-install` job block **byte-identical** to
+the milestone base; `mypy` **15/5** unchanged; `black` **69/33** unchanged; `isort` 57 files, the
+touched test NOT among them; all four ledgers byte-unchanged after rebuilding every corpus; gate
+freeze 11 passed; abstraction guard 3 passed; the `site-integrity` job's exact command **114
+passed** and the `weekly` job's **189 passed / 0 skipped** with its fail-on-skip grep clean.
+Nothing publishes: read end to end, the only file that can publish is main-gated three ways, its
+sole outbound call is a warn-only preflight, and this phase pushed nothing to `main`.
+Stopped at: Completed 04-03-PLAN.md — Phase 4 complete; next: phase verification, then the
+milestone PR
+Resume file: `.planning/phases/04-sample-corpus-recipe/04-03-SUMMARY.md`
+
+Previously: 2026-08-29 — **Phase 4 plan 04-02 executed. WKLY-05 is CLOSED.** The fourth corpus
 is now registered in every place that knew about three — `publish._CORPUS_LAYOUT`, the
 `build`/`check` selector, the `merge-block` and deploy gate lines, and the Records strip on all
 four builders — and the two things the corpus could not prove about itself are proven. The

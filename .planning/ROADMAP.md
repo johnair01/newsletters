@@ -73,7 +73,7 @@ name may leak into `src/`).
 - [x] **Phase 1: Specify + de-risk** — Weekly Spec schema + block kinds specified against `docs/architecture.md`; the `.pptx` determinism spike, decided on evidence up front (completed 2026-08-29)
 - [x] **Phase 2: Renderer** (WKLY-01) — template-driven deterministic PPTX writer + generated-by marker + Draft watermark + gate wiring (completed 2026-08-29)
 - [x] **Phase 3: Weekly compose** (WKLY-02, WKLY-03, WKLY-04) — new block kinds, the Weekly Spec path, asset evidence, BI values via export (completed 2026-08-29)
-- [ ] **Phase 4: Sample corpus + recipe** (WKLY-05, WKLY-06) — CI-rendered synthetic weekly + `docs/weekly.md` operator recipe
+- [x] **Phase 4: Sample corpus + recipe** (WKLY-05, WKLY-06) — CI-rendered synthetic weekly + `docs/weekly.md` operator recipe (completed 2026-08-29)
 
 ## Phase Details
 
@@ -299,7 +299,7 @@ committed==fresh goes red)
 | 1. Specify + de-risk | 3/3 | Complete    | 2026-08-29 |
 | 2. Renderer | 3/3 | Complete    | 2026-08-29 |
 | 3. Weekly compose | 4/4 | Complete    | 2026-08-29 |
-| 4. Sample corpus + recipe | 2/3 | In Progress|  |
+| 4. Sample corpus + recipe | 3/3 | Complete   | 2026-08-29 |
 
 Plans are created per phase by `/gsd-plan-phase`; `0/0` means "not yet planned", not "no work".
 
