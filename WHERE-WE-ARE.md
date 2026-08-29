@@ -7,7 +7,56 @@
 
 ## Where we are right now
 
-**2026-08-29 (newest) — v1.3 PHASE 3, PLAN 03: A PICTURE NOW HAS TO EARN ITS PLACE, AND THE
+**2026-08-29 (newest) — v1.3 PHASE 3 IS DONE: THE WEEKLY IS NOW A DECK, THE NUMBERS COME FROM YOUR
+EXPORT, AND — FINALLY — A ROBOT ACTUALLY RUNS THE TESTS (plan 03-04 of 4, branch
+`claude/new-session-gw8tik`).** Three plans built the weekly's parts; this one turns them into
+something you can send, and closes the gap that made all of it only *look* proven.
+
+- **A hand-written weekly now comes out the other end as a PowerPoint.** You write the YAML; the
+  package fills the four named boxes in the template an operator authored, stamps the deck as
+  machine-generated, and — because nobody has approved it yet — writes DRAFT across every slide.
+  Render it twice and you get byte-identical files. Every one of those claims is checked by
+  *reopening the file that was written*, never by asking the writer whether it worked.
+- **The week with nothing to confess still renders — and the slide says so in the record's own
+  words.** This was the interesting design call. The template declares a "lowlights" box, and the
+  writer refuses to ship an empty named box (a blank box on a slide is a lie of omission). The
+  obvious fix — skip the box — would mean a weekly with no lowlights *fails to render at all*. The
+  other obvious fix — write "Nothing to report" — is the composer inventing the single most
+  consequential line in the deck. So the line on that slide **is** the honesty-panel disclosure
+  itself, and the composer checks that the string it is about to print really is in the record's
+  `missing[]` list; if it isn't, it refuses. We broke it on purpose (made it print an em dash
+  instead) and watched six tests go red.
+- **Your numbers arrive the boring way, on purpose.** Export the BI view to a spreadsheet, and the
+  adapter this repo already had reads it — every cell becomes a value pinned to its own address in
+  the export, and the weekly's KPI strip derives its ↑/↓ from *two independently traced cells*,
+  never from a number somebody typed. We wrote **no new reader**. Three tests assert the absences:
+  the adapters folder gained no file, the Power BI reader is byte-for-byte what it was, and the
+  weekly loader contains no spreadsheet code at all. ("`.csv`" in the old prose was a wording
+  slip — the live reader is `.xlsx`-only, and a CSV path would be exactly the new reader this
+  requirement forbids.)
+- **The thing that was actually broken: nothing was running these tests.** Nine test modules —
+  including the 88-test one that is the whole authoring path — ran in **no CI job whatsoever**.
+  Green because nobody pressed play. That is the second time this build has hit that exact failure,
+  so the fix is a job that names all nine, installs what they need, fetches the full git history
+  (three of the guards compare against the branch point and *fail* rather than skip without it),
+  and **fails if the run reports a single skipped test**. Verified by running the job's exact
+  command here first: 174 passed, 0 skipped.
+- **The whole suite now runs with zero skips for the first time in this milestone** — 699 passed /
+  64 skipped before, 812 passed / 0 skipped after. Every one of those 64 was a spreadsheet test
+  quietly excusing itself.
+
+What deliberately did *not* ship, said out loud: **the deck is text-only.** The writer has no
+image-placement path at all, no criterion asked for one, and we measured the image-determinism
+property in Phase 1 but have not spent it. Pictures reach the web page; they do not reach the
+slides. That is written into `docs/weekly-spec.md` as a decision with a round-two flag, not left
+for someone to discover.
+
+**Still open, and both belong to the PR review, not to the phase:** nobody has watched the new CI
+job go green (no `gh` here), and nobody has opened one of these decks in real PowerPoint (this
+environment has no PowerPoint and LibreOffice ships without the Impress filters). Stated, not
+assumed — the whole point of the lesson above is that an unobserved run is not evidence.
+
+**2026-08-29 (earlier) — v1.3 PHASE 3, PLAN 03: A PICTURE NOW HAS TO EARN ITS PLACE, AND THE
 COMPOSER IS NOT ALLOWED TO IMPROVE YOUR WRITING (plan 03-03 of 4, branch
 `claude/new-session-gw8tik`).** Last plan let you hand-write a weekly and be believed word for
 word. This one closes the two things that were still promises: the images, and the composing.
@@ -720,6 +769,34 @@ end-to-end; Wave 2 adds the conformance suite + the hard-rule tests.
 
 ## Decisions, and why (teaching log — decide once, don't re-litigate)
 
+- **One span-minter, promoted rather than copied** (2026-08-29, v1.3 Phase 3 plan 02). The
+  machinery that pins each authored sentence to the exact characters of the author's file moved
+  *verbatim* out of the Case Spec into `specspan.py`, and both loaders import it. Two copies of a
+  trust mechanism drift apart silently — the same reason `pptx_writer.py` exists. The move is
+  visibly a move (131 deletions, 7 insertions) and the Case Spec's own tests passed **untouched**,
+  which is the only honest way to say "nothing changed".
+- **A gate that compares the working tree to the last commit is not a gate** (2026-08-29, v1.3
+  Phase 3 plan 01). `semantic.py`'s byte-freeze shelled `git diff HEAD`: red on an uncommitted
+  edit, green the instant it was committed — so in CI's clean checkout it could never fail. It is
+  replaced by source-hash pins over the eight functions that *are* the review gate, plus a
+  zero-deleted-lines diff against the **branch point** (`git merge-base HEAD origin/main`), which
+  is resolved once in `tests/conftest.py` and **fails rather than skips** when it cannot be found.
+  Worth keeping: a planted blank line turned the hash pin red while the zero-deletion half stayed
+  green. Two halves, two failure modes; neither alone is the protection.
+- **An empty section's slide line IS its disclosure** (2026-08-29, v1.3 Phase 3 plan 04). Not an
+  omitted box (the writer refuses an unfilled named slot, so the weekly would not render at all),
+  and not invented filler ("Nothing to report" would be the composer editorialising on the line
+  that matters most). The composer prints the record's own `missing[]` string and *checks
+  membership before printing it*, so a slide line can never drift into prose nobody wrote.
+- **The weekly deck is text-only this milestone** (2026-08-29, v1.3 Phase 3 plan 04). The writer
+  has no image-placement path; images reach the HTML surface and not the slides. Recorded in
+  `docs/weekly-spec.md` as a decision with a round-two flag — an absence that is written down is a
+  scope call, an absence that isn't is a bug waiting to be found by a reader.
+- **BI values arrive as an `.xlsx` export through the adapter we already have** (2026-08-29, v1.3
+  Phase 3 plan 04). No new reader, and the Power BI *definition* reader stays a definition reader —
+  both asserted by diff against the branch point rather than promised. The milestone's "`.csv`"
+  wording is a slip, clarified in writing: the live adapter is `.xlsx`-only and a CSV path would be
+  precisely the new module the requirement forbids.
 - **Faithfulness gate scope — "Option A": strict containment only where there's content-addressed
   evidence; un-addressed traces fall back to structural (is-traced)** (2026-06-17, Phase 3). An
   executor caught that the live capture path mints *empty-span* traces, so a strict "claim text must

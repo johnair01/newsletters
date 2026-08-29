@@ -4,7 +4,57 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
-## 2026-08-29 (latest) — W24: the tool that half-wrote the state file, and the guard that accused the author
+## 2026-08-29 (latest) — W25: the nine test modules nobody was running, and the vacuous-diff family closed
+
+**Friction observed (v1.3 plan 03-04 — the weekly deck, values-via-export, and the CI job)**
+
+1. **"A test suite and the job that runs it are two different artifacts" cost us twice in one
+   milestone.** W21 was `[pptx]`: no CI job installed the extra, so every pptx module skipped
+   itself on every run. This plan found the same shape one layer out and *larger*: nine modules —
+   `test_weeklyspec.py` (88 tests, the entire authoring/placement/compose/deck path),
+   `test_weekly_blocks.py`, `test_weekly_values.py`, `test_semantic_gate_frozen.py`,
+   `test_casespec.py`, `test_compose.py`, `test_swimlane.py`, `test_abstraction_guard.py`,
+   `test_excel_adapter.py` — were named by **no** CI job at all. Not skipped. Simply never
+   collected. Every green any of them produced during three plans of this phase was a local green.
+   The honest reading is that W21's rule was written down and then applied only to the extra that
+   happened to trip it, instead of to the class.
+2. **64 skips were reported for three plans and nobody read the number.** The baseline line
+   `699 passed, 64 skipped` was recorded in three consecutive summaries as though the second number
+   were furniture. It was the entire `[excel]` surface excusing itself. One `pip install -e '.[excel]'`
+   turned it into `812 passed, 0 skipped` — and the delta is bigger than 64, because a module-level
+   `importorskip` reports the whole module as **one** skip entry however many tests it holds. A skip
+   count is not a count of skipped tests, which makes it even easier to under-read.
+3. **A plan's stated behaviour did not match the live adapter.** The plan said the excel adapter's
+   claims carry "the canonical `Sheet!A1<SEP>value` lines". They do not: the claim's text is the
+   **cell value**, and the `Sheet!A1<SEP>` prefix is what separates adjacent values in the
+   transcript so duplicate values still get distinct, ordered spans. Found by probing the live
+   adapter before writing the assertion — which is the only reason the test asserts something true.
+   A test written to the plan's wording would have been green-by-adjustment or red-for-nothing.
+4. **A grep-shaped acceptance criterion was case-sensitive and the prose was not.** The criterion
+   `grep -c 'text-only\|text only' docs/weekly-spec.md` printed `0` against a paragraph whose
+   heading said **TEXT-ONLY** in the house's emphatic caps. The criterion was right and the prose
+   was fine; only the pair was wrong. Same family as W24's "a criterion binds the file's prose too".
+
+**Rules hardened**
+
+- *A new test module is not done until a CI job names it.* Adding a module without adding it to a
+  job is the W21/W25 failure, now observed twice. The `weekly` job exists (`.github/workflows/ci.yml`)
+  and asserts **`0 skipped`** with a failure message that names this lesson — so the guard is a job
+  step, not a note in a retro.
+- *Read the skip count, out loud, in the summary — and treat a non-zero one as an open question,
+  never as furniture.* Both the before (`64 skipped`) and after (`0 skipped`) counts are recorded in
+  `03-04-SUMMARY.md`. A green whose skip count you did not read is not evidence.
+- *Probe the live object before asserting its shape, even when a plan states it.* The plan is an
+  intention; the adapter is the fact. (This is CLAUDE.md's "diagnose the live object" applied to a
+  planning artifact rather than to a failure.)
+- *Write a token-grep criterion and the prose it will read in the same breath* — case included.
+
+**Closed by this plan:** the vacuous-diff family (W22's `git diff HEAD` gate) is now fully retired —
+every diff-shape guard in the repo resolves the branch point through the one `milestone_base_ref`
+fixture, and the CI job that runs them sets `fetch-depth: 0` so they can execute instead of failing
+on infrastructure. **Carried unchanged:** DEF-15 (isort/black profile) charged its tax again.
+
+## 2026-08-29 (earlier) — W24: the tool that half-wrote the state file, and the guard that accused the author
 
 **Friction observed (v1.3 plan 03-03 — asset placement + the weekly composer)**
 
