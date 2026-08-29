@@ -890,7 +890,7 @@ a hand-edited or substituted deck without needing the optional extra.
 | A7 | The `.eml`-sourced recognition is worth its cost (a second honesty row + the `_EMAIL_RE` allowance) | §The Honesty-Path Fixture | If dropped, the sample shows only the *absent* recognition case with no sourced contrast, and the recipe's `.eml` step is undemonstrated. |
 | A8 | `mypy`/`black`/`isort` "no-NEW-failures" is measured against **today's** numbers (15 / 69 / several) rather than the 2026-07-02 baseline document | §Gates Inventory | If the older baseline is authoritative and is lower, some pre-existing failures would be misattributed to this phase. Recommend recording today's numbers in the plan before any edit. |
 
-## Open Questions
+## Open Questions (RESOLVED — see 04-VALIDATION.md Wave 0: no deck link (costed reversal recorded); check --corpus weekly proven to block; Phase 3 untouched; content/weekly/; measured 2026-08-29 baselines authoritative)
 
 1. **Does the published weekly page need a deck download?**
    - What we know: no success criterion requires it; `FanoutBlock`/`_fanout_row` makes it a
