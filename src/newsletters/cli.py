@@ -132,6 +132,75 @@ def assemble(
 
 
 @app.command()
+def weekly(
+    spec: str | None = typer.Option(
+        None,
+        "--spec",
+        help="The Weekly Spec to render (default: the single *.yml under content/weekly).",
+    ),
+    lanes: str | None = typer.Option(
+        None,
+        "--lanes",
+        help="The lane config whose KPIs/claims are bound into the weekly (default: the "
+        "single *.yml under content/module — the corpus this weekly is the weekly FOR).",
+    ),
+    template: str | None = typer.Option(
+        None,
+        "--template",
+        help="Your template deck. Its Selection-Pane shape names must start with 'NL_' "
+        "(default: content/weekly/template.pptx).",
+    ),
+    author: str | None = typer.Option(
+        None,
+        "--author",
+        help="The byline for this weekly (default: the spec's `config: author:` value). "
+        "Never invented — one of the two must be given.",
+    ),
+    out: str = typer.Option(
+        ...,
+        "--out",
+        help="Where to write the deck. YOUR choice of path — it is never derived from the "
+        "record's content. The digest sidecar is written beside it as <out>.digest.",
+    ),
+) -> None:
+    """Render a Weekly Spec to a `.pptx` deck + its integrity digest (WKLY-05).
+
+    Three properties an operator should be able to rely on, all of them tested:
+
+    * **Deterministic.** Two renders of ONE reviewed record produce the same deck under the
+      recorded ``part_digest`` definition (sorted, length-prefixed part-content rows) — so a
+      re-render is checkable rather than merely plausible. The sidecar written beside the deck
+      IS that digest, and it can be verified on a bare install with no optional extra.
+    * **Draft, and watermarked, until a human publishes it.** The surface this renders stays
+      ``Draft``; the deck carries the Draft watermark on EVERY slide and ``cp:contentStatus =
+      draft``. Nothing here advances the ``Draft › In Review › Published`` gate.
+    * **``--out`` is yours.** The output path is caller-supplied and never derived from the
+      record's content, so authored data can never steer a write (threat T-02-08).
+
+    ``--spec`` / ``--lanes`` / ``--template`` fall through to the corpus's structural discovery
+    when omitted. Lazy-imports the builder (and, inside it, the ``[pptx]`` extra), so the bare
+    install stays light and an operator without the extra gets the teaching ``ImportError``
+    naming ``pip install '.[pptx]'``.
+    """
+    from .weeklysite import build_weekly_deck
+
+    deck = build_weekly_deck(
+        out,
+        spec_path=spec,
+        lanes_path=lanes,
+        template=template,
+        author=author,
+    )
+    digest = deck.with_suffix(deck.suffix + ".digest")
+    typer.echo(f"  {deck}")
+    typer.echo(f"  {digest}")
+    typer.echo(
+        f"\nrendered 1 Draft deck + its part_digest -> {deck.parent} "
+        f"(digest: {digest.read_text(encoding='utf-8').strip()})"
+    )
+
+
+@app.command()
 def check(
     corpus: CorpusName = typer.Option(
         CorpusName.rev1,

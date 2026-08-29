@@ -67,7 +67,7 @@ from .render import render_library, render_surface
 from .semantic import Source, Surface
 from .site import Ledger, Site
 from .swimlane import load_swimlanes
-from .weeklyspec import build_weekly_report, load_weekly_spec
+from .weeklyspec import WeeklySpecLoad, build_weekly_report, load_weekly_spec
 
 __all__ = ["build_weekly_deck", "build_weekly_site", "build_weekly_surfaces"]
 
@@ -158,10 +158,37 @@ def _resolve_author(spec_config: dict[str, object], author: str | None) -> str:
     raise ValueError(_NO_AUTHOR)
 
 
+def _load_and_compose(
+    *,
+    root: Path | None,
+    spec_path: str | Path | None,
+    lanes_path: str | Path | None,
+    author: str | None,
+) -> tuple[WeeklySpecLoad, Surface]:
+    """The ONE load-and-compose sequence, shared by the surfaces and the deck entry points.
+
+    Both entry points need the SAME load: ``weekly_slots(load, surface)`` checks its disclosure
+    lines against ``surface.missing``, so a deck composed from a second, separately-built load
+    would be checking one record's slides against another record's honesty panel. Two copies of
+    this sequence would drift exactly as two normalizers would, so there is one.
+    """
+    spec = Path(spec_path) if spec_path is not None else _discover_spec(root)
+    lanes = Path(lanes_path) if lanes_path is not None else _discover_lanes(root)
+    load = load_weekly_spec(spec, root=root, known_sources=_load_inbox_sources(root))
+    swim = load_swimlanes(lanes, root=root)
+    surface = build_weekly_report(
+        load,
+        author=_resolve_author(load.spec.config, author),
+        bindings=swim.bindings,
+    )
+    return load, surface
+
+
 def build_weekly_surfaces(
     spec_path: str | Path | None = None,
     *,
     root: Path | None = None,
+    lanes_path: str | Path | None = None,
     author: str | None = None,
 ) -> list[Surface]:
     """Load + compose the synthetic weekly corpus into one Draft REPORT Surface (WKLY-05).
@@ -188,18 +215,14 @@ def build_weekly_surfaces(
     Args:
         spec_path: an explicit Weekly Spec to build (default: discover the single ``*.yml``).
         root: the repo root the paths resolve against (default cwd).
+        lanes_path: an explicit lane config to bind (default: discover the single ``*.yml``
+            under the module corpus — the W0-1 lineage link).
         author: the byline. Defaults to the spec's ``config: author:``; a ``ValueError`` naming
             both that key and ``--author`` is raised if neither is given, because inventing a
             byline would put a name nobody chose on a record a human is meant to sign.
     """
-    spec = Path(spec_path) if spec_path is not None else _discover_spec(root)
-    lanes = _discover_lanes(root)
-    load = load_weekly_spec(spec, root=root, known_sources=_load_inbox_sources(root))
-    swim = load_swimlanes(lanes, root=root)
-    surface = build_weekly_report(
-        load,
-        author=_resolve_author(load.spec.config, author),
-        bindings=swim.bindings,
+    _load, surface = _load_and_compose(
+        root=root, spec_path=spec_path, lanes_path=lanes_path, author=author
     )
     return [surface]
 
@@ -281,6 +304,7 @@ def build_weekly_deck(
     *,
     root: Path | None = None,
     spec_path: str | Path | None = None,
+    lanes_path: str | Path | None = None,
     template: str | Path | None = None,
     author: str | None = None,
 ) -> Path:
@@ -293,10 +317,10 @@ def build_weekly_deck(
     module, and an operator without the extra gets the existing teaching ``ImportError`` naming
     ``pip install '.[pptx]'``.
 
-    The load is rebuilt exactly as :func:`build_weekly_surfaces` builds it, because
-    ``weekly_slots(load, surface)`` must be given the SAME load the surface was composed from — the
-    slot derivation checks its disclosure lines against ``surface.missing`` and refuses to emit a
-    line that is neither the author's words nor the recorded disclosure.
+    The load comes from the SAME :func:`_load_and_compose` sequence :func:`build_weekly_surfaces`
+    uses, because ``weekly_slots(load, surface)`` must be given the SAME load the surface was
+    composed from — the slot derivation checks its disclosure lines against ``surface.missing`` and
+    refuses to emit a line that is neither the author's words nor the recorded disclosure.
 
     SECURITY (threat T-02-08, path traversal): ``out_path`` is **caller-supplied and never derived
     from Surface content** — the property ``render_surface_pptx``'s docstring states, preserved
@@ -311,6 +335,8 @@ def build_weekly_deck(
         out_path: where to write the deck. The caller's choice; the parent is created if absent.
         root: the repo root the paths resolve against (default cwd).
         spec_path: an explicit Weekly Spec (default: discover the single ``*.yml``).
+        lanes_path: an explicit lane config (default: discover the single ``*.yml`` under the
+            module corpus — the W0-1 lineage link).
         template: the operator's template deck (default: ``<corpus>/template.pptx``).
         author: the byline (see :func:`build_weekly_surfaces`).
 
@@ -321,14 +347,8 @@ def build_weekly_deck(
     from .weeklyspec import weekly_slots
 
     root_path = (Path(root) if root is not None else Path.cwd()).resolve()
-    spec = Path(spec_path) if spec_path is not None else _discover_spec(root)
-    lanes = _discover_lanes(root)
-    load = load_weekly_spec(spec, root=root, known_sources=_load_inbox_sources(root))
-    swim = load_swimlanes(lanes, root=root)
-    surface = build_weekly_report(
-        load,
-        author=_resolve_author(load.spec.config, author),
-        bindings=swim.bindings,
+    load, surface = _load_and_compose(
+        root=root, spec_path=spec_path, lanes_path=lanes_path, author=author
     )
 
     deck_template = (

@@ -41,10 +41,13 @@ from collections.abc import Iterator
 from pathlib import Path
 
 from pydantic import BaseModel
+from typer.testing import CliRunner
 
 from newsletters.adapters._timestamps import EPOCH_ZERO
 from newsletters.adapters.email_adapter import EmailAdapter
+from newsletters.cli import app
 from newsletters.compose import NO_KPIS
+from newsletters.pptx_writer import part_digest
 from newsletters.semantic import Claim
 from newsletters.site import Ledger, Site
 from newsletters.specspan import absent
@@ -501,3 +504,91 @@ def test_committed_equals_fresh_build(tmp_path: Path) -> None:
         assert (
             built.read_bytes() == src.read_bytes()
         ), f"{rel} differs between the committed corpus and a fresh build"
+
+
+# --------------------------------------------------------------------------- #
+# Plan 04-01 Task 3 — the committed deck's TIER-1 integrity gate and the one
+# command that regenerates it. Stdlib only: `part_digest` is `zipfile` + `hashlib`
+# and `pptx_writer`'s module level imports no optional extra, so these run on a
+# bare install and in the site-integrity job. The [pptx]-gated fresh==committed
+# drift check (tier 2) lives in tests/test_weekly_golden.py.
+# --------------------------------------------------------------------------- #
+
+DECK_DIR = CORPUS / "deck"
+
+
+def _committed_deck() -> Path:
+    """The single committed deck, discovered rather than named (it tracks the authored week)."""
+    decks = sorted(DECK_DIR.glob("*.pptx"))
+    assert len(decks) == 1, f"expected exactly one committed deck, found {decks}"
+    return decks[0]
+
+
+def test_committed_deck_matches_its_digest() -> None:
+    """TIER 1 (T-04-04): the committed deck's part_digest equals its committed .digest sidecar.
+
+    A reader cannot diff a 28 KB zip by eye, so this is the check that says the binary in the repo
+    is the binary the writer produced. ``part_digest`` is sorted, length-prefixed
+    ``(part name, sha256(part))`` rows — implementation-INDEPENDENT, so it holds across zlib
+    versions where a full-file hash would not — and it is stdlib-only, so this fires on EVERY
+    install including a bare one.
+
+    The non-vacuity arm digests a DIFFERENT committed ``.pptx`` (the corpus template) and asserts
+    it does NOT match: without it, the assertion could be comparing a string to itself and nobody
+    would know.
+    """
+    deck = _committed_deck()
+    sidecar = deck.with_suffix(deck.suffix + ".digest")
+    assert (
+        sidecar.is_file()
+    ), f"the committed deck has no digest sidecar at {sidecar.name}"
+
+    recorded = sidecar.read_text(encoding="utf-8").strip()
+    assert part_digest(deck.read_bytes()) == recorded, (
+        f"{deck.name} does not match its recorded part_digest — the committed deck was "
+        "hand-edited or substituted. Regenerate it with `newsletters weekly`, never by editing "
+        "the binary or the sidecar."
+    )
+
+    # Non-vacuous: a different committed .pptx must NOT satisfy the same assertion.
+    other = (CORPUS / "template.pptx").read_bytes()
+    assert (
+        part_digest(other) != recorded
+    ), "the digest assertion does not discriminate — it matches an unrelated .pptx"
+
+
+def test_deck_is_not_in_the_published_tree() -> None:
+    """SC-3, the STRUCTURAL half of "nothing publishes": no deck can reach the published tree.
+
+    ``publish.assemble_site`` copies ``content/*/site`` only, so a deck under ``deck/`` cannot be
+    published by a discipline failure — the guarantee holds by layout rather than by care. It also
+    keeps the binary out of ``test_publish.py``'s ``read_bytes()``-per-file committed==fresh loop,
+    which would compare raw zip bytes across zlib implementations and go red on a runner for a
+    reason that has nothing to do with the record's content.
+    """
+    assert DECK_DIR.is_dir(), "the committed deck dir is missing"
+    strays = sorted((CORPUS / "site").rglob("*.pptx"))
+    assert not strays, (
+        f"a .pptx is inside the PUBLISHED weekly tree: {strays} — decks live in "
+        "content/weekly/deck/ and are never served"
+    )
+
+
+def test_weekly_command_is_registered() -> None:
+    """The `newsletters weekly` command exists on the shipped CLI, with all five options.
+
+    The recipe (plan 04-03) documents this exact command, and the committed sample was produced by
+    it — a renamed flag must turn this red rather than rot the doc. The deck-producing round trip
+    itself needs ``[pptx]`` and lives in the extra-gated golden module; this asserts only the
+    surface, so this file stays extra-free.
+    """
+    runner = CliRunner()
+
+    top = runner.invoke(app, ["--help"])
+    assert top.exit_code == 0, top.output
+    assert "weekly" in top.output, top.output
+
+    weekly_help = runner.invoke(app, ["weekly", "--help"])
+    assert weekly_help.exit_code == 0, weekly_help.output
+    for option in ("--spec", "--lanes", "--template", "--author", "--out"):
+        assert option in weekly_help.output, f"{option} missing from `weekly --help`"
