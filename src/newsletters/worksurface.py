@@ -354,7 +354,7 @@ def build_work_surfaces(*, root: Path | None = None, author: str = "Claude") -> 
 _REV1_FONTS_DIR = Path("content/rev1/site/fonts")
 
 
-def _emit_fonts(out: Path) -> None:
+def _emit_fonts(out: Path, fonts_dir: Path | None = None) -> None:
     """Copy the self-hosted woff2 fonts (+ their OFL licenses) into ``out / fonts``.
 
     The renderer's ``@font-face`` blocks reference ``fonts/<name>.woff2`` with a RELATIVE url
@@ -362,15 +362,23 @@ def _emit_fonts(out: Path) -> None:
     Plan 11-01 vendored these under ``content/rev1/site/fonts/``; we copy the SAME assets into
     the work output (rather than re-vendor) so the work Library makes zero external call too
     (T-11-10). Deterministic: shutil.copy2 preserves bytes; the set is the committed font set.
+
+    ``fonts_dir`` is the WR-01 seam: a caller that resolves paths against an explicit repo
+    ``root`` (``weeklysite.build_weekly_site``) passes the root-resolved vendored dir, so the
+    fonts never silently depend on the process cwd. When it is ``None`` (this module's own
+    cwd-anchored callers), the cwd-relative default applies unchanged.
+
     If the vendored dir is absent (the DM-first fallback path of Plan 11-01), the relative urls
     simply do not resolve to a local file and the font-stack fallback applies — still no
-    external call — so we skip silently rather than fail.
+    external call — so we skip silently rather than fail. Callers that PROMISE the self-hosted
+    property (the weekly builder) must therefore check the dir and fail loud BEFORE calling.
     """
-    if not _REV1_FONTS_DIR.is_dir():
+    src = Path(fonts_dir) if fonts_dir is not None else _REV1_FONTS_DIR
+    if not src.is_dir():
         return
     fonts_out = out / "fonts"
     fonts_out.mkdir(parents=True, exist_ok=True)
-    for asset in sorted(_REV1_FONTS_DIR.iterdir()):
+    for asset in sorted(src.iterdir()):
         if asset.is_file():
             shutil.copy2(asset, fonts_out / asset.name)
 

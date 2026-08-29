@@ -42,6 +42,8 @@ import shlex
 from collections.abc import Iterator
 from pathlib import Path
 
+import pytest
+
 # Sibling test helper (leading underscore == not collected by pytest). pytest's default
 # "prepend" import mode puts tests/ on sys.path, so this resolves without a tests package.
 from _corpus_scan import scan_real_looking
@@ -508,6 +510,48 @@ def test_committed_equals_fresh_build(tmp_path: Path) -> None:
         assert (
             built.read_bytes() == src.read_bytes()
         ), f"{rel} differs between the committed corpus and a fresh build"
+
+
+def test_build_from_foreign_cwd_honors_root(tmp_path: Path, monkeypatch) -> None:
+    """WR-01: ``build_weekly_site(out, root=X)`` honors ``root`` EVERYWHERE, from any cwd.
+
+    The reads always resolved against ``root``; the ledger write and the vendored-fonts read
+    used to resolve against the process CWD — so a foreign-cwd build (a) grew a stray
+    ``content/weekly/ids.json`` tree under a directory the caller never named, violating the
+    module's "the only writes are the ledger, the rendered output" contract, and (b) emitted NO
+    fonts, silently, breaking the self-hosted-fonts promise ``test_no_external_calls`` asserts.
+    Both directions are pinned here: a foreign-cwd build leaves the cwd untouched, keeps the
+    COMMITTED ledger byte-unchanged, and emits the fonts; a root with no vendored fonts REFUSES
+    loudly BEFORE any write instead of skipping silently.
+    """
+    ledger_before = (CORPUS / "ids.json").read_bytes()
+    foreign_cwd = tmp_path / "elsewhere"
+    foreign_cwd.mkdir()
+    out = tmp_path / "out"
+    monkeypatch.chdir(foreign_cwd)
+
+    written = build_weekly_site(out, root=REPO_ROOT)
+
+    strays = sorted(p.relative_to(foreign_cwd) for p in foreign_cwd.rglob("*"))
+    assert not strays, (
+        f"a foreign-cwd build wrote into the cwd — paths a caller never named: {strays}"
+    )
+    assert written, "build_weekly_site wrote nothing"
+    assert any((out / "fonts").glob("*.woff2")), (
+        "a foreign-cwd build emitted no self-hosted fonts — root= is only half-honored"
+    )
+    assert (CORPUS / "ids.json").read_bytes() == ledger_before, (
+        "the foreign-cwd build did not re-save the COMMITTED ledger idempotently"
+    )
+
+    # The loud arm: a root with NO vendored fonts refuses BEFORE any write — never a silent,
+    # fontless tree wearing the self-hosted promise.
+    fontless_root = tmp_path / "fontless"
+    fontless_root.mkdir()
+    out2 = tmp_path / "out2"
+    with pytest.raises(FileNotFoundError, match="self-hosted fonts"):
+        build_weekly_site(out2, root=fontless_root)
+    assert not out2.exists(), "the fonts refusal must fire before a single write"
 
 
 # --------------------------------------------------------------------------- #

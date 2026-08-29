@@ -240,30 +240,49 @@ def build_weekly_site(
     and its OWN append-only ledger (``content/weekly/ids.json``, first ref ``R-001`` for the
     composed report slug), kept SEPARATE from the rev1 + work + module corpora:
 
-      * ``Ledger.load("content/weekly/ids.json")`` → ``Site.from_surfaces(...)`` →
+      * ``Ledger.load(root / "content/weekly/ids.json")`` → ``Site.from_surfaces(...)`` →
         ``ledger.save()`` — this builder is the SOLE ledger writer (compose only reads/assigns).
-        The ledger path is the FIXED COMMITTED one, never ``out_dir``: the committed ledger is the
-        contract, so a ``tmp_path`` build re-saves it idempotently and the tests snapshot its bytes
-        and assert it did not move.
+        The ledger path is the FIXED COMMITTED one **under root**, never ``out_dir``: the
+        committed ledger is the contract, so a ``tmp_path`` build re-saves it idempotently and the
+        tests snapshot its bytes and assert it did not move. Resolving it against ``root`` (WR-01)
+        is what keeps that promise true from a foreign cwd — the cwd-relative form wrote a stray
+        ``content/weekly/ids.json`` tree under whatever directory the caller happened to be in.
       * each page is written to ``out / page.href`` via ``render_surface`` — REUSING the PROV-03
         devices with NO new renderer (claim-beside-verbatim-trace spans + the populated honesty
         panel come for free);
       * a Library index (``library.html``) is rendered from the Site, declaring its three
         neighbours ASSEMBLED-TREE-relative (the weekly corpus lives at ``weekly/`` in the published
         tree, so its neighbours are one level up);
-      * the self-hosted fonts are emitted via the REUSED ``worksurface._emit_fonts`` (zero-edit
-        reuse, never re-vendored) — ZERO external call.
+      * the self-hosted fonts are emitted via the REUSED ``worksurface._emit_fonts`` (reuse,
+        never re-vendored), read from the vendored dir UNDER ROOT — ZERO external call. A root
+        with no vendored fonts FAILS LOUD before any write (WR-01): this builder promises the
+        self-hosted-fonts property (``test_no_external_calls``), so silently emitting a fontless
+        tree would ship an output that breaks a promise nobody was told about.
 
     The deck is deliberately NOT rendered here: see :func:`build_weekly_deck`.
 
     Returns:
         The written paths (every ``{slug}.html`` + ``library.html``), in write order.
     """
+    # WR-01: EVERY corpus-relative path resolves against ``root`` — the corpus reads already did
+    # (via ``_discover_spec`` / ``_load_inbox_sources``); the ledger and the vendored fonts dir
+    # must too, or a foreign-cwd build writes a stray tree the caller never named and silently
+    # drops the fonts. The fonts dir is checked FIRST so a bad root fails before a single write.
+    root_path = (Path(root) if root is not None else Path.cwd()).resolve()
+    fonts_src = root_path / worksurface._REV1_FONTS_DIR
+    if not fonts_src.is_dir():
+        raise FileNotFoundError(
+            f"no vendored fonts at {fonts_src} — the weekly output promises self-hosted fonts "
+            "(zero external call), so a build that cannot copy them must refuse rather than "
+            "silently emit a tree whose @font-face urls resolve to nothing. Point root= at a "
+            "checkout that carries content/rev1/site/fonts/ (the canonical vendored set)."
+        )
+
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     surfaces = build_weekly_surfaces(spec_path, root=root, author=author)
 
-    ledger = Ledger.load(_LEDGER_PATH)
+    ledger = Ledger.load(root_path / _LEDGER_PATH)
     site = Site.from_surfaces(surfaces, ledger=ledger)
     ledger.save()
 
@@ -294,7 +313,7 @@ def build_weekly_site(
     )
     written.append(library)
 
-    worksurface._emit_fonts(out)
+    worksurface._emit_fonts(out, fonts_dir=fonts_src)
 
     return written
 
