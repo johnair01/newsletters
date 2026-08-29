@@ -45,6 +45,10 @@ from pptx import Presentation
 
 from newsletters.adapters._timestamps import EPOCH_ZERO
 from newsletters.pptx_writer import (
+    DRAFT_STATUS as GATE_STATE,
+)
+from newsletters.pptx_writer import (
+    MARKER,
     differing_parts,
     differing_zipinfo_fields,
     normalize_opc_zip,
@@ -58,10 +62,10 @@ EVIDENCE = (
     REPO_ROOT / ".planning" / "notes" / "2026-08-29-pptx-determinism-evidence.json"
 )
 
-# The generated-by marker and gate state — identical to the ones test_pptx_determinism.py writes,
-# so the evidence measures the same render the durable test re-proves.
-MARKER = "generated-by:newsletters"
-GATE_STATE = "draft"
+# The generated-by marker and gate state are IMPORTED from the writer, never re-declared as local
+# literals (Phase-2 review WR-05): "identical to the ones test_pptx_determinism.py writes" is now
+# enforced by construction — all three files assert against the ONE canonical spelling — instead of
+# by eyeball. `DRAFT_STATUS` is aliased to the load-bearing local name `GATE_STATE` above.
 
 # DOS timestamps have 2-SECOND granularity; 3 seconds guarantees the boundary is crossed.
 SECONDS_BETWEEN_WRITES = 3

@@ -66,6 +66,10 @@ Presentation = pptx.Presentation
 
 from newsletters.adapters._timestamps import EPOCH_ZERO  # noqa: E402
 from newsletters.pptx_writer import (  # noqa: E402
+    DRAFT_STATUS as GATE_STATE,
+)
+from newsletters.pptx_writer import (  # noqa: E402
+    MARKER,
     differing_parts,
     differing_zipinfo_fields,
     normalize_opc_zip,
@@ -76,10 +80,10 @@ FIXTURE_DIR = pathlib.Path(__file__).parent / "fixtures" / "weekly"
 TEMPLATE = FIXTURE_DIR / "template.pptx"
 
 # The generated-by marker and the review-gate state, carried in OPC core properties (0 extra parts,
-# survives a PowerPoint round-trip). The exact strings are Phase 2's to ratify; what THIS module
-# proves is that both round-trip through a real write and read back off the written file.
-MARKER = "generated-by:newsletters"
-GATE_STATE = "draft"
+# survives a PowerPoint round-trip). IMPORTED from the writer, never re-declared as local literals
+# (Phase-2 review WR-05): the writer, its tests and the fixture authors must assert against ONE
+# spelling of each — a local copy would stay green measuring a marker the writer no longer writes.
+# `DRAFT_STATUS` is aliased to the load-bearing local name `GATE_STATE` for readability only.
 
 # The renderer slots the fabricated template carries. `Footer` is deliberately NOT here: it has no
 # `NL_` prefix, so it is a decorative shape, not a slot.
