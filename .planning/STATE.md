@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 03-04-PLAN.md — Phase 3 complete; next: Phase 4 planning (WKLY-05/06)"
-last_updated: "2026-08-29T09:17:28.471Z"
-last_activity: 2026-08-29 — Phase 3 closed; advancing to Phase 4 (sample corpus + recipe)
+stopped_at: "Completed 04-01-PLAN.md — the weekly corpus + builder + deck are committed; next: 04-02-PLAN.md (publish/CLI wiring + the [pptx] tier-2 golden gate)"
+last_updated: "2026-08-29T09:38:00.000Z"
+last_activity: 2026-08-29 — Phase 4 plan 01 executed (content/weekly/ corpus, weeklysite.py, `newsletters weekly`)
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 10
-  completed_plans: 10
+  total_plans: 13
+  completed_plans: 11
   percent: 75
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-29)
 
 **Core value:** Make work legible and trustworthy — every published claim traces to evidence; nothing publishes without a human. The deterministic, auditable trust layer is what makes legibility believable; AI is an optional accelerator, never an authority.
-**Current focus:** Phase 3 — Weekly compose (WKLY-02/03/04)
+**Current focus:** Phase 4 — Sample corpus + recipe (WKLY-05/06)
 
 ## Current Position
 
-Phase: Phase 4: Sample corpus + recipe (WKLY-05..06) — not started (ready to plan)
-Plan: —
+Phase: Phase 4: Sample corpus + recipe (WKLY-05..06) — in progress (1/3 plans)
+Plan: 04-01 complete; next 04-02 (publish layout + `--corpus weekly` + Records strips + tier-2 golden gate + CI/deploy lines)
 Status: Ready to execute
-Last activity: 2026-08-29 — Phase 3 closed; advancing to Phase 4 (sample corpus + recipe)
+Last activity: 2026-08-29 — Phase 4 plan 01 executed (WKLY-05's first half: the committed `content/weekly/` corpus, `weeklysite.py`, the deck + digest, `newsletters weekly`)
 
 ## Performance Metrics
 
@@ -45,7 +45,7 @@ Last activity: 2026-08-29 — Phase 3 closed; advancing to Phase 4 (sample corpu
 | 1. Specify + de-risk | 3/3 | Plans complete — awaiting phase verification |
 | 2. Renderer (WKLY-01) | 3/3 | Plans complete — awaiting phase verification (SC-1..SC-5 proved locally; the `pptx` job's first CI green and the real-PowerPoint open are PR-review items) |
 | 3. Weekly compose (WKLY-02/03/04) | 4/4 | Plans complete — awaiting phase verification. 03-01 landed the four block kinds, their render branches and the replacement gate freeze; 03-02 landed the promoted `SpanMinter` and the Weekly Spec load half; 03-03 closed WKLY-03 (asset routing) and the composition half of WKLY-02 (`build_weekly_report`); 03-04 closed WKLY-04 (values via the existing ADAPT-03 adapter) and SC-5 (`weekly_slots` + the end-to-end deck), and added the `weekly` CI job — the first job that runs the compose path at all |
-| 4. Sample corpus + recipe (WKLY-05/06) | 0/0 (unplanned) | Not started |
+| 4. Sample corpus + recipe (WKLY-05/06) | 1/3 | In progress. 04-01 landed WKLY-05's first half: the committed `content/weekly/` corpus (spec · `.eml` · PNG · template copy · `R-001` ledger · `site/` · `deck/` + digest sidecar), `weeklysite.py`, the promoted `tests/_corpus_scan.py` scanner and the `newsletters weekly` command. Safe alone — `assemble_site` ignores a directory it does not know about |
 
 **Per-plan execution:**
 
@@ -61,6 +61,7 @@ Last activity: 2026-08-29 — Phase 3 closed; advancing to Phase 4 (sample corpu
 | Phase 3 P02 | 42min | 3 tasks | 8 files |
 | Phase 3 P03 | 22min | 2 tasks | 5 files |
 | Phase 3 P04 | 14min | 3 tasks | 7 files |
+| Phase 4 P01 | 22min | 3 tasks | 24 files |
 
 **Recent Trend:**
 
@@ -154,6 +155,13 @@ WHERE-WE-ARE.md):
 - [Phase 3-04]: The `.csv` in WKLY-04's wording is a CLARIFICATION, not a scope cut: the live ADAPT-03 adapter is `.xlsx`-only and a CSV path would be exactly the new adapter module the requirement forbids. Recorded in `tests/test_weekly_values.py`'s docstring and in REQUIREMENTS traceability.
 - [Phase 3-04]: The `weekly` CI job is SEPARATE and installs `.[test,config,excel,pptx]`; `bare-install` stays the canonical AI-free, EXTRA-FREE source of truth (PKG-03) and is byte-untouched — the `ci.yml` diff against the milestone base is 0 deletions. It sets `fetch-depth: 0` (three guards resolve `git merge-base HEAD origin/main` and FAIL rather than skip without it) and fails on any reported skip.
 
+- [Phase 4-01]: The load-and-compose sequence is ONE private helper (`weeklysite._load_and_compose`), shared by `build_weekly_surfaces` and `build_weekly_deck` rather than written twice as the plan's wording allowed. The failure mode two copies would create is not cosmetic: `weekly_slots(load, surface)` validates its disclosure lines against `surface.missing`, so two drifting loads would eventually check one record's slides against another record's honesty panel.
+- [Phase 4-01]: The byline REFUSES rather than defaults. `_resolve_author` takes the explicit `--author`, else the spec's `config: author:`, else raises a teaching `ValueError` naming BOTH. Every other absence in this system is disclosed; a byline is different, because a name on a record is a claim about who stands behind it — a fabricated default would be an abstraction-guard leak AND an unsigned record wearing somebody's name.
+- [Phase 4-01]: The confidentiality scanner was PROMOTED to `tests/_corpus_scan.py` (the repo's first shared test helper; `test_modulesite.py` passes at the SAME 9 tests across the move). Its ONE allowance is the RFC 6761 `@example.invalid` domain, and it carries TWO planted arms — a real-looking name, and a NON-reserved address (`ops@starfleet.int`) that must still trip THROUGH the allowance. Without the second arm the allowance is one refactor away from "ignore every address" and nobody would notice.
+- [Phase 4-01]: The tier-1 deck gate carries a non-vacuity arm that digests a DIFFERENT committed `.pptx` (`content/weekly/template.pptx`) and asserts it does NOT match the sidecar — otherwise `part_digest(deck) == sidecar` could be comparing a string to itself. The deck lives at `content/weekly/deck/`, OUTSIDE `site/`, so "nothing publishes" holds structurally (`assemble_site` copies `content/*/site` only) rather than by discipline.
+- [Phase 4-01]: The weekly's bindings read the COMMITTED `content/module/*.yml` (W0-1), so the "a lane with no KPIs" honesty row comes from content that already exists rather than from content invented to make a demo look honest. The coupling is bounded and loud: a change to the module config moves both corpora's committed HTML and turns both committed==fresh gates red in the same run.
+- [Phase 4-01]: isort/black hygiene was fixed on this plan's OWN files only (no repo-wide reformat; DEF-15 stays maintainer-gated). No import in them is a multi-line parenthesized one — that shape is exactly what isort and black disagree about. A `black` run that reformatted two untouched `cli.py` lines was reverted by hand, so the `cli.py` diff is a pure 69-line insertion with 0 deletions.
+
 ### Pending Todos
 
 None. (B1–B20 fix-batch backlog remains parked in `reviews/2026-07-02-deep-review/07-tests-as-promises.md`, maintainer-gated.)
@@ -218,7 +226,38 @@ mine?" tax. Maintainer-gated because the fix is a repo-wide reformat.
 
 ## Session Continuity
 
-Last session: 2026-08-29 — Phase 3 plan 03-04 executed; **Phase 3 is complete (4/4 plans,
+Last session: 2026-08-29 — **Phase 4 plan 04-01 executed. WKLY-05's first half is committed**: a
+fourth corpus, `content/weekly/`, whose fabricated weekly composes to a Draft `Surface(REPORT)` at
+`EPOCH_ZERO`, takes `R-001` from its OWN ledger, renders to HTML with a populated honesty panel and
+to a `.pptx` deck whose integrity is checkable without the optional extra. All **three** planted
+absences appeared verbatim as research had captured them and each is asserted BOTH in
+`surface.missing` AND `html.escape`d into the rendered page — "in `missing[]`" and "shown to the
+reviewer" are two different claims and only the second is the product's promise:
+`section 'MOR/IQ tools & defect projects' declares no KPIs — strip omitted` ·
+`field 'recognitions[1].source' is absent or empty — disclosed, never fabricated` ·
+`asset 'manifest-annex-photo': provenance field 'folder' is absent — the minimum is folder + date
++ event label; disclosed, never placed`. Each is located by the composer's OWN format string
+(`compose.NO_KPIS` / `specspan.absent` / `weeklyspec._ASSET_PROVENANCE_ABSENT`), so no disclosure
+sentence is typed into a test or a fixture. The deck was produced by running the shipped
+`newsletters weekly` command — not an ad-hoc script — so the sample and the recipe (04-03) cannot
+drift on day one; 28,885 bytes, sidecar `d61ce632…396259`, one hex line + newline. Two things worth
+carrying: the confidentiality scanner was PROMOTED rather than copied (`tests/_corpus_scan.py`, the
+first shared test helper here) and its `@example.invalid` allowance needed a SECOND planted arm —
+a non-reserved address must still trip THROUGH it, or the allowance quietly becomes "ignore every
+address"; and the byline REFUSES rather than defaults, because a name on a record is a claim about
+who stands behind it. Suite: **850 passed / 0 skipped** (baseline 837/0, +13, zero regressions);
+`lint-imports` 2 kept; `mypy` 15/5 files unchanged with **0** in `weeklysite.py`; `black` 69 would
+reformat unchanged (3 new files clean); no new `isort` failure; `content/{module,rev1,work}/ids.json`
+byte-unchanged; the eight gate pins green; `newsletters check` clean on all three wired corpora;
+`git diff --stat -- src/newsletters/` names exactly two files. Recorded, not patched (W0-4):
+`build_weekly_report` carries only the spec `Source` in `traces`, measured to break nothing on a
+Draft sample — written into `weeklysite.py`'s docstring.
+Stopped at: Completed 04-01-PLAN.md; next: 04-02-PLAN.md (publish layout + `--corpus weekly` +
+the four Records strips + the 4 regenerated chrome pages + the `[pptx]` tier-2 golden gate + the
+CI/deploy `check` lines)
+Resume file: `.planning/phases/04-sample-corpus-recipe/04-01-SUMMARY.md`
+
+Previously: 2026-08-29 — Phase 3 plan 03-04 executed; **Phase 3 is complete (4/4 plans,
 WKLY-02/03/04 all closed).** A composed weekly now renders through Phase 2's writer to a deck, and
 the decision worth carrying is how an empty section behaves: the template declares an
 `NL_LOWLIGHTS` box and `bind_slots` refuses an unfilled `NL_` shape, so omitting the slot would
