@@ -299,6 +299,28 @@ order, so iterating `assets:` in **spec file order** keeps `ppt/media/image1..N`
 renders; and two byte-identical images produce **one** media part, because python-pptx
 content-deduplicates.
 
+**The deck this milestone ships is text-only — a decision, not an oversight (v1.3 Phase 3).** The
+measurement above is *recorded but not yet consumed*: the writer (`src/newsletters/pptx_writer.py`)
+has **no `add_picture` path at all**, and `bind_slots` refuses any shape without a text frame — a
+picture placeholder reports `has_text_frame == False` and is rejected with a teaching error rather
+than filled. No Phase 3 success criterion budgets image placement, so none was built. What this
+means concretely: an `AssetBlock` reaches the **HTML** surface (as `figure.diagram` + caption — see
+"the four block kinds"), and its authored `caption:` can contribute to a text slot; **the image
+itself does not reach the deck.** Placing images — the media-part numbering the paragraph above
+measures, plus the relative-path resolution the HTML renderer also defers — is a **round-two item**,
+carried openly rather than left implicit.
+
+**The slot derivation, and why an empty section still gets a line.** `weeklyspec.weekly_slots(load,
+surface)` is the `Surface → NL_` mapping the writer requires (it takes `slots` as a required keyword
+precisely because only the composer knows which authored block belongs in which Selection-Pane
+name). It always emits **all four** slot keys the template declares, in a fixed order, and for a
+section the author left empty the single line on that slide **is that section's own `missing[]`
+disclosure** — the string the loader wrote, asserted to be present in `surface.missing` before it is
+emitted, so a slide line can never drift into invented prose. Omitting the key was the obvious
+alternative and is wrong twice over: `bind_slots` refuses an `NL_`-prefixed shape with no content,
+so a weekly with no lowlights would fail to render at all — and rule 4's absence is exactly what the
+reviewer's slide should carry.
+
 ## Determinism, and the extras it needs
 
 Loads and builds are deterministic (`EPOCH_ZERO` timestamps, file-order iteration): the same file

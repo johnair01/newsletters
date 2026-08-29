@@ -43,6 +43,13 @@ The invariants proven here (the Case Spec's eight, plus two the weekly earns):
     order, byte-identical across two composes, that never advances the gate; plus the
     editorialization guard: every block string is authored or a declared connective constant,
     with a planted-paraphrase non-vacuity arm.
+13. **The deck (SC-5)** — ``weekly_slots`` emits exactly the four ``NL_`` keys the committed
+    template declares, in a fixed order, every value a ``list[str]`` whose every line is either
+    authored or a member of ``surface.missing``; an empty section's single line IS its own
+    disclosure (with a non-vacuity arm proving the membership self-check refuses anything else);
+    and the composed weekly — full AND sparse — renders through Phase 2's writer to a
+    deterministic, marked, Draft-watermarked deck, every property asserted by reopening the
+    WRITTEN bytes, with the Surface unchanged and the committed template untouched.
 """
 
 from __future__ import annotations
@@ -57,11 +64,23 @@ from newsletters._yaml_loader import load_config
 from newsletters.adapters._timestamps import EPOCH_ZERO
 from newsletters.compose import addressed, compute_delta
 from newsletters.distill.faithfulness import SpanContainmentFaithfulness, _normalize
+from newsletters.pptx_writer import (
+    DRAFT_STATUS,
+    MARKER,
+    WATERMARK_NAME,
+    part_digest,
+    render_surface_pptx,
+    render_surface_pptx_bytes,
+)
 from newsletters.semantic import Claim, KpiItem, ReviewState, Source, Trace
 from newsletters.swimlane import SectionBinding
 from newsletters.templates import REPORT
 from newsletters.weeklyspec import (
     CONNECTIVE_CONSTANTS,
+    HIGHLIGHTS_SLOT,
+    LOWLIGHTS_SLOT,
+    MODULE_SLOT,
+    WEEK_TITLE_SLOT,
     AuthoredAsset,
     AuthoredMember,
     AuthoredRecognition,
@@ -70,6 +89,7 @@ from newsletters.weeklyspec import (
     _validate,
     build_weekly_report,
     load_weekly_spec,
+    weekly_slots,
 )
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -1302,3 +1322,264 @@ def test_connective_constants_author_no_facts() -> None:
     assert CONNECTIVE_CONSTANTS, "an empty allowlist would make the guard trivially strict"
     for text in CONNECTIVE_CONSTANTS:
         assert not any(ch.isdigit() for ch in text), f"{text!r} carries a numeral"
+
+
+# --------------------------------------------------------------------------- #
+# 13 — the deck: `weekly_slots` and the render through Phase 2's writer (SC-5)
+#
+# The slots half needs no optional extra and runs on every install. The render half needs
+# python-pptx (the non-AI `[pptx]` extra), so it is guarded by a skipif — NOT by a module-level
+# `importorskip`, which would skip this whole 70-plus-test module on a bare install and hide the
+# authoring proofs behind an extra they do not use. The `weekly` CI job installs `[pptx]` and
+# asserts `0 skipped`, so these execute there rather than skipping quietly (W21).
+# --------------------------------------------------------------------------- #
+
+try:  # noqa: SIM105 — the guard needs the bound name, not just the suppression
+    import pptx as _pptx
+except ImportError:  # pragma: no cover — exercised on a bare install, not in the weekly job
+    _pptx = None
+
+requires_pptx = pytest.mark.skipif(
+    _pptx is None, reason="optional [pptx] extra (python-pptx) not installed"
+)
+
+# READ-ONLY. Nothing in this module writes to FIXTURE_DIR; every render goes to `tmp_path`.
+COMMITTED_TEMPLATE = FIXTURE_DIR / "template.pptx"
+
+# The template's deliberately UNPREFIXED shape and its authored body (tests/fixtures/weekly/
+# _author_template.py). It is not a renderer slot, so a render must leave it exactly as authored.
+FOOTER_SHAPE = "Footer"
+FOOTER_TEXT = "fabricated fixture deck - not a renderer slot"
+
+
+def _slots(name: str = FULL) -> tuple:
+    """One load, its composed surface, and the slots derived from the pair."""
+    load = _load(name)
+    surface = build_weekly_report(load, author=AUTHOR)
+    return load, surface, weekly_slots(load, surface)
+
+
+def _shape_text(prs, name: str) -> str:
+    """The text of the named shape in a REOPENED deck (never the writer's return value)."""
+    for slide in prs.slides:
+        for shape in slide.shapes:
+            if shape.name == name:
+                return shape.text_frame.text
+    raise AssertionError(f"the written deck has no shape named {name!r}")
+
+
+@pytest.mark.parametrize("name", FIXTURES)
+def test_weekly_slots_emit_exactly_the_four_declared_keys_in_order(name: str) -> None:
+    """The shape of the mapping ``bind_slots`` will validate — four keys, fixed order, list[str].
+
+    All four keys are ALWAYS emitted, including for a section the author left empty: the template
+    declares the shape, and ``bind_slots`` refuses an ``NL_``-prefixed shape with no matching
+    content, so omitting the key would make a weekly with no lowlights fail to render at all.
+
+    Values are explicit ``list[str]`` because a bare ``str`` is itself a ``Sequence[str]`` of its
+    characters (02-review WR-03) — the type is the assertion, not a style preference.
+    """
+    _, _, slots = _slots(name)
+    assert list(slots) == [
+        WEEK_TITLE_SLOT,
+        MODULE_SLOT,
+        HIGHLIGHTS_SLOT,
+        LOWLIGHTS_SLOT,
+    ], "the slot mapping's key ORDER is part of the determinism claim"
+    for key, lines in slots.items():
+        assert key.startswith("NL_"), f"{key!r} is not a reserved-prefix slot name"
+        assert isinstance(lines, list), f"{key!r} carries {type(lines).__name__}, not a list"
+        assert lines, f"{key!r} is empty — `fill_slot` refuses an empty slot"
+        assert all(isinstance(line, str) for line in lines), lines
+        assert any(line.strip() for line in lines), f"{key!r} is all blank — a blank box"
+
+
+@pytest.mark.parametrize("name", FIXTURES)
+def test_weekly_slots_are_pure_and_repeatable(name: str) -> None:
+    """Two derivations of one weekly are equal, key order included — half of "same deck twice"."""
+    load = _load(name)
+    surface = build_weekly_report(load, author=AUTHOR)
+    first = weekly_slots(load, surface)
+    second = weekly_slots(load, surface)
+    assert first == second
+    assert list(first) == list(second)
+    # ...and the derivation READ the surface: it is `model_dump()`-identical afterwards.
+    assert surface.model_dump() == build_weekly_report(load, author=AUTHOR).model_dump()
+
+
+@pytest.mark.parametrize("name", FIXTURES)
+def test_every_slot_line_is_authored_or_the_surface_own_disclosure(name: str) -> None:
+    """The content contract: no third source of text can reach a slide.
+
+    Authored lines are compared through the faithfulness gate's own normal form (see
+    :func:`_unauthored` — a YAML block scalar's parsed value is folded, so a raw ``in`` would flag
+    the author's own multi-line highlight). Everything else must be a member of
+    ``surface.missing`` — the disclosure the loader wrote, not prose the composer invented.
+    """
+    load, surface, slots = _slots(name)
+    haystack = _normalize(load.source.transcript)
+    disclosed = set(surface.missing)
+    for key, lines in slots.items():
+        for line in lines:
+            assert _normalize(line) in haystack or line in disclosed, (
+                f"slot {key!r} carries {line!r}, which is neither the author's words nor a "
+                f"recorded disclosure — that is composer-invented content on a slide"
+            )
+
+
+def test_sparse_weekly_empty_sections_carry_their_own_disclosure_line() -> None:
+    """SC-5's real test: the weekly with no lowlights still renders, and says so on the slide.
+
+    "No lowlights" is the absence a weekly is most tempted to hide (docs/weekly-spec.md rule 4).
+    The single line on that slide IS the honesty-panel entry — not "Nothing to report", not an em
+    dash, not an empty box.
+    """
+    _, surface, slots = _slots(SPARSE)
+    for key, authored in ((HIGHLIGHTS_SLOT, "highlights"), (LOWLIGHTS_SLOT, "lowlights")):
+        assert len(slots[key]) == 1, f"{key!r} should carry exactly the one disclosure line"
+        line = slots[key][0]
+        assert line in surface.missing, f"{line!r} is not in the honesty panel"
+        assert authored in line, f"{line!r} does not name the section it discloses"
+    # The authored halves of the same weekly are still the author's own words.
+    assert slots[WEEK_TITLE_SLOT] == [_parsed(SPARSE)["week"]]
+    assert slots[MODULE_SLOT] == [_parsed(SPARSE)["module"]]
+
+
+def test_weekly_slots_refuse_a_disclosure_line_the_surface_never_recorded() -> None:
+    """NON-VACUITY for the membership self-check — the mechanism that keeps the line honest.
+
+    Strip the lowlights disclosure out of a composed surface and re-derive: the composer must
+    REFUSE rather than write a line the record does not carry. Without this check the disclosure
+    branch would be free to drift into any string at all, which is exactly the invented-prose
+    failure the branch exists to prevent (T-03-20).
+    """
+    load = _load(SPARSE)
+    surface = build_weekly_report(load, author=AUTHOR)
+    dumped = surface.model_dump(mode="json")
+    before = len(dumped["missing"])
+    dumped["missing"] = [m for m in dumped["missing"] if "'lowlights'" not in m]
+    assert len(dumped["missing"]) < before, "the fixture must disclose absent lowlights"
+    tampered = type(surface).model_validate(dumped)
+
+    with pytest.raises(ValueError) as excinfo:
+        weekly_slots(load, tampered)
+    message = str(excinfo.value)
+    assert LOWLIGHTS_SLOT in message
+    assert "'lowlights'" in message
+    assert "composer-invented" in message
+
+
+# --- the render itself: every assertion made by reopening the WRITTEN bytes ---------------- #
+
+
+@requires_pptx
+def test_full_weekly_renders_byte_identically_twice_in_process() -> None:
+    """SC-5 determinism, both assertions, each for its own stated reason.
+
+    ``bytes_a == bytes_b`` is the IN-PROCESS claim: one interpreter, one zlib, so the container is
+    comparable and a difference would mean the writer embedded a clock. ``part_digest`` is the
+    implementation-INDEPENDENT claim — DEFLATE output varies between zlib and zlib-ng, so this is
+    the assertion a cross-environment gate (Phase 4's committed==fresh) must use.
+
+    Nothing here compares a rendered deck to the TEMPLATE: reopening and re-saving the template
+    already yields a different digest, a python-pptx load-path property and not a regression
+    (Phase 2-03 decision).
+    """
+    _, surface, slots = _slots(FULL)
+    first = render_surface_pptx_bytes(
+        surface, template=COMMITTED_TEMPLATE, slots=slots
+    )
+    second = render_surface_pptx_bytes(
+        surface, template=COMMITTED_TEMPLATE, slots=slots
+    )
+    assert first == second, "two in-process renders differ — the writer embedded a clock"
+    assert part_digest(first) == part_digest(second), (
+        "the part-content digests differ, so the DIFFERENCE IS IN THE CONTENT, not the zip "
+        "container — this is the assertion a cross-environment gate inherits"
+    )
+
+
+@pytest.mark.parametrize("name", [FULL, SPARSE])
+@requires_pptx
+def test_weekly_deck_reads_back_marked_watermarked_and_slot_faithful(
+    name: str, tmp_path: pathlib.Path
+) -> None:
+    """The written deck, REOPENED: the marker, the Draft watermark, and every slot line.
+
+    The sparse weekly is rendered too, and that is the point of the parametrization: it is the
+    weekly whose lowlights slot carries only the disclosure, so this proves the empty-section
+    mechanism produces a real, openable deck rather than a refusal.
+    """
+    _, surface, slots = _slots(name)
+    out_path = tmp_path / f"{name}.pptx"
+
+    render_surface_pptx(
+        surface, template=COMMITTED_TEMPLATE, slots=slots, out_path=out_path
+    )
+
+    written = _pptx.Presentation(str(out_path))  # reopen the FILE that was written
+    core = written.core_properties
+    assert core.category == MARKER, core.category
+    assert core.content_status == DRAFT_STATUS, core.content_status
+    assert core.identifier == surface.id, core.identifier
+
+    for index, slide in enumerate(written.slides):
+        names = [shape.name for shape in slide.shapes]
+        assert WATERMARK_NAME in names, (
+            f"slide {index} of a DRAFT weekly carries no watermark — an unreviewed page that "
+            f"does not look unreviewed. Shapes: {names}"
+        )
+
+    for key, lines in slots.items():
+        assert _shape_text(written, key) == "\n".join(lines), (
+            f"slot {key!r} did not read back as the lines it was given"
+        )
+    assert _shape_text(written, FOOTER_SHAPE) == FOOTER_TEXT, (
+        "the unprefixed shape was written — the operator's footer is not a renderer slot"
+    )
+
+
+@requires_pptx
+def test_rendering_never_advances_the_gate_or_mutates_the_surface(
+    tmp_path: pathlib.Path,
+) -> None:
+    """The product's hardest rule, on the deck path: a render is a READ of the gate.
+
+    Asserted in the direction that can actually fail — the whole ``model_dump()`` before and
+    after, not just ``review.state`` — because a writer that touched any other field would still
+    be writing back into the reviewed record.
+    """
+    _, surface, slots = _slots(FULL)
+    before = surface.model_dump()
+
+    render_surface_pptx(
+        surface,
+        template=COMMITTED_TEMPLATE,
+        slots=slots,
+        out_path=tmp_path / "gate.pptx",
+    )
+
+    assert surface.model_dump() == before, "the render mutated the Surface"
+    assert surface.review.state is ReviewState.DRAFT
+    assert not surface.is_published
+
+
+@requires_pptx
+def test_the_committed_template_is_never_written_by_a_render(
+    tmp_path: pathlib.Path,
+) -> None:
+    """READ-ONLY: the fixture template's bytes, mtime and size survive a render untouched."""
+    before_bytes = COMMITTED_TEMPLATE.read_bytes()
+    before_stat = COMMITTED_TEMPLATE.stat()
+
+    _, surface, slots = _slots(FULL)
+    render_surface_pptx(
+        surface,
+        template=COMMITTED_TEMPLATE,
+        slots=slots,
+        out_path=tmp_path / "readonly.pptx",
+    )
+
+    assert COMMITTED_TEMPLATE.read_bytes() == before_bytes
+    assert COMMITTED_TEMPLATE.stat().st_mtime == before_stat.st_mtime
+    assert COMMITTED_TEMPLATE.stat().st_size == before_stat.st_size

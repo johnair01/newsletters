@@ -60,6 +60,13 @@ from pydantic import BaseModel, Field
 from ._yaml_loader import load_config as _parse_config
 from .adapters._timestamps import EPOCH_ZERO
 from .compose import addressed, compute_delta
+
+# The writer's reserved-prefix constant, IMPORTED rather than re-declared: `weekly_slots` builds
+# the mapping `pptx_writer.bind_slots` validates, and two copies of the prefix drift exactly as
+# two normalizers would. `pptx_writer`'s module level is stdlib-only (its `Surface` annotation is
+# under TYPE_CHECKING and python-pptx is reached lazily inside the render function), so this edge
+# adds NOTHING to the bare-install surface — see that module's AI-OPTIONAL banner.
+from .pptx_writer import SLOT_PREFIX
 from .semantic import (
     AssetBlock,
     AssetRecord,
@@ -95,6 +102,7 @@ __all__ = [
     "WeeklySpecLoad",
     "build_weekly_report",
     "load_weekly_spec",
+    "weekly_slots",
 ]
 
 # The schema — GENERIC field names only (never an org/fixture value; LANE-03 discipline, policed
@@ -1056,3 +1064,96 @@ def build_weekly_report(
         review=Review(policy=REPORT.review_policy, author=author),
         created=EPOCH_ZERO,
     )
+
+
+# ---------------------------------------------------------------------------- #
+# The deck slots: the Surface -> ``NL_`` derivation Phase 2 deliberately left open (D-03/P-03).
+#
+# The four names below are the ones the committed synthetic template declares. They are built from
+# the WRITER's own ``SLOT_PREFIX`` rather than typed out, because the prefix is the contract
+# ``bind_slots`` enforces in both directions (an unprefixed key is refused; an unfilled prefixed
+# shape is refused) and a second spelling of it would drift.
+# ---------------------------------------------------------------------------- #
+WEEK_TITLE_SLOT = f"{SLOT_PREFIX}WEEK_TITLE"
+MODULE_SLOT = f"{SLOT_PREFIX}MODULE"
+HIGHLIGHTS_SLOT = f"{SLOT_PREFIX}HIGHLIGHTS"
+LOWLIGHTS_SLOT = f"{SLOT_PREFIX}LOWLIGHTS"
+
+# (slot name, authored key) in the FIXED emission order. Insertion order is the dict's order and
+# is asserted by test: a composer free to reorder its slots is a composer forming an opinion.
+_SLOT_SOURCES = (
+    (WEEK_TITLE_SLOT, _WEEK_KEY),
+    (MODULE_SLOT, _MODULE_KEY),
+    (HIGHLIGHTS_SLOT, _HIGHLIGHTS_KEY),
+    (LOWLIGHTS_SLOT, _LOWLIGHTS_KEY),
+)
+
+_INVENTED_SLOT_LINE = (
+    "refusing to emit {line!r} into slot {slot!r}: section {key!r} is empty, so the ONLY line this "
+    "composer may put on that slide is the surface's own disclosure of the absence — and that "
+    "string is not in ``surface.missing``. A line that is neither the author's words nor the "
+    "recorded disclosure is composer-invented content on an artifact a human will send. Compose "
+    "the slots from the SAME load the surface was built from, or fix the loader so the absence is "
+    "disclosed (docs/weekly-spec.md rule 4)."
+)
+
+
+def weekly_slots(load: WeeklySpecLoad, surface: Surface) -> dict[str, list[str]]:
+    """Derive the ``NL_`` slot mapping :func:`pptx_writer.render_surface_pptx` requires.
+
+    Pure and ordered: no filesystem, no clock, no gate call. Two calls on the same inputs return
+    equal dicts with equal key order, which is half of why two renders of one reviewed record are
+    the same deck.
+
+    THE SHAPE. Exactly the four keys the committed template declares, in a fixed insertion order,
+    every value an explicit ``list[str]`` — never a bare ``str``, which is itself a
+    ``Sequence[str]`` of its characters and would ship one paragraph per letter (02-review WR-03;
+    ``fill_slot`` now treats a bare string as one line, but building the right type here is the
+    caller-side half of that fix).
+
+    THE CONTENT. Every emitted line is either the author's own value, carried verbatim and in file
+    order (one line per authored item — never joined, never sorted, never summarised), or the
+    surface's own ``missing[]`` disclosure of that section's absence. There is no third source of
+    text, and the disclosure branch PROVES it belongs to the second by checking membership in
+    ``surface.missing`` before emitting and raising a teaching ``ValueError`` otherwise.
+
+    WHY AN EMPTY SECTION STILL GETS A LINE — this SUPERSEDES the "omit empty slots" instinct
+    (03-RESEARCH) for any slot the template DECLARES, and the reason is mechanical as well as
+    editorial. Mechanically: ``bind_slots`` refuses an ``NL_``-prefixed shape with no matching
+    content, so omitting ``NL_LOWLIGHTS`` would make a weekly with no lowlights fail to render at
+    all. Editorially: "no lowlights" is the absence a weekly is most tempted to hide
+    (``docs/weekly-spec.md`` rule 4), so the reviewer's slide is exactly where it belongs. Padding
+    it with invented prose ("Nothing to report", an em dash) would be the composer editorializing
+    on the most consequential line in the deck; the honest line already exists in ``missing[]``,
+    so the slide carries THAT.
+
+    Blank lines are impossible by construction rather than by filtering here: the loader drops
+    blank list items and leaves a blank scalar empty, so an authored section is either non-empty
+    real text or falsy and disclosed. Nothing authored is ever dropped in this function.
+
+    Args:
+        load: the loaded weekly — the authored side, in file order.
+        surface: the composed Draft ``Surface`` whose ``missing[]`` carries the disclosures. It is
+            READ, never mutated: this function assigns to no ``Surface`` field and never touches
+            the review gate.
+
+    Raises:
+        ValueError: if a disclosure line is not present in ``surface.missing`` — see above.
+    """
+    spec = load.spec
+    disclosed = set(surface.missing)
+
+    slots: dict[str, list[str]] = {}
+    for slot, key in _SLOT_SOURCES:
+        authored = getattr(spec, key)
+        lines = [authored] if isinstance(authored, str) else list(authored)
+        if any(line.strip() for line in lines):
+            slots[slot] = lines
+            continue
+        disclosure = absent(key)
+        if disclosure not in disclosed:
+            raise ValueError(
+                _INVENTED_SLOT_LINE.format(line=disclosure, slot=slot, key=key)
+            )
+        slots[slot] = [disclosure]
+    return slots
