@@ -72,7 +72,7 @@ name may leak into `src/`).
 
 - [x] **Phase 1: Specify + de-risk** — Weekly Spec schema + block kinds specified against `docs/architecture.md`; the `.pptx` determinism spike, decided on evidence up front (completed 2026-08-29)
 - [x] **Phase 2: Renderer** (WKLY-01) — template-driven deterministic PPTX writer + generated-by marker + Draft watermark + gate wiring (completed 2026-08-29)
-- [ ] **Phase 3: Weekly compose** (WKLY-02, WKLY-03, WKLY-04) — new block kinds, the Weekly Spec path, asset evidence, BI values via export
+- [x] **Phase 3: Weekly compose** (WKLY-02, WKLY-03, WKLY-04) — new block kinds, the Weekly Spec path, asset evidence, BI values via export (completed 2026-08-29)
 - [ ] **Phase 4: Sample corpus + recipe** (WKLY-05, WKLY-06) — CI-rendered synthetic weekly + `docs/weekly.md` operator recipe
 
 ## Phase Details
@@ -215,11 +215,11 @@ makes it all mean something)
       one honest-span implementation exists, then `weeklyspec.py`'s strict eight-key schema and
       `load_weekly_spec` — file-order minting, `config:` bound never claimed, every absence
       disclosed, two committed fixtures + a tiny PNG (SC-2's mechanism)
-- [ ] `03-03-PLAN.md` — Asset evidence + the composer: all seven routing rows with their exact
+- [x] `03-03-PLAN.md` — Asset evidence + the composer: all seven routing rows with their exact
       disclosure strings (a path escape raises, an absence discloses, the two never collapse), and
       `build_weekly_report` — fixed block order, Draft at `EPOCH_ZERO`, byte-identical
       double-compose, and the planted-editorialization guard (SC-3, SC-5's composition half)
-- [ ] `03-04-PLAN.md` — The deck, the values, and the job that makes the greens mean something:
+- [x] `03-04-PLAN.md` — The deck, the values, and the job that makes the greens mean something:
       `weekly_slots` + an end-to-end render through Phase 2's writer (text-only; empty sections
       disclose on the slide), BI values through the **existing** ADAPT-03 adapter with ADAPT-05
       clean-diffed, and the `weekly` CI job installing `[excel]` with `0 skipped` asserted
@@ -273,7 +273,7 @@ operator through the loop on their own data, read-only and local.
 |-------|----------------|--------|-----------|
 | 1. Specify + de-risk | 3/3 | Complete    | 2026-08-29 |
 | 2. Renderer | 3/3 | Complete    | 2026-08-29 |
-| 3. Weekly compose | 3/4 | Executing (plans 03-01, 03-02, 03-03 complete; 1 plan remains) | - |
+| 3. Weekly compose | 4/4 | Complete   | 2026-08-29 |
 | 4. Sample corpus + recipe | 0/0 | Not started | - |
 
 Plans are created per phase by `/gsd-plan-phase`; `0/0` means "not yet planned", not "no work".

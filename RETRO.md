@@ -34,6 +34,17 @@
    `grep -c 'text-only\|text only' docs/weekly-spec.md` printed `0` against a paragraph whose
    heading said **TEXT-ONLY** in the house's emphatic caps. The criterion was right and the prose
    was fine; only the pair was wrong. Same family as W24's "a criterion binds the file's prose too".
+5. **The state tool's *return value* disagreed with what it wrote to disk.** W24 recorded a handler
+   that errored *and* mutated; this session hit that again (`state.advance-plan` returned
+   `{"error": "Cannot parse Current Plan or Total Plans in Phase"}` having already written six
+   lines) — and then hit something sharper. `state.update-progress` returned
+   `{"updated": true, "percent": 100, "completed": 10, "total": 10}` and **wrote `percent: 75`**
+   into `STATE.md`. A *successful* call whose reported number contradicts the file is worse than a
+   failing one, because there is nothing in the outcome to make you look. Caught only because W24's
+   rule says to diff the file after **any** state call. Both were reverted from a scratchpad backup
+   and `STATE.md` was hand-edited. `roadmap.update-plan-progress` was closer but still needed
+   repair: it flipped the phase row to Complete without checking the two remaining plan boxes, and
+   inserted blank lines between the plan bullets.
 
 **Rules hardened**
 
@@ -48,6 +59,10 @@
   intention; the adapter is the fact. (This is CLAUDE.md's "diagnose the live object" applied to a
   planning artifact rather than to a failure.)
 - *Write a token-grep criterion and the prose it will read in the same breath* — case included.
+- *A tool's return envelope is not evidence of what it wrote.* Extends W24's "diff the file after
+  any state call, success **or** failure" with its sharper case: diff it even when the call
+  succeeded **and** reported the number you wanted. Where the tool and the file disagree, revert
+  from the backup and hand-edit — never reconcile by trusting the envelope.
 
 **Closed by this plan:** the vacuous-diff family (W22's `git diff HEAD` gate) is now fully retired —
 every diff-shape guard in the repo resolves the branch point through the one `milestone_base_ref`

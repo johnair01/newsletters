@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 03-03-PLAN.md; next: 03-04-PLAN.md (the weekly deck + the CI job)"
-last_updated: "2026-08-29T08:05:00Z"
-last_activity: 2026-08-29 — Phase 3 plan 03-03 executed (asset routing, all seven rows; `build_weekly_report`)
+stopped_at: "Completed 03-04-PLAN.md — Phase 3 complete (4/4 plans); next: Phase 4 planning (WKLY-05/06)"
+last_updated: "2026-08-29T08:10:00Z"
+last_activity: 2026-08-29 — Phase 3 plan 03-04 executed (`weekly_slots` + the deck, values via export, the `weekly` CI job)
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 10
-  completed_plans: 9
-  percent: 90
+  completed_plans: 10
+  percent: 100
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-08-29)
 
 ## Current Position
 
-Phase: Phase 3: Weekly compose (WKLY-02..04) — executing (3 of 4 plans complete)
-Plan: 03-03 complete; next 03-04 (the weekly deck + the CI job)
-Status: Ready to execute 03-04
-Last activity: 2026-08-29 — Phase 3 plan 03-03 executed (asset placement with all seven routing rows; `build_weekly_report`)
+Phase: Phase 3: Weekly compose (WKLY-02..04) — plans complete (4 of 4) — awaiting phase verification
+Plan: 03-04 complete; next: Phase 4 planning (WKLY-05/06 — sample corpus + operator recipe)
+Status: Phase 3 complete; WKLY-02/03/04 all closed
+Last activity: 2026-08-29 — Phase 3 plan 03-04 executed (`weekly_slots` + the end-to-end deck, BI values via the existing ADAPT-03 adapter, the `weekly` CI job; the suite runs 0-skipped for the first time this milestone)
 
 ## Performance Metrics
 
@@ -44,7 +44,7 @@ Last activity: 2026-08-29 — Phase 3 plan 03-03 executed (asset placement with 
 |-------|-------|--------|
 | 1. Specify + de-risk | 3/3 | Plans complete — awaiting phase verification |
 | 2. Renderer (WKLY-01) | 3/3 | Plans complete — awaiting phase verification (SC-1..SC-5 proved locally; the `pptx` job's first CI green and the real-PowerPoint open are PR-review items) |
-| 3. Weekly compose (WKLY-02/03/04) | 3/4 | Executing — 03-01 landed the four block kinds, their render branches and the replacement gate freeze; 03-02 landed the promoted `SpanMinter` and the Weekly Spec load half; 03-03 closed WKLY-03 (asset routing) and the composition half of WKLY-02 (`build_weekly_report`) |
+| 3. Weekly compose (WKLY-02/03/04) | 4/4 | Plans complete — awaiting phase verification. 03-01 landed the four block kinds, their render branches and the replacement gate freeze; 03-02 landed the promoted `SpanMinter` and the Weekly Spec load half; 03-03 closed WKLY-03 (asset routing) and the composition half of WKLY-02 (`build_weekly_report`); 03-04 closed WKLY-04 (values via the existing ADAPT-03 adapter) and SC-5 (`weekly_slots` + the end-to-end deck), and added the `weekly` CI job — the first job that runs the compose path at all |
 | 4. Sample corpus + recipe (WKLY-05/06) | 0/0 (unplanned) | Not started |
 
 **Per-plan execution:**
@@ -60,6 +60,7 @@ Last activity: 2026-08-29 — Phase 3 plan 03-03 executed (asset placement with 
 | Phase 3 P01 | 11min | 3 tasks | 8 files |
 | Phase 3 P02 | 42min | 3 tasks | 8 files |
 | Phase 3 P03 | 22min | 2 tasks | 5 files |
+| Phase 3 P04 | 14min | 3 tasks | 7 files |
 
 **Recent Trend:**
 
@@ -145,6 +146,14 @@ WHERE-WE-ARE.md):
 - [Phase 3-03]: `CONNECTIVE_CONSTANTS` holds the lead AND the section labels (eight strings, all numeral-free). `RecognitionsBlock`/`TeamBlock` carry composer text by MODEL DEFAULT, so a lead-only allowlist would have hidden those defaults from the guard rather than removing them.
 - [Phase 3-03]: `stands_in_for` is CLOSED to `'values'` at validation. `AssetRecord` types it `Literal["values"]`, so an unknown kind carried to placement would raise a Pydantic error naming a TYPE instead of naming the author's typo — the one place in the module where a typo would not teach.
 - [Phase 3-03]: `weekly-editorial-bait.yml` is COMMITTED, not authored into `tmp_path`: "do not summarize, sort or merge these six lines" is a contract 03-04 and every later composer must keep passing, and a tmp_path fixture dies with the test that wrote it.
+
+- [Phase 3-04]: `weekly_slots` ALWAYS emits all four declared `NL_` keys, and an empty section's single slide line **is** that section's own `missing[]` disclosure — membership-checked against `surface.missing` before emission, raising a teaching `ValueError` otherwise. This SUPERSEDES 03-RESEARCH's "omit empty slots" rule for slots the template DECLARES, for two reasons: `bind_slots` refuses an unfilled `NL_` shape (so a weekly with no lowlights would fail to render at all), and inventing filler would be the composer editorialising on the most consequential line in the deck. Mutation-proved: emitting a literal `"—"` turns 6 tests RED, and the refusal fires BEFORE any render.
+- [Phase 3-04]: The deck is **TEXT-ONLY** this milestone. `pptx_writer` has no `add_picture` path and `bind_slots` refuses any shape without a text frame; no phase criterion budgets image placement. Phase 1's measured image-determinism property is RECORDED BUT NOT YET CONSUMED. Written into `docs/weekly-spec.md` as a decision with a round-two flag — an absence that is written down is a scope call.
+- [Phase 3-04]: `SLOT_PREFIX` is IMPORTED into `weeklyspec.py` from `pptx_writer`, never re-spelled. That module's level is stdlib-only, so the edge costs the bare install nothing, and one spelling of the reserved prefix cannot drift from another (the ONE-normalizer precedent).
+- [Phase 3-04]: The excel adapter's claim TEXT is the cell VALUE, not the canonical `Sheet!A1<SEP>value` line the plan's wording claimed — the prefix exists to separate adjacent values so duplicates still get distinct, ordered spans. Verified against the LIVE adapter before the assertion was written; the test asserts both halves (the transcript's canonical lines AND the claim's re-sliceable span).
+- [Phase 3-04]: The `.csv` in WKLY-04's wording is a CLARIFICATION, not a scope cut: the live ADAPT-03 adapter is `.xlsx`-only and a CSV path would be exactly the new adapter module the requirement forbids. Recorded in `tests/test_weekly_values.py`'s docstring and in REQUIREMENTS traceability.
+- [Phase 3-04]: The `weekly` CI job is SEPARATE and installs `.[test,config,excel,pptx]`; `bare-install` stays the canonical AI-free, EXTRA-FREE source of truth (PKG-03) and is byte-untouched — the `ci.yml` diff against the milestone base is 0 deletions. It sets `fetch-depth: 0` (three guards resolve `git merge-base HEAD origin/main` and FAIL rather than skip without it) and fails on any reported skip.
+
 ### Pending Todos
 
 None. (B1–B20 fix-batch backlog remains parked in `reviews/2026-07-02-deep-review/07-tests-as-promises.md`, maintainer-gated.)
@@ -169,11 +178,27 @@ None. (B1–B20 fix-batch backlog remains parked in `reviews/2026-07-02-deep-rev
 
 - [v1.3 Phase 3 — RETIRED 2026-08-29 by plan 03-01]: `render.py`'s bare `return ""` block-dispatch fall-through is gone. All fifteen union members have a branch (proved by a `typing.get_args`-driven coverage test, not a hand-written list) and the fall-through is now a teaching `ValueError` naming the unhandled `block.kind`. It stays unreachable by construction — `Surface.blocks` is a discriminated `list[Block]` — and a comment in `_block_html` records that keeping it unreachable is the point.
 
-- [v1.3 Phase 3 — OPEN, CI]: `tests/test_semantic_gate_frozen.py` Half B and `test_compose.py`'s byte-freeze both need the full history. The CI job that runs them MUST set `fetch-depth: 0` on its checkout, or both FAIL by design (the `milestone_base_ref` fixture names the fix in its own message). Not yet wired — the weekly CI job is plan 03-03/03-04's. Stated, not assumed: the test and the job that runs it are two different artifacts (W21).
-- [v1.3 Phase 3 — OPEN, CI]: `tests/test_weeklyspec.py` is in **no CI job**. It is now **72 tests**
-  (the whole Weekly Spec load + placement + compose proof, including every routing row and the
-  editorialization guard) and `ci.yml`'s pytest invocations do not name it — green because not run,
-  the exact W21 failure, already paid for once. A job must name it; plan 03-04 owns the weekly CI job.
+- [v1.3 Phase 3 — RETIRED 2026-08-29 by plan 03-04]: both CI gaps are closed at the mechanism. The
+  new `weekly` job (`.github/workflows/ci.yml`) installs `.[test,config,excel,pptx]`, sets
+  **`fetch-depth: 0`** so the base-ref gates can execute, and names all NINE previously-unrun
+  compose-path modules — `test_weeklyspec.py` (now **88 tests**), `test_weekly_blocks.py`,
+  `test_weekly_values.py`, `test_semantic_gate_frozen.py`, `test_casespec.py`, `test_compose.py`,
+  `test_swimlane.py`, `test_abstraction_guard.py`, `test_excel_adapter.py` — with an explicit
+  **`0 skipped`** assertion whose failure message names the W21 lesson. The job's exact command was
+  verified locally at **174 passed, 0 skipped**; `bare-install` is byte-untouched (0 deletions in
+  the `ci.yml` diff vs the milestone base).
+
+- [v1.3 Phase 3 — OPEN, PR-REVIEW]: the `weekly` job's FIRST CI green has not been observed from
+  this environment (no `gh` CLI), exactly as for the `pptx` job. Its command is proved locally; the
+  run itself is a PR-review confirmation. Stated, not assumed — an unobserved job is not evidence.
+
+- [v1.3 Phase 3 — OPEN, TOOLING]: `gsd-tools query state.advance-plan` **errored and mutated**
+  again on this STATE.md (`{"error": "Cannot parse Current Plan or Total Plans in Phase"}` with 6
+  insertions written), and `state.update-progress` **returned `percent: 100` while writing
+  `percent: 75`** — a successful call whose reported value contradicts the file on disk. Both were
+  reverted from a scratchpad backup and STATE.md was hand-edited. W24's rule held (diff the file
+  after ANY state call, success or failure) and is now extended: *the return envelope is not
+  evidence of what was written.*
 
 - [Carried]: `v1.1`/`v1.2` tags exist locally only — the environment's git proxy drops tag pushes; maintainer creates them via the Releases UI.
 - [Carried]: ledgers (`content/*/ids.json`) are append-only — any diff on regenerate is a stop-the-line bug.
@@ -193,7 +218,34 @@ mine?" tax. Maintainer-gated because the fix is a repo-wide reformat.
 
 ## Session Continuity
 
-Last session: 2026-08-29 — Phase 3 plan 03-03 executed. An image now reaches a `Surface`
+Last session: 2026-08-29 — Phase 3 plan 03-04 executed; **Phase 3 is complete (4/4 plans,
+WKLY-02/03/04 all closed).** A composed weekly now renders through Phase 2's writer to a deck, and
+the decision worth carrying is how an empty section behaves: the template declares an
+`NL_LOWLIGHTS` box and `bind_slots` refuses an unfilled `NL_` shape, so omitting the slot would
+make a weekly with no lowlights fail to render at all — while padding it with prose would be the
+composer editorialising on the most consequential line in the deck. `weekly_slots` therefore emits
+all four declared keys and, for an empty section, emits the record's OWN `missing[]` disclosure,
+asserting membership in `surface.missing` before it prints. Mutating that line to a literal `"—"`
+turned **6 tests RED** and — the part worth keeping — the refusal fired *before* any render, so an
+invented line never becomes a deck somebody reviews; the non-vacuity arm went red too, because it
+asserts WHICH slot is named. Determinism is asserted twice for two different reasons (raw bytes
+in-process, `part_digest` cross-environment), every deck property is read back off the WRITTEN
+file, and the Surface is `model_dump()`-identical afterwards. WKLY-04 landed with **no new
+adapter**: a synthetic `.xlsx` through `resolve("excel")` reaches the weekly's KPI strip (delta
+from two independently traced endpoint cells) and ClaimsBlock, with three *absence* guards
+(adapters directory gained no file; ADAPT-05 byte-unchanged; no workbook token in `weeklyspec.py`)
+asserted by diff against the milestone base rather than promised. The real find was infrastructural:
+**nine test modules ran in no CI job at all** — including the 88-test authoring path — and three
+consecutive summaries had recorded "64 skipped" without reading it. The `weekly` job now names all
+nine, installs `[excel]`, sets `fetch-depth: 0` and fails on any skip (verified locally: 174 passed,
+0 skipped). Suite: **812 passed / 0 skipped** (baseline 699/64 — the first 0-skipped run of this
+milestone); `lint-imports` 2 kept; the eight gate pins green; `newsletters check` clean on all
+three corpora; determinism `--check` exit 0 with zero committed binary changed. Two items carried
+to the PR body: the text-only deck (round two) and the real-PowerPoint open.
+Stopped at: Completed 03-04-PLAN.md — Phase 3 complete; next: Phase 4 planning (WKLY-05/06)
+Resume file: `.planning/phases/03-weekly-compose/03-04-SUMMARY.md`
+
+Previously: 2026-08-29 — Phase 3 plan 03-03 executed. An image now reaches a `Surface`
 ONLY as a root-contained, provenance-complete file that still hashes to what its record says:
 `load_weekly_spec` places assets at load time (the hash check needs the filesystem), checking
 containment FIRST — `resolve()` follows symlinks, then `relative_to(root)` — so a traversal never
