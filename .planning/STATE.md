@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: milestone
-status: executing
-stopped_at: "Completed 04-03-PLAN.md — Phase 4 is complete (3/3 plans; WKLY-05 + WKLY-06 closed). Next: phase verification, then the milestone PR."
-last_updated: "2026-08-29T10:15:00.000Z"
-last_activity: 2026-08-29 — Phase 4 plan 03 executed (WKLY-06 COMPLETE: docs/weekly.md executed end to end, three doc-guard tests, the four-corpora spec deltas, the phase gate sweep)
+status: verifying
+stopped_at: "Completed 04-03-PLAN.md — Phase 4 complete; next: phase verification, then the"
+last_updated: "2026-08-29T10:41:18.203Z"
+last_activity: 2026-08-29
 progress:
   total_phases: 4
   completed_phases: 4
@@ -25,10 +25,11 @@ See: .planning/PROJECT.md (updated 2026-08-29)
 
 ## Current Position
 
-Phase: Phase 4: Sample corpus + recipe (WKLY-05..06) — plans complete (3/3), awaiting phase verification
-Plan: 04-03 complete (WKLY-06 CLOSED); next: `/gsd-verify-work` for Phase 4, then the milestone PR
-Status: Ready to verify
-Last activity: 2026-08-29 — Phase 4 plan 03 executed (`docs/weekly.md` written AND executed against the committed corpus; three doc-guard tests; the four-corpora spec deltas incl. the deploy-pages header comment; the ten-row gate sweep re-run independently)
+Phase: — (all 4 phases complete, verified)
+Plan: — (13 of 13 complete)
+Status: ALL PHASES COMPLETE. Final gates green over four corpora (871 passed/0 skipped · lint-imports 2 kept · check ×4 OK · corpora clean · determinism --check OK). Next: milestone audit, then STOP before completion — the EiC's PR review is the human gate (kickoff Step 3/4). Human items deferred to PR: real-PowerPoint open · first CI green of pptx/weekly jobs · weekly-spec/recipe cold reads · contentStatus tri-state · deck images (round two).
+Last activity: 2026-08-29 — Phase 4 closed; running milestone audit
+
 
 ## Performance Metrics
 
@@ -329,7 +330,9 @@ reviewer" are two different claims and only the second is the product's promise:
 `section 'MOR/IQ tools & defect projects' declares no KPIs — strip omitted` ·
 `field 'recognitions[1].source' is absent or empty — disclosed, never fabricated` ·
 `asset 'manifest-annex-photo': provenance field 'folder' is absent — the minimum is folder + date
+
 + event label; disclosed, never placed`. Each is located by the composer's OWN format string
+
 (`compose.NO_KPIS` / `specspan.absent` / `weeklyspec._ASSET_PROVENANCE_ABSENT`), so no disclosure
 sentence is typed into a test or a fixture. The deck was produced by running the shipped
 `newsletters weekly` command — not an ad-hoc script — so the sample and the recipe (04-03) cannot

@@ -299,7 +299,7 @@ committed==fresh goes red)
 | 1. Specify + de-risk | 3/3 | Complete    | 2026-08-29 |
 | 2. Renderer | 3/3 | Complete    | 2026-08-29 |
 | 3. Weekly compose | 4/4 | Complete    | 2026-08-29 |
-| 4. Sample corpus + recipe | 3/3 | Complete   | 2026-08-29 |
+| 4. Sample corpus + recipe | 3/3 | Complete    | 2026-08-29 |
 
 Plans are created per phase by `/gsd-plan-phase`; `0/0` means "not yet planned", not "no work".
 
