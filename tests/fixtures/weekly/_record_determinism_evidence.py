@@ -38,6 +38,7 @@ import platform
 import sys
 import time
 import zlib
+from datetime import date
 
 import pptx
 from pptx import Presentation
@@ -178,7 +179,11 @@ def measure() -> dict:
     )
 
     return {
-        "recorded": "2026-08-29",
+        # The ONE deliberate wall-clock in this file: `recorded` is metadata about WHEN the
+        # measurement ran, not part of the measurement — a re-record after a python-pptx upgrade
+        # must not claim a stale date. `--check` never compares it (not in CHECKED_FIELDS), so
+        # no determinism property rests on it.
+        "recorded": date.today().isoformat(),
         "python": sys.version.split()[0],
         "python_pptx": pptx.__version__,
         "zlib": zlib.ZLIB_RUNTIME_VERSION,
