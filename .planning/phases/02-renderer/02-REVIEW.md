@@ -17,7 +17,10 @@ findings:
   warning: 6
   info: 7
   total: 13
-status: issues_found
+status: fixed
+fixed_at: 2026-08-29T06:10:00Z
+fixed: 9
+carried: 4
 ---
 
 # Phase 2: Code Review Report
@@ -25,7 +28,35 @@ status: issues_found
 **Reviewed:** 2026-08-29T05:48:20Z
 **Depth:** standard
 **Files Reviewed:** 8
-**Status:** issues_found
+**Status:** fixed (all 6 Warnings + 3 trivial Info fixed; 4 Info carried)
+
+## Fix Outcomes (2026-08-29)
+
+All six Warnings fixed; the three trivial zero-risk Info findings fixed; the four Info findings
+needing CI-wiring / atomic-write / template-regeneration / layout-walk decisions carried to the
+phase backlog. Gates after fixes, each run once: full suite **601 passed / 64 skipped** (baseline
+595 + the 6 new regression tests), `lint-imports` **2 kept / 0 broken**,
+`_record_determinism_evidence.py --check` **OK** (6 fields re-verified live),
+`git diff --exit-code -- src/newsletters/semantic.py content/ tests/fixtures/pptx/*.pptx
+tests/fixtures/weekly/template.pptx` **clean** (no committed binary moved; the evidence JSON and
+decision note changed per WR-01, as sanctioned). mypy/black clean on touched files; isort
+no-new-failures (DEF-15 debt unchanged).
+
+| Finding | Outcome | Commit |
+|---------|---------|--------|
+| WR-01 | **Fixed** — `part_digest` rows length-prefixed (8-byte BE name length); evidence re-recorded via the sanctioned recorder (`part_digest` `606c2464…` → `d7ff171a…`; `normalized_a_sha256` re-measured byte-identical, proving no content moved); decision note amended with a dated addendum | `1f4dce0` |
+| WR-02 | **Fixed** — duplicate-name refusal scoped to `NL_`-prefixed names; unprefixed duplicates bind first-seen; two-slide auto-name regression test added; contract clarification recorded as a dated addendum in the decision note | `530d996` |
+| WR-03 | **Fixed** — a bare `str` slot value is treated as ONE paragraph (`[line]`), never per-character explosion; annotations widened to `Union[str, Sequence[str]]`; tested both via `fill_slot` and end to end through the render path | `2763126` |
+| WR-04 | **Fixed** — `lint-imports` resolved next to `sys.executable` (with `shutil.which` fallback); the no-op `python -m importlinter.cli` fallback refused — importlinter-installed-but-script-missing now FAILS loud; only a truly bare env skips | `f58031d` |
+| WR-05 | **Fixed** — both files import `MARKER` and `DRAFT_STATUS` (aliased `GATE_STATE`) from `newsletters.pptx_writer` instead of re-declaring literals | `b1b5a3d` |
+| WR-06 | **Fixed** — `bind_slots` refuses any `slots` key without the `NL_` prefix (sixth refusal, teaching error); `Footer`-binding regression test added; recorded as a dated addendum in the decision note | `2a7e393` |
+| IN-01 | **Fixed** — module docstring no longer claims the contracts run on the bare-install job; states the bare install proves importability and the contracts execute in the `pptx` CI job | `062a2d2` |
+| IN-02 | **Fixed** — `fill_slot` refuses all-blank line lists (`[""]`, whitespace-only) like `[]`; a blank spacer among real content stays legitimate and is tested as such | `b0f71fd` |
+| IN-03 | **Carried** — wiring `--check` into the `pptx` CI job needs the python-pptx-floor-pin tradeoff decided (an upstream upgrade could legitimately redden a wired check); not zero-risk, deferred with the counterweight recorded in the finding | — |
+| IN-04 | **Fixed** — `_walk` bounded at `_MAX_GROUP_DEPTH=64` with a teaching `ValueError`; both sides of the bound tested | `3e94648` |
+| IN-05 | **Carried** — atomic `os.replace` write is a behavior change to the disk entry point; deferred (the finding records the fix shape) | — |
+| IN-06 | **Carried** — adding overflow-safe settings to `_author_template.py` is dead code until the next regeneration, which is frozen this phase by P-06; apply on regeneration per the finding | — |
+| IN-07 | **Carried** — layout/master slot walking is a template-contract scope decision (walk-and-refuse vs document-slides-only), owned by the Phase-4 operator recipe | — |
 
 ## Summary
 
