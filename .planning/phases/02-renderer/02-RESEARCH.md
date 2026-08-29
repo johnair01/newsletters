@@ -1098,7 +1098,7 @@ surface.
 | **A4** (carried) | The `NL_` reserved prefix survives contact with a real operator deck | Phase 1 | **Medium** — still untested against a real deck. Confirm at the human-verify checkpoint |
 | **A8** (carried) | Normalized decks open correctly in real PowerPoint | Phase 1 | **Medium-high** — unverifiable here. `checkpoint:human-verify` |
 
-## Open Questions
+## Open Questions (RESOLVED — see 02-01-PLAN.md "Recorded planning decisions" P-01..P-08: P-03→Q1, P-04→Q2, P-05→Q3, P-08→Q4, Pattern-5 comment→Q5)
 
 1. **Does Phase 2's writer derive slot content from the Surface, or accept it?**
    - What we know: the four weekly block kinds do not exist yet (Phase 3 adds them); the existing
