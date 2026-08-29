@@ -34,7 +34,14 @@ v1.3 rather than only the ones this plan met.
    non-reserved address that must still trip *through* the allowance. Without that arm, "ignore the
    reserved domain" is one refactor away from "ignore every address" and nobody would notice.
 5. **The GSD state tooling mutated `STATE.md` on error and reported values it had not written.**
-   Recorded across W24, W25 and W26; three occurrences is a tool bug, not bad luck.
+   Recorded across W24, W25 and W26; three occurrences is a tool bug, not bad luck. **Fourth
+   occurrence, this plan:** W26's routing rule was followed — `STATE.md` was hand-edited and never
+   handed to `state.*` — and the two verbs that *were* run behaved exactly as W26 predicted.
+   `roadmap.update-plan-progress` was clean and correct (checkbox + progress row).
+   `requirements.mark-complete` flipped the checkbox correctly, updated the traceability table
+   this time, **and injected a stray blank line into the Future Requirements list**, splitting two
+   bullets into two lists. Caught by diffing against a scratchpad copy taken before the call, and
+   repaired by hand. The rule is holding; the tool is not fixed.
 6. **DEF-15 taxed every plan in this milestone that added an import.** `isort` has no
    `profile = "black"`, so the two tools disagree on every parenthesized multi-line import, and each
    plan paid the same "is this failure mine?" tax and worked around it the same way (module-level
