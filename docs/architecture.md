@@ -26,6 +26,15 @@ carry the whole system:
 > is ratified into the `SurfaceTemplate` presets (`templates.py`) + `ReviewPolicy` — a separate
 > core task. Recorded here so code and spec don't drift silently (per `CLAUDE.md`).
 
+> **Note (2026-08-29) — four block kinds are specified before they are implemented.** The v1.3
+> weekly adds `narrative`, `recognitions`, `team` and `asset` to the discriminated `Block` union,
+> taking it from eleven members to fifteen. Their fields, their discriminator values, the
+> asset-evidence record with its exact `missing[]` routing, and the design-system classes each one
+> reuses are written in **[`docs/weekly-spec.md`](weekly-spec.md)** — the document a reader can
+> hand-author a valid Weekly Spec from alone. The weekly itself is a `Surface(REPORT)`: the `.pptx`
+> deck is an output *format*, so the `kind` list above does not grow. Recorded here so code and
+> spec don't drift silently (per `CLAUDE.md`).
+
 Supporting types:
 
 - **Corpus** — a reader's private profile: `role`, `owned[]` (services/areas), `read[]`
@@ -184,7 +193,9 @@ The Reports in `content/rev1/` are the working record of *why*; this section is 
   the **Report** self-approves (light PR); the **Article** requires a **peer** (approver ≠
   author). Enforced at `publish()` — still no auto-publish path.
 - **Surfaces compose from typed content `blocks`** (prose, claims, kpi, quote, chapters,
-  items, prompt, fanout, rationale). The blocks *are* the slots.
+  items, prompt, fanout, rationale, diagram, glossary — plus **narrative, recognitions, team,
+  asset**, the four v1.3 kinds specified ahead of implementation in `docs/weekly-spec.md`).
+  The blocks *are* the slots.
 - **Problem-solving agents are external.** Newsletters owns capture + trust + publish, never
   the agent. `capture.py` turns a finished `WorkSession` (a bundle of `Source`s) into a
   traced Draft Report — deterministically, post-session, tool-agnostic. `Provenance` +

@@ -7,6 +7,52 @@
 
 ## Where we are right now
 
+**2026-08-29 (later) — v1.3 PHASE 1 DONE: THE TWO EXPENSIVE UNKNOWNS ARE SETTLED, ON PAPER,
+WITH EVIDENCE (branch `claude/new-session-gw8tik`).** Phase 1 shipped spec text and a recorded
+decision — deliberately **no** renderer or composer code (`git diff --exit-code --
+src/newsletters/` is empty). Four things are now settled instead of discovered later:
+
+1. **Determinism has an answer, and it was measured, not assumed.** A rendered `.pptx` is
+   **byte-stable via a declared post-save zip normalization**: python-pptx's own output never
+   moves — only the ZIP container's clock does, because `zipfile` stamps `time.localtime()` when
+   it is handed a string arcname. Rewrite every archive entry with a fixed 1980 timestamp and the
+   file is reproducible. The measurement is committed
+   (`.planning/notes/2026-08-29-pptx-determinism-evidence.json`) and re-proved on every test run
+   by `tests/test_pptx_determinism.py`, negative control included. The claim is scoped **in
+   writing** to a fixed (python-pptx, zlib) pair, so the cross-machine gate compares the
+   *part-content digest*, never a full-file hash.
+2. **The generated-by marker lives in OPC core properties** — `cp:category` =
+   `generated-by:newsletters`, `cp:contentStatus` = `draft`, `dcterms:created/modified` =
+   `EPOCH_ZERO`, `cp:identifier` = the Surface id — because a notes slide adds four parts to
+   every deck and a reader can delete it by accident. Honest limit, recorded: it is
+   **provenance, not authenticity** (an operator can edit it).
+3. **The template contract is "fill the operator's existing slides, never `add_slide`"** — measured:
+   `add_slide` regenerates placeholder names and throws away the operator's Selection-Pane naming,
+   so a named-placeholder contract built on it would reject every real template. `NL_` is the
+   reserved prefix for renderer slots; duplicate names raise instead of last-wins dropping a slot.
+4. **The weekly is written down before it exists.** `docs/weekly-spec.md` is the new document a
+   module lead can hand-author a valid Weekly Spec from *alone* — the eight-key annotated YAML,
+   the seven loader rules, the four new block kinds field by field, and the asset-evidence record
+   with its exact `missing[]` routing (provenance minimum = folder + date + event label; a deep
+   link REQUIRED when a screenshot stands in for values). The invariant that matters:
+   `AssetBlock.asset` is **required**, so an asset without provenance is *unrepresentable*, not
+   merely policed — the same move `GlossaryTerm.definition: Claim` already makes.
+
+Where the evidence lives: the decision note
+(`.planning/notes/2026-08-29-pptx-determinism-decision.md`) is what Phase 2 reads instead of the
+research; the measurement JSON is what the note cites by value; `docs/weekly-spec.md` is what
+Phase 3 implements against. `docs/architecture.md` was also made honest in the same change — its
+block list had been silently missing `diagram` and `glossary` since the learning work, and now
+names all fifteen kinds.
+
+**Phase 2 may start now** on the `.pptx` writer (WKLY-01): the determinism definition, the marker
+fields with their literal read-back assertion, the template contract and the `NL_DRAFT_WATERMARK`
+shape are all **inputs**, not open questions. Two things Phase 2 must *verify rather than assume*:
+that a `python-pptx>=1.0.2` floor pin keeps `test_pptx_extra_declared` green, and — the one link
+this environment could not test — that a normalized deck opens correctly in **real PowerPoint**
+(no `.pptx` consumer exists here; `libreoffice-core` ships without the Impress filters). That is a
+human checkpoint, recorded rather than assumed away.
+
 **2026-08-29 — v1.2 FORMALLY CLOSED · v1.3 "THE WEEKLY, ONE SHOT" OPENING (branch
 `claude/new-session-gw8tik` — the session-designated branch, serving the seed's `gsd/v1.3-*`
 integration-branch role, same pattern as v1.1).** The Editor-in-Chief re-verified the live site

@@ -4,6 +4,53 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
+## 2026-08-29 — A spike is only evidence if the environment can run it and the clock can move
+
+**Friction observed**
+
+Four things went wrong in v1.3 Phase 1, all of them worth naming rather than smoothing over.
+
+1. **The environment shipped no `.venv` and no `python-pptx`.** The phase's whole premise — "run a
+   real double write and commit the measurement" — fails at first contact on a fresh container.
+   The plan had predicted it and carried `python -m venv .venv` + `pip install -e
+   '.[dev,test,pptx,config]'` as an explicit first task, which is the only reason the spike ran at
+   all. (The 2026-07-09 debian-PyYAML friction below did *not* recur: a fresh venv without
+   `--system-site-packages` avoids it.)
+2. **A same-second double write would have "proved" a byte-stability that does not exist.** DOS
+   timestamps in a ZIP have 2-second granularity, so two renders in a tight loop are byte-identical
+   *for the wrong reason*. This is not hypothetical: `tests/fixtures/pptx/_author_fixtures.py` has
+   asserted since the ADAPT-06 work that "python-pptx does NOT stamp the save-time wall-clock." The
+   measurement says it does. The repo had been carrying a false claim, almost certainly produced by
+   exactly that probe.
+3. **A plan's own acceptance gate counted substrings, not headings.** Plan 01-02's check asserted
+   `t.count('## Decision') == 1` over the whole file — but `### Decision…` and `## Decisions Made`
+   both contain `## Decision`, so a perfectly good document could have failed the gate (or a bad
+   one passed it) on a formatting accident.
+4. **The GSD state handlers mangled the records they were asked to update.** In 01-02,
+   `roadmap.update-plan-progress` rewrote the phase row with a malformed empty cell and dropped its
+   wave detail, appended a per-plan metric row into the middle of a *bullet list* in `STATE.md`
+   instead of the metrics table, and replaced a prose `Last session:` paragraph with a bare
+   timestamp — orphaning the two lines after it. Each was repaired by hand.
+
+**Rules hardened**
+
+- *A phase whose research finds a missing dependency carries the install as an explicit first
+  task* — not as an assumed precondition. "Run the spike" is not an instruction an empty container
+  can follow, and an executor that discovers this mid-plan burns a context on setup.
+- *A determinism spike must cross a time boundary and ship a negative control, or its green means
+  nothing.* `tests/test_pptx_determinism.py` sleeps 3 seconds between writes (crossing the 2-second
+  DOS boundary) and asserts **C**: the *un-normalized* pair is NOT byte-equal. Without C, the
+  passing assertion B is indistinguishable from two writes landing in the same second. The sleep is
+  load-bearing, not incidental.
+- *When the measurement contradicts a claim already in the repo, correct the claim in the same
+  change* — in place, keeping the original reasoning and stating what changed and why (per
+  `CLAUDE.md` §Conventions). Leaving the repo holding two answers is worse than either answer.
+- *A gate that means "this heading appears once" must anchor to the line start* (`grep -c '^## …'`),
+  never a bare substring count. Plan 01-03's gates were written that way after 01-02 surfaced it.
+- *Never trust the GSD state/roadmap handlers' output: after running them, read the modified
+  sections and repair the formatting by hand.* The verify-the-subagent rule in `CLAUDE.md` applies
+  to the tooling, not just to the agents.
+
 ## 2026-07-09 — `pip install -e ".[test,config]"` fails cold on a debian-managed PyYAML
 
 **Friction observed**

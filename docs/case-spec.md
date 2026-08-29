@@ -5,6 +5,9 @@ into the record by hand, in a PR, with zero AI. The spec file is the source; the
 lifts it through the existing spine (`Source → Claim(+Trace) → Distillation → Surface`)
 into a **Draft Report** that moves through the same review gate as everything else.
 
+The **Weekly Spec** extends this *mechanism* — not this schema — as a sibling loader with its own
+key set: see [`docs/weekly-spec.md`](weekly-spec.md).
+
 This schema is revived deliberately from the design-era Operating Agreement: the point is
 the *pattern* (inputs → reasoning → outputs → reusable record) and the *author's own
 voice*, kept portable across orgs by pushing every org specific into `config`.
