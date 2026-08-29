@@ -51,12 +51,36 @@ __all__ = ["GATE", "SpanMinter", "absent"]
 GATE = SpanContainmentFaithfulness()
 
 
+def _comment_start(line: str) -> Optional[int]:
+    """The column where ``line``'s YAML comment starts, or ``None`` when it carries no comment.
+
+    A ``#`` begins a comment when it sits at column 0 or after whitespace, outside a single- or
+    double-quoted scalar. This is a span-strategy heuristic, not a full YAML lexer (inside a
+    block scalar a ``#`` is content): a line it misclassifies only makes the exact-find decline
+    a match, and the value then falls through to the gate-checked REGION strategies — an honest,
+    wider span. The heuristic can therefore never drop a value, only refuse to pin one to text
+    nobody authored as a value.
+    """
+    quote: Optional[str] = None
+    for index, char in enumerate(line):
+        if quote is not None:
+            if char == quote:
+                quote = None
+        elif char in "\"'":
+            quote = char
+        elif char == "#" and (index == 0 or line[index - 1] in " \t"):
+            return index
+    return None
+
+
 class SpanMinter:
     """Locate each authored value in the RAW file text and mint it — or disclose it.
 
     A forward-only cursor (the ``swimlane._Minter`` precedent) so duplicate values get
     distinct offsets. Two strategies, in order: (1) exact verbatim ``str.find`` — the span
-    IS the value; (2) for a block scalar (whose folded value is not a verbatim substring),
+    IS the value — skipping any match that starts inside a YAML comment, because a comment
+    is never-minted text and pinning a claim to one would mis-attribute its evidence
+    (WR-01, 03-review); (2) for a block scalar (whose folded value is not a verbatim substring),
     a raw BLOCK REGION located by a forward line scan — the field's value block for a
     mapping value, the ITEM's own region (after its ``-`` marker) for a sequence item, so
     one block-scalar item never swallows its siblings' spans — kept only if the live
@@ -75,11 +99,36 @@ class SpanMinter:
             pos += len(line)
         self._line_offsets = offsets
         self._line_cursor = 0
+        # WR-01 (03-review): the raw (start, end) interval of every YAML comment, computed once,
+        # so the forward exact-find can refuse a match that starts inside text nobody authored
+        # as a value. See ``_find_authored``.
+        self._comment_spans: list[tuple[int, int]] = []
+        for index, line in enumerate(self._lines):
+            column = _comment_start(line)
+            if column is not None:
+                self._comment_spans.append(
+                    (offsets[index] + column, offsets[index] + len(line))
+                )
+
+    def _find_authored(self, value: str, start: int) -> int:
+        """``str.find`` over the raw text, SKIPPING matches that start inside a YAML comment.
+
+        The whole-text forward find searches everything after the cursor — including comments,
+        which are never-minted text. A value appearing verbatim in a comment between the cursor
+        and its own field would pin the claim's span to the COMMENT — a mis-attribution the
+        faithfulness gate provably cannot catch, because the text is identical (WR-01; the
+        span-swap failure's sibling). A skipped comment match does NOT advance the cursor, so
+        the authored occurrence further down still receives its own span.
+        """
+        index = self._raw.find(value, start)
+        while index != -1 and any(a <= index < b for a, b in self._comment_spans):
+            index = self._raw.find(value, index + 1)
+        return index
 
     def mint(
         self, key: str, value: str, topic: str, *, list_item: bool = False
     ) -> Union[Claim, str]:
-        idx = self._raw.find(value, self._cursor)
+        idx = self._find_authored(value, self._cursor)
         if idx != -1:
             end = idx + len(value)
             claim = Claim(

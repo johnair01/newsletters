@@ -467,6 +467,63 @@ def test_claim_spans_ascend_strictly_in_document_order() -> None:
         previous_end = trace.end
 
 
+def test_value_in_a_full_line_comment_never_captures_the_span(
+    tmp_path: pathlib.Path,
+) -> None:
+    """WR-01 (03-review): the forward exact-find must skip YAML comments.
+
+    The review proved by execution that a value appearing verbatim in a comment BETWEEN the
+    cursor and its own field pinned the claim's span to the COMMENT — a mis-attribution the
+    faithfulness gate cannot catch, because the text is identical. The weekly is the first spec
+    kind where authors realistically write comments beside people's names, so the regression is
+    pinned here, through the weekly loader, against the review's own bait document.
+    """
+    text = (
+        "highlights:\n"
+        '  - "A line."\n'
+        "# reviewer note: Devi R. did great work this week\n"
+        "team:\n"
+        '  - name: "Devi R."\n'
+    )
+    path = tmp_path / "weekly-comment-bait.yml"
+    path.write_text(text, encoding="utf-8")
+    load = load_weekly_spec(path, root=tmp_path)
+    transcript = load.source.transcript
+
+    claims = [c for c in load.distillation.claims if c.topics == ["team.name"]]
+    assert len(claims) == 1 and claims[0].text == "Devi R."
+    trace = claims[0].evidence[0]
+    assert transcript[trace.start : trace.end] == "Devi R."
+    assert _line_of(transcript, trace.start) == 5, (
+        "the span landed on the comment (line 3), not the authored field (line 5) — "
+        "a comment vouching for a team member"
+    )
+
+
+def test_value_in_an_inline_comment_never_captures_the_span(
+    tmp_path: pathlib.Path,
+) -> None:
+    """The inline variant: a ``#`` comment after a value on an earlier line is still a comment."""
+    text = (
+        "highlights:\n"
+        '  - "kept" # note: Kira Nerys reviewed this\n'
+        "team:\n"
+        '  - name: "Kira Nerys"\n'
+    )
+    path = tmp_path / "weekly-inline-comment-bait.yml"
+    path.write_text(text, encoding="utf-8")
+    load = load_weekly_spec(path, root=tmp_path)
+    transcript = load.source.transcript
+
+    claims = [c for c in load.distillation.claims if c.topics == ["team.name"]]
+    assert len(claims) == 1 and claims[0].text == "Kira Nerys"
+    trace = claims[0].evidence[0]
+    assert transcript[trace.start : trace.end] == "Kira Nerys"
+    assert _line_of(transcript, trace.start) == 4, (
+        "the span landed on the inline comment (line 2), not the authored field (line 4)"
+    )
+
+
 # --------------------------------------------------------------------------- #
 # 5 — missing[] honesty: every absence disclosed, in schema order
 # --------------------------------------------------------------------------- #
