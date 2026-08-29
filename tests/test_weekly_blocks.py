@@ -17,18 +17,37 @@ BOTH directions here:
 from __future__ import annotations
 
 import hashlib
-from typing import get_args
+import re
+from typing import Literal, get_args
 
 import pytest
 from pydantic import BaseModel, ValidationError
 
+from newsletters import render
+from newsletters.render import _block_html
 from newsletters.semantic import (
     AssetBlock,
     AssetRecord,
     Block,
+    Chapter,
+    ChaptersBlock,
     Claim,
+    ClaimsBlock,
+    DiagramBlock,
+    FanoutBlock,
+    FanoutLink,
+    GlossaryBlock,
+    GlossaryTerm,
+    ItemsBlock,
+    KpiItem,
+    KpiStripBlock,
+    LetterItem,
     NarrativeBlock,
     NarrativeItem,
+    PromptBlock,
+    ProseBlock,
+    QuoteBlock,
+    RationaleBlock,
     Recognition,
     RecognitionsBlock,
     Source,
@@ -162,3 +181,159 @@ def test_narrative_item_carries_the_authored_text_and_its_claim() -> None:
         claim=Claim(text="The migration slipped a week.", evidence=[_trace()]),
     )
     assert traced.claim is not None and traced.claim.text == traced.text
+
+
+# --------------------------------------------------------------------------- #
+# The render branches — zero new CSS, no silent drops, everything escaped
+# --------------------------------------------------------------------------- #
+
+# The design-system contract, pinned by content. `_CSS` is inlined into EVERY page
+# (`render._page`), so `tests/test_publish.py::test_committed_rev1_equals_fresh_build` and
+# `..._work_...` compare committed corpus HTML against a fresh render of it. Changing one byte of
+# `_CSS` therefore forces a full regeneration of `content/rev1/site` and `content/work` — that is a
+# separate, DECLARED task with its own reviewed diff, never a side effect of adding a block kind.
+# Proven by experiment in 03-RESEARCH: planting a single `.nl-scratch{color:red}` rule turned both
+# committed==fresh gates red.
+_CSS_SHA256 = "d9eeca3a40f1bd1d7b1920ad5bbe0ef0699560a2aa589856f83bd016a9f025b6"
+
+# Every class name `_CSS` defines, however it is selected (`.item`, `.chapter .t`, `.sg-tag.cat`).
+_CSS_CLASSES = frozenset(re.findall(r"\.([A-Za-z][\w-]*)", render._CSS))
+
+_XSS = "<script>alert(1)</script>"
+
+
+def _sample_blocks() -> dict[type, object]:
+    """One constructed instance of EVERY union member, keyed by class.
+
+    Deliberately a mapping rather than a list: the coverage test below drives its cases from
+    `typing.get_args(Block)` and fails on any member missing from here, so a future block kind
+    cannot be added without both a sample and a render branch.
+    """
+    claim = Claim(text="A traced finding.", evidence=[_trace()])
+    return {
+        ProseBlock: ProseBlock(heading="Lead", text="One paragraph.\n\nAnd another."),
+        ClaimsBlock: ClaimsBlock(claims=[claim]),
+        KpiStripBlock: KpiStripBlock(items=[KpiItem(label="Lead time", value="2d", delta="-1d", dir="down")]),
+        QuoteBlock: QuoteBlock(text="In their words.", attr="platform-lead"),
+        ChaptersBlock: ChaptersBlock(chapters=[Chapter(time="00:10", title="Opening", body="Body.")]),
+        ItemsBlock: ItemsBlock(items=[LetterItem(tag="note", title="Title", body="Body.")]),
+        PromptBlock: PromptBlock(label="shell", body="newsletters assemble"),
+        FanoutBlock: FanoutBlock(links=[FanoutLink(kind="report", title="The report", href="r.html")]),
+        RationaleBlock: RationaleBlock(text="Why you are seeing this."),
+        DiagramBlock: DiagramBlock(title="Flow", svg="<svg></svg>", caption="A caption."),
+        GlossaryBlock: GlossaryBlock(terms=[GlossaryTerm(term="Trace", definition=claim)]),
+        NarrativeBlock: NarrativeBlock(
+            heading="Highlights",
+            tone="highlight",
+            items=[NarrativeItem(text="Cut the release checklist from nine steps to two.")],
+        ),
+        RecognitionsBlock: RecognitionsBlock(
+            recognitions=[Recognition(person="Devi R.", reason="Found the ordering bug.")]
+        ),
+        TeamBlock: TeamBlock(
+            members=[TeamMember(name="Devi R.", role="Reliability", lines=["Owns the rota."])]
+        ),
+        AssetBlock: AssetBlock(
+            heading="Throughput", asset=_ASSET, caption="Throughput by lane.", evidence=[_trace()]
+        ),
+    }
+
+
+def test_css_is_byte_frozen() -> None:
+    """Zero new CSS this phase — the four branches reuse classes that already exist."""
+    digest = hashlib.sha256(render._CSS.encode("utf-8")).hexdigest()
+    assert digest == _CSS_SHA256, (
+        "render._CSS changed. Every page inlines it, so the committed corpora "
+        "(content/rev1/site, content/work) no longer equal a fresh render. Regenerating them is a "
+        "separate declared task with its own reviewed diff — never a side effect of another change."
+    )
+
+
+def test_every_union_member_has_a_render_branch() -> None:
+    """No block is silently droppable: every union member renders to non-empty HTML.
+
+    Driven by `get_args`, not a hand-written list, so a member added to the union without a
+    `_block_html` branch fails HERE rather than rendering as the empty string on a reviewed
+    surface — the precise failure `docs/weekly-spec.md` §"The dispatch contract" describes.
+    """
+    members = get_args(get_args(Block)[0])
+    samples = _sample_blocks()
+    unsampled = [m.__name__ for m in members if m not in samples]
+    assert not unsampled, f"union members with no sample instance in this test: {unsampled}"
+
+    for member in members:
+        html = _block_html(samples[member])
+        assert html.strip(), f"{member.__name__} rendered to an empty string — it would vanish"
+
+
+def test_new_branches_use_only_existing_design_system_classes() -> None:
+    """The four new branches introduce no class `_CSS` does not already define (zero new CSS)."""
+    samples = _sample_blocks()
+    for member in (NarrativeBlock, RecognitionsBlock, TeamBlock, AssetBlock):
+        html = _block_html(samples[member])
+        used = {
+            token
+            for attr in re.findall(r'class="([^"]*)"', html)
+            for token in attr.split()
+        }
+        assert used, f"{member.__name__} rendered no class at all"
+        unknown = sorted(used - _CSS_CLASSES)
+        assert not unknown, f"{member.__name__} uses class(es) absent from render._CSS: {unknown}"
+
+
+def test_team_block_mirrors_the_chapters_wrapper_structure() -> None:
+    """`.chapter` is a `64px 1fr` GRID, so a flat structure lands the name in the wrong cell.
+
+    The layout contract is structural, not cosmetic: `div.t` (role) is the first grid cell and a
+    single wrapper `<div>` holding `.ti` (name) and `.bo` (lines) is the second — exactly what the
+    `ChaptersBlock` branch emits.
+    """
+    html = _block_html(
+        TeamBlock(members=[TeamMember(name="Devi R.", role="Reliability", lines=["Owns the rota."])])
+    )
+    assert (
+        '<div class="chapter"><div class="t">Reliability</div>'
+        '<div><div class="ti">Devi R.</div>' in html
+    ), html
+    assert "Owns the rota." in html
+
+
+def test_authored_markup_is_escaped_in_every_new_branch() -> None:
+    """T-03-14: authored strings cross into served markup — every one goes through `_e()`.
+
+    `DiagramBlock`'s unescaped `{b.svg}` is the sole raw interpolation in this renderer and is
+    explicitly NOT a precedent: `AssetBlock` emits no `<img>` and no raw markup.
+    """
+    blocks = [
+        NarrativeBlock(heading=_XSS, items=[NarrativeItem(text=_XSS)]),
+        RecognitionsBlock(heading=_XSS, recognitions=[Recognition(person=_XSS, reason=_XSS)]),
+        TeamBlock(heading=_XSS, members=[TeamMember(name=_XSS, role=_XSS, lines=[_XSS])]),
+        AssetBlock(heading=_XSS, asset=_ASSET, caption=_XSS, evidence=[_trace()]),
+    ]
+    for block in blocks:
+        html = _block_html(block)
+        assert "<script>" not in html, f"{type(block).__name__} emitted raw markup: {html}"
+        assert "&lt;script&gt;" in html, f"{type(block).__name__} did not carry the escaped text"
+
+
+def test_asset_block_emits_no_image_tag() -> None:
+    """Text only this phase: relative-path resolution for the published tree is not solved."""
+    html = _block_html(AssetBlock(heading="Throughput", asset=_ASSET, caption="Cap.", evidence=[_trace()]))
+    assert "<img" not in html
+    assert 'class="diagram"' in html and 'class="dh"' in html and "<figcaption>" in html
+
+
+def test_unrecognized_block_raises_a_teaching_error_naming_its_kind() -> None:
+    """The fall-through is a refusal, not a silent empty string.
+
+    Unreachable by construction (`Surface.blocks` is a discriminated `list[Block]`) — and keeping
+    it unreachable is the point. This test reaches it by calling `_block_html` directly with an
+    object that is not a union member, which is the only way it can be reached at all.
+    """
+
+    class _NotAUnionMember(BaseModel):
+        kind: Literal["invented-kind"] = "invented-kind"
+
+    with pytest.raises(ValueError) as excinfo:
+        _block_html(_NotAUnionMember())
+    assert "invented-kind" in str(excinfo.value)

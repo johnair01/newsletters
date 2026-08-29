@@ -217,11 +217,15 @@ it would fail in the worst available way: a block that was authored, traced and 
 render as the empty string, with no error anywhere. A surface silently missing its lowlights is
 the precise failure this product exists to prevent.
 
-So the contract, written down before the code exists: **Phase 3 adds four branches AND converts
-the fall-through into a teaching `raise` that names the unhandled `block.kind`.** A new kind
-renders under `docs/design-system.md` tokens, or the dispatch fails loud.
+So the contract, written down before the code existed and now shipped: **Phase 3 added four
+branches AND converted the fall-through into a teaching `raise` that names the unhandled
+`block.kind`.** A new kind renders under `docs/design-system.md` tokens, or the dispatch fails
+loud. Both halves are asserted in `tests/test_weekly_blocks.py`: the coverage test drives its
+cases from `typing.get_args(Block)`, so a member added without a branch fails there, and the
+refusal is exercised by calling `_block_html` directly with a non-member (the only way to reach a
+fall-through that stays unreachable by construction).
 
-The classes each new block reuses — named here so Phase 3 has **no visual discretion**
+The classes each new block reuses — named here so Phase 3 had **no visual discretion**
 (`--radius: 0`, existing tokens, no new CSS):
 
 | Block | HTML |

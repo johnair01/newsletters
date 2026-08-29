@@ -18,6 +18,7 @@ from .diagrams import fanout as _fanout_svg
 from .distill.faithfulness import SpanContainmentFaithfulness
 from .learning import OnboardingPath, OnboardingStep
 from .semantic import (
+    AssetBlock,
     ChaptersBlock,
     ClaimsBlock,
     DiagramBlock,
@@ -25,13 +26,16 @@ from .semantic import (
     GlossaryBlock,
     ItemsBlock,
     KpiStripBlock,
+    NarrativeBlock,
     ProseBlock,
     PromptBlock,
     QuoteBlock,
     RationaleBlock,
+    RecognitionsBlock,
     ReviewState,
     Source,
     Surface,
+    TeamBlock,
     Trace,
 )
 from .site import Collection, Page, Site, slugify
@@ -617,7 +621,62 @@ def _block_html(b, site: Site | None = None, sources: dict[str, Source] | None =
         h = f'<div class="dh">{_e(b.title)}</div>' if b.title else ""
         cap = f"<figcaption>{_e(b.caption)}</figcaption>" if b.caption else ""
         return f'<div class="block"><figure class="diagram">{h}{b.svg}{cap}</figure></div>'
-    return ""
+    # --- the four weekly kinds (WKLY-02) ------------------------------------------------
+    # ZERO new CSS: every class below already exists in `_CSS`, which is inlined into every
+    # page — one added rule and the committed corpora stop equalling a fresh render. The exact
+    # markup is dictated by the class map at `docs/weekly-spec.md` §"The dispatch contract",
+    # so the implementer has no visual discretion here.
+    if isinstance(b, NarrativeBlock):
+        # The tone label is the block's, repeated per line as the `.cat` tag; the authored text
+        # is carried verbatim into `.bo` and never summarised (weekly-spec rule 3).
+        rows = "".join(
+            f'<div class="item"><span class="sg-tag cat">{_e(b.tone)}</span>'
+            f'<div class="bo">{_e(i.text)}</div></div>'
+            for i in b.items
+        )
+        h = f'<h3 class="block-h">{_e(b.heading)}</h3>' if b.heading else ""
+        return f'<div class="block">{h}{rows}</div>'
+    if isinstance(b, RecognitionsBlock):
+        # A recognition with no evidence still renders — dropping it would erase credit. Its
+        # absent source is disclosed in the honesty panel (`Surface.missing[]`), not here.
+        rows = "".join(
+            f'<div class="item"><div class="ti">{_e(r.person)}</div>'
+            f'<div class="bo">{_e(r.reason)}</div></div>'
+            for r in b.recognitions
+        )
+        h = f'<h3 class="block-h">{_e(b.heading)}</h3>' if b.heading else ""
+        return f'<div class="block">{h}{rows}</div>'
+    if isinstance(b, TeamBlock):
+        # Mirrors the ChaptersBlock structure EXACTLY: `.chapter` is a `64px 1fr` grid, so the
+        # role is the first cell and a single wrapper <div> holds the name and the lines. A flat
+        # structure would land the name in the role's column.
+        rows = "".join(
+            f'<div class="chapter"><div class="t">{_e(m.role)}</div>'
+            f'<div><div class="ti">{_e(m.name)}</div>'
+            + "".join(f'<div class="bo">{_e(line)}</div>' for line in m.lines)
+            + "</div></div>"
+            for m in b.members
+        )
+        h = f'<h3 class="block-h">{_e(b.heading)}</h3>' if b.heading else ""
+        return f'<div class="block">{h}{rows}</div>'
+    if isinstance(b, AssetBlock):
+        # TEXT ONLY this phase — no <img>: relative-path resolution for the published tree is
+        # unsolved and no success criterion asks for it. DiagramBlock's unescaped `{b.svg}` above
+        # is the renderer's sole raw interpolation and is deliberately NOT a precedent here.
+        h = f'<div class="dh">{_e(b.heading)}</div>' if b.heading else ""
+        cap = f"<figcaption>{_e(b.caption)}</figcaption>" if b.caption else ""
+        return f'<div class="block"><figure class="diagram">{h}{cap}</figure></div>'
+    # Unreachable by construction — `Surface.blocks` is a discriminated `list[Block]`, so pydantic
+    # guarantees every element is a union member with a branch above. Keeping it unreachable is the
+    # point: this raise exists so that adding a kind WITHOUT a branch fails loud here instead of
+    # rendering the empty string onto a reviewed surface.
+    raise ValueError(
+        f"no HTML branch for block kind {getattr(b, 'kind', type(b).__name__)!r} — a block that "
+        "was authored, traced and reviewed would otherwise render as the empty string, with no "
+        "error anywhere. Add a branch to _block_html using existing design-system tokens "
+        "(docs/design-system.md; docs/weekly-spec.md's class map) — the renderer never silently "
+        "drops a block."
+    )
 
 
 # The spine label → surface kind whose Collection hub each nav item resolves to.
