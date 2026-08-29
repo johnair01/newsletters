@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 03-01-PLAN.md; next: 03-02-PLAN.md (the weeklyspec.py loader/composer)"
-last_updated: "2026-08-29T06:58:10Z"
-last_activity: 2026-08-29 — Phase 3 plan 03-01 executed (block kinds + render branches + the real gate freeze)
+stopped_at: "Completed 03-02-PLAN.md; next: 03-03-PLAN.md (asset placement + the weekly Surface)"
+last_updated: "2026-08-29T07:45:00Z"
+last_activity: 2026-08-29 — Phase 3 plan 03-02 executed (span minter promoted; the Weekly Spec schema + loader)
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 10
-  completed_plans: 7
-  percent: 58
+  completed_plans: 8
+  percent: 80
 ---
 
 # Project State
@@ -25,16 +25,16 @@ See: .planning/PROJECT.md (updated 2026-08-29)
 
 ## Current Position
 
-Phase: Phase 3: Weekly compose (WKLY-02..04) — executing (1 of 4 plans complete)
-Plan: 03-01 complete; next 03-02 (the `weeklyspec.py` loader/composer)
-Status: Ready to execute 03-02
-Last activity: 2026-08-29 — Phase 3 plan 03-01 executed (block kinds + render branches + the real gate freeze)
+Phase: Phase 3: Weekly compose (WKLY-02..04) — executing (2 of 4 plans complete)
+Plan: 03-02 complete; next 03-03 (asset placement + `build_weekly_report`)
+Status: Ready to execute 03-03
+Last activity: 2026-08-29 — Phase 3 plan 03-02 executed (span minter promoted to `specspan.py`; the Weekly Spec eight-key schema + `load_weekly_spec`)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- v1.3: 6 plans complete (roadmap defined 2026-08-29; 4 phases). Phase 1 executed in 3 waves, ~48min total; Phase 2 executed in 3 waves, ~31min total.
+- v1.3: 8 plans complete (roadmap defined 2026-08-29; 4 phases). Phase 1 executed in 3 waves, ~48min total; Phase 2 executed in 3 waves, ~31min total.
 - v1.2: 2 plans across 2 phases (closed 2026-08-29, archived).
 - v1.1: 12 plans across 4 phases (closed 2026-07-02, archived). v1.0: Phases 1–14 (archived).
 
@@ -44,7 +44,7 @@ Last activity: 2026-08-29 — Phase 3 plan 03-01 executed (block kinds + render 
 |-------|-------|--------|
 | 1. Specify + de-risk | 3/3 | Plans complete — awaiting phase verification |
 | 2. Renderer (WKLY-01) | 3/3 | Plans complete — awaiting phase verification (SC-1..SC-5 proved locally; the `pptx` job's first CI green and the real-PowerPoint open are PR-review items) |
-| 3. Weekly compose (WKLY-02/03/04) | 1/4 | Executing — 03-01 landed the four block kinds, their render branches and the replacement gate freeze |
+| 3. Weekly compose (WKLY-02/03/04) | 2/4 | Executing — 03-01 landed the four block kinds, their render branches and the replacement gate freeze; 03-02 landed the promoted `SpanMinter` and the Weekly Spec load half |
 | 4. Sample corpus + recipe (WKLY-05/06) | 0/0 (unplanned) | Not started |
 
 **Per-plan execution:**
@@ -58,6 +58,7 @@ Last activity: 2026-08-29 — Phase 3 plan 03-01 executed (block kinds + render 
 | Phase 2 P02 | 7min | 3 tasks | 2 files |
 | Phase 2 P03 | 12min | 3 tasks | 2 files |
 | Phase 3 P01 | 11min | 3 tasks | 8 files |
+| Phase 3 P02 | 42min | 3 tasks | 8 files |
 
 **Recent Trend:**
 
@@ -180,7 +181,24 @@ mine?" tax. Maintainer-gated because the fix is a repo-wide reformat.
 
 ## Session Continuity
 
-Last session: 2026-08-29 — Phase 3 plan 03-01 executed. The four weekly block kinds joined the
+Last session: 2026-08-29 — Phase 3 plan 03-02 executed. `_SpanMinter` and `_absent` were
+PROMOTED verbatim out of `casespec.py` into `src/newsletters/specspan.py` as `SpanMinter`,
+`absent` and `GATE` (131 deletions vs 7 insertions — a move, not a rewrite), so exactly ONE
+honest-span implementation exists and both spec loaders import it; `tests/test_casespec.py`
+passes UNMODIFIED. `src/newsletters/weeklyspec.py` then shipped the strict eight-key schema
+with teaching errors at BOTH levels (a mistyped field inside a recognition, a team member or
+an asset fails as loudly as a mistyped top-level key) and `load_weekly_spec`: file-order
+minting (the correctness condition — proved by mutation, see below), `config:` carried and
+never claimed, every absence disclosed in schema order including "no lowlights", and
+recognition evidence as a span-less POINTER or a named disclosure, never a fabricated span.
+Two mutation observations are recorded in `03-02-SUMMARY.md`: reversing the mint order makes
+`team[0].name` steal the RECOGNITION's line and turns five authored values into "could not be
+located" disclosures (and the ascending-spans sweep stays GREEN through it — the line-number
+assertion is the real guard); emptying the new weekly denylist turns the planted-leak arm red.
+Suite: 661 passed / 64 skipped (baseline 626/64), `lint-imports` 2 kept, `newsletters check`
+clean on all three corpora.
+
+Previously (03-01): the four weekly block kinds joined the
 typed `Block` union as a **zero-deletion insertion** (verified: `git diff <merge-base> --
 src/newsletters/semantic.py | grep '^-'` counts 0), taking it to fifteen members, with D-02
 encoded in the TYPE — `AssetBlock.asset` required and `evidence` `min_length=1`, so a

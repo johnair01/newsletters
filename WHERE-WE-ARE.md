@@ -7,7 +7,44 @@
 
 ## Where we are right now
 
-**2026-08-29 (newest) — v1.3 PHASE 3 HAS STARTED: THE WEEKLY'S FOUR BLOCK KINDS ARE REAL, AND WE
+**2026-08-29 (newest) — v1.3 PHASE 3, PLAN 02: YOU CAN NOW HAND-WRITE A WEEKLY AND HAVE THE
+RECORD BELIEVE YOU — WORD FOR WORD, LINE BY LINE (plan 03-02 of 4, branch
+`claude/new-session-gw8tik`).** Last plan gave the weekly somewhere to *go*; this one gives it a
+way to *arrive*. Write a YAML file — your week, your module, your highlights and lowlights in your
+own words, who deserves credit, who the team is, which images and where they came from — and the
+package lifts it into the record without touching a syllable. Four things are worth understanding:
+
+- **We refused to write the same thing twice.** The Case Spec already had the delicate machinery
+  that pins each sentence you wrote to the exact characters of *your* file. The weekly needs the
+  identical thing. Copying it would have given us two of them, and two of anything like this drift
+  apart silently — which is the recorded reason `pptx_writer.py` exists at all. So it *moved*, word
+  for word, into its own file that both loaders import. The move is visibly a move: 131 lines
+  deleted, 7 added, and the Case Spec's own tests pass **untouched**, which is the only honest way
+  to say "nothing changed".
+- **The subtlest bug in this phase can't be caught by any gate, so we caught it with a line
+  number.** The pinning machinery reads your file forwards, once. If the code walks your document
+  in a different order than you wrote it, and a name appears twice — someone thanked in
+  *recognitions* who is also on the *team* — the two entries quietly swap evidence: each one points
+  at the other's line. Both still pass every faithfulness check, because the text is identical.
+  There is no test of "is this faithful?" that can see it. So we broke it on purpose once and
+  watched what happened: the team entry stole the recognition's line, and five things you actually
+  wrote were reported to the reviewer as *missing*. The guard that catches it asserts line numbers.
+  The more obvious guard — "do the spans move forwards?" — stayed green through the whole thing,
+  which is exactly why both are kept.
+- **A typo can't quietly eat a lowlight — and neither can a typo one level down.** `highlight:`
+  instead of `highlights:` fails loudly, naming what you typed and the eight things it could have
+  been. So does `resaon:` inside a recognition. A spec that silently ignores a mistyped key is a
+  spec that loses the thing you were bravest about writing.
+- **We never pretend to have evidence we don't have.** If you name a source for a recognition and
+  it resolves to something real, the record holds a *pointer* to it — deliberately with no quoted
+  span, because we haven't read that source and quoting from it would be inventing. If it resolves
+  to nothing, the recognition is still carried (dropping it would erase someone's credit) and the
+  broken id is named in the honesty panel so you can fix the typo. Both halves, every time.
+
+Nothing is placed on a slide yet and no images are hashed — that is deliberately the next plan.
+This one stops at the load.
+
+**2026-08-29 (earlier) — v1.3 PHASE 3 HAS STARTED: THE WEEKLY'S FOUR BLOCK KINDS ARE REAL, AND WE
 FOUND ANOTHER GUARD THAT COULD NEVER HAVE FAILED (plan 03-01 of 4, branch
 `claude/new-session-gw8tik`).** The weekly deck now has somewhere to *go*: highlights/lowlights,
 recognitions, the team, and a placed asset are four real types in the record, they survive a JSON

@@ -205,13 +205,13 @@ proves composed blocks actually reach a deck).
 them, then the load, then the assets and the Surface, then the deck, the values and the CI job that
 makes it all mean something)
 
-- [ ] `03-01-PLAN.md` — Types + dispatch + the gate that guards them: the four block kinds join the
+- [x] `03-01-PLAN.md` — Types + dispatch + the gate that guards them: the four block kinds join the
       union as a PURE INSERTION (zero deleted lines), each gets an HTML branch built from existing
       `_CSS` classes only, `_block_html`'s `return ""` fall-through becomes a teaching raise, and
       the review gate's working-tree-only protection is replaced by source-hash pins on the eight
       gate functions plus a zero-deleted-lines diff against `git merge-base HEAD origin/main`
       (SC-1, plus SC-3's type-level half)
-- [ ] `03-02-PLAN.md` — The Weekly Spec lift: the span minter promoted to `specspan.py` so exactly
+- [x] `03-02-PLAN.md` — The Weekly Spec lift: the span minter promoted to `specspan.py` so exactly
       one honest-span implementation exists, then `weeklyspec.py`'s strict eight-key schema and
       `load_weekly_spec` — file-order minting, `config:` bound never claimed, every absence
       disclosed, two committed fixtures + a tiny PNG (SC-2's mechanism)
@@ -273,7 +273,7 @@ operator through the loop on their own data, read-only and local.
 |-------|----------------|--------|-----------|
 | 1. Specify + de-risk | 3/3 | Complete    | 2026-08-29 |
 | 2. Renderer | 3/3 | Complete    | 2026-08-29 |
-| 3. Weekly compose | 1/4 | Executing (plan 03-01 complete; 3 plans remain) | - |
+| 3. Weekly compose | 2/4 | Executing (plans 03-01, 03-02 complete; 2 plans remain) | - |
 | 4. Sample corpus + recipe | 0/0 | Not started | - |
 
 Plans are created per phase by `/gsd-plan-phase`; `0/0` means "not yet planned", not "no work".

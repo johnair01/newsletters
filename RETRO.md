@@ -4,7 +4,49 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
-## 2026-08-29 (latest) — W22: the *other* gate that was green because it never ran
+## 2026-08-29 (latest) — W23: the mutation that mutated nothing, and the revert that ate my work
+
+**Friction observed (v1.3 plan 03-02 — the Weekly Spec load half)**
+
+1. **A mutation observation that was a silent no-op reported a green that meant nothing.** The plan
+   requires proving each new guard can fail. The first attempt mutated a test file with a
+   `str.replace` whose target string omitted a trailing comma — so nothing changed, the suite passed,
+   and the output *looked* exactly like "the guard is vacuous". Taken at face value it would have
+   sent us to debug a guard that was fine. This is W21/W22's family again at one more remove: not a
+   check that never ran, but a **falsification attempt that never happened**, reported as a result.
+2. **`git checkout --` destroyed uncommitted work while reverting a mutation.** Reverting the
+   (no-op) mutation with `git checkout -- tests/test_abstraction_guard.py` discarded the *entire*
+   uncommitted edit — the denylist additions and the new test — because `checkout` restores the last
+   commit, not the pre-mutation state. Ten minutes of re-typing, and the near-miss is worse than the
+   cost: had it happened on a larger uncommitted file the loss would have been silent and hard to
+   notice.
+3. **A guard that is obviously correct can still be the wrong guard.** Two tests were written for
+   file-order minting: a whole-document "spans ascend strictly" sweep, and a "the duplicated person
+   traces to its own line" assertion. The sweep is the more general-looking one. Under the actual
+   mutation it stayed **GREEN** — the stolen span still ascends; the robbed section merely became
+   disclosures instead of claims. Only the line-number assertion caught it. Generality is not
+   sensitivity, and we would have shipped the weaker one alone if we had not broken it on purpose.
+4. **Two plan-acceptance greps could be satisfied while the design got worse.** The plan left
+   `_GATE`'s disposition open ("import the promoted one"). The literal reading is a private
+   cross-module import, a pattern that exists nowhere in `src/` — and it would have passed every
+   stated criterion. Promoting the name honestly cost one extra changed line and is visible in the
+   diff, which is the point.
+5. **DEF-15 charged its tax again** — unchanged, still maintainer-gated, still costs "is this
+   failure mine?" on every plan that touches these files.
+
+**Rules hardened**
+
+- *A mutation script must assert that it mutated something.* Every planted-failure edit now checks
+  `new != original` (or a match count) and raises before writing. A falsification attempt that
+  silently failed to apply is indistinguishable from a vacuous guard, and the two demand opposite
+  responses.
+- *Never revert a mutation with `git checkout --` on a file carrying uncommitted work.* Copy the
+  file to the scratchpad first (`cp f $SP/f.bak`), mutate, then restore from the backup. `checkout`
+  restores the last **commit**, not the last **state**.
+- *When two guards look redundant, mutate before deleting one.* Keep both unless a real mutation
+  shows they catch the same thing. Here the more general guard was the weaker one.
+
+## 2026-08-29 — W22: the *other* gate that was green because it never ran
 
 **Friction observed (v1.3 plan 03-01 — the weekly block kinds)**
 
