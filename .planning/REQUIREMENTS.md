@@ -1,61 +1,98 @@
-# Requirements — Milestone v1.2 (The Published Record: one channel, production-ready)
+# Requirements: Newsletters — Milestone v1.3 (The Weekly, One Shot)
 
-> Fresh file for v1.2 (v1.1 requirements archived at `.planning/milestones/v1.1-REQUIREMENTS.md`).
-> Grounding: `.planning/research/2026-07-03-pages-publish-forensics.md` (the live-verified evidence
-> for why the publish system, not the pages, is the thing to fix).
+**Defined:** 2026-08-29 · **Count:** 6 (WKLY-01..06) · **Seed:** `.planning/seeds/v1.3-weekly-one-shot.md`
+**Core Value:** Make work legible and trustworthy — every published claim traces to evidence;
+nothing publishes without a human.
 
-**Defined:** 2026-07-03 · **Count:** 5 (PUB-01..05) · **Scope discipline:** the v1.1 rule carries —
-requirements are locked at milestone open; anything new is a seed for the next milestone.
+**Recorded decisions (the ONE discussion round, 2026-08-29 — binding for this build):**
+reuse `Surface(REPORT)` for the weekly deck · asset provenance minimum = folder + date + event
+label (deep link optional, but REQUIRED for a BI screenshot standing in for values) · template
+contract = named placeholders, fail-loud on missing/unknown names.
 
-## The one-sentence contract
+## v1.3 Requirements
 
-The site a reader sees at `https://johnair01.github.io/newsletters/` is exactly the reviewed
-record a human merged to `main` — republished by one automated channel, with no dead link,
-no drift, and no manual step.
+### Renderer
 
-## Requirements
+- [x] **WKLY-01**: A composed weekly `Surface(REPORT)` renders deterministically to `.pptx`
+  through an operator-supplied template deck: python-pptx stays behind the `[pptx]` extra
+  (writer and loader share it), core spine untouched, bare-install CI green. The determinism
+  gate extends to `.pptx` — byte-stable double-render (fixed epoch per `EPOCH_ZERO`, sorted
+  parts, stable rels) or a recorded content-stable definition with evidence, decided in Phase 1,
+  not discovered in Validate. Every deck carries the generated-by marker in a durable field and
+  renders visibly Draft-watermarked until the Surface is Published (the gate itself untouched).
+  The renderer fills **named placeholders** only — it never invents layout; missing/unknown
+  names fail loud. The repo ships a minimal synthetic template for the sample corpus and CI.
 
-### PUB-01 — One publish channel
-The deploy workflow is the ONLY way the site publishes: it triggers on push to `main` (plus
-maintainer `workflow_dispatch` from `main`), re-runs the merge-block gate and the byte-drift
-checks over the **committed** corpora, assembles, and force-pushes a single commit to
-`gh-pages` naming its source SHA. Manual `gh-pages` pushes are retired. The workflow never
-renders fresh content into production — what was reviewed is what publishes.
+### Composition
 
-### PUB-02 — The published site is the rendered record
-Site root = `content/rev1/site` (Home/Library/surfaces); `content/work/site` at `/work/`;
-`content/module/site` at `/module/`; `.nojekyll` + a design-system-compliant `404.html`.
-The `web/` Next.js app is **not deployed** (retained in-repo for a future phase that wires
-it to real data). Assembly is a typed, tested library function (`newsletters assemble`),
-never ad-hoc workflow shell.
+- [x] **WKLY-02**: A weekly composes from new block kinds — `NarrativeBlock` (authored
+  highlights/lowlights), `RecognitionsBlock`, `TeamBlock` (name, role, short lines, photo ref),
+  `AssetBlock` — alongside the existing per-lane KPI strip + claims. Authored material arrives
+  as a **Weekly Spec** YAML on the Case Spec mechanism: file text is the evidence, narrative
+  carried byte-verbatim as the author's voice, absences → `missing[]`, org-specific `config:`
+  bound but never claimed. The composer assembles and traces; it never editorializes.
 
-### PUB-03 — No dead ends
-Every corpus chrome page carries a cross-corpus "Records" strip (designed per
-`docs/design-system.md` + the `design-reference/signals-navigation/` handoff: no surface a
-dead-end). Every `href`/`src` in the **assembled** tree resolves to a real file — guarded by
-a test that runs on every PR, not by discipline. (This test, run against today's live tree,
-would have caught the `/module/` 404.)
+### Evidence
 
-### PUB-04 — No drift, any corpus
-Committed corpus == fresh render, byte-for-byte, for **all three** corpora (v1.1 guarded
-module only), plus ledger-append-only checks — enforced in CI on every PR and again
-pre-publish in the deploy workflow.
+- [x] **WKLY-03**: An asset (photo, screenshot) is a content-addressed file with required
+  provenance — minimum: folder + date + event label; optional deep link. It enters a Surface
+  only via an `AssetBlock` tracing to that record. An asset without provenance routes to
+  `missing[]` — shown to the reviewer, never placed silently.
 
-### PUB-05 — Every corpus gated in CI
-`newsletters check` (the merge-block gate) runs for rev1 AND work AND module in CI (today:
-rev1 only) and again as the deploy workflow's first gate. Fonts-present and
-generated-marker invariants join the same PR-blocking test module.
+- [x] **WKLY-04**: BI values arrive as exported `.xlsx`/`.csv` fed to the existing ADAPT-03
+  excel adapter — no new adapter. Where export is unavailable, a screenshot **with a required
+  deep link** enters via WKLY-03. ADAPT-05 remains the definition-side reader (extending it is
+  out of scope this milestone).
 
-## Requirement → phase map
+### Proof
 
-| Req | Phase |
-|-----|-------|
-| PUB-03 (strip + 404 design + per-corpus link exemptions) | Phase 1 — Site IA & linkability |
-| PUB-01, PUB-02, PUB-04, PUB-05 (assembly, tests, CI, workflow) | Phase 2 — One publish channel |
+- [x] **WKLY-05**: A synthetic sample weekly in the `content/module` lineage (fabricated
+  everything; honesty-path coverage: a lane with no KPIs, a recognition with no source email,
+  an asset with no provenance) composes and renders to `.pptx` under the carried gate set:
+  pytest · lint-imports · `newsletters check` over all corpora · double-render stability
+  (including `.pptx` per WKLY-01's recorded definition) · bare-install untouched ·
+  mypy/black/isort no-new-failures.
 
-## Out of scope (seeds, not slippage)
+- [x] **WKLY-06**: `docs/weekly.md` lets an operator who is not the author point the adapters
+  at a real workbook / template deck / `.eml` drop / photo folder (read-only, data stays local —
+  the WORK-01 pattern), author the Weekly Spec, run compose + render, and review the result.
 
-- Wiring `web/` to real corpus data (its own future phase; DEF-class).
-- Retiring/adopting the `github-pages` environment channel (`actions/deploy-pages`) — a
-  maintainer-settings decision documented in the PR; the workflow carries a warn-only preflight.
-- The B1–B20 v1.1 fix-batch (separate PR, maintainer-gated).
+## Future Requirements
+
+- **ADAPT-05 value-side extension** — live BI values from PBIP; deferred (WKLY-04 covers values
+  via export this milestone).
+- Everything in DEF-01..14 (see `.planning/ROADMAP.md` §Deferred).
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| New Surface kind for weeklies | Recorded decision: the weekly reuses `REPORT`; a renderer is an output format, not a semantic kind |
+| Extending ADAPT-05 to read data values | Definition-side reader stays as-is; values come via export (WKLY-04) |
+| Per-asset deep link required for ordinary photos | Recorded decision: would push honest assets into `missing[]` for no trust gain; required only for BI screenshots standing in for values |
+| Positional template mapping | Recorded decision: silently fragile to operator edits; named placeholders fail loud |
+| AI anywhere in the render/compose path | AI-optional core is a hard rule; the renderer is deterministic code behind `[pptx]` |
+| Auto-publish of the deck | Hard rule; the sample weekly ships Draft, watermarked |
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| WKLY-01 | Phase 2 — Renderer | Complete (02-01 foundation · 02-02 the writer · 02-03 the proof + CI). All five phase SCs implemented and proved by tests that read the WRITTEN file back: SC-1 seven fail-loud/binding tests · SC-2 double render across a real 3s gap with its negative control and `part_digest` · SC-3 marker + watermark, asserted in both directions · SC-4 gate untouched, `semantic.py` byte-unchanged · SC-5 lazy `[pptx]` import + a `pptx` CI job whose exact command runs 117 passed / **0 skipped**. **Two confirmations remain for the PR review, recorded not hidden:** the new job's first observed CI green (no `gh` in the build environment) and the real-PowerPoint open (A8 — no `.pptx` consumer here) |
+| WKLY-02 | Phase 3 — Weekly compose | **Complete** (03-01 the block kinds · 03-02 the load half · 03-03 the composer). `build_weekly_report` assembles the four new kinds alongside the per-binding KPI strip + claims into a Draft `Surface(REPORT)` at `EPOCH_ZERO`, in a fixed asserted block order, byte-identical across two composes, with no gate-advancing call in the module. Authored narrative is carried byte-verbatim beside its own minted claim; `config:` is bound and never claimed; absences are disclosed rather than rendered as empty blocks. "It never editorializes" is ENFORCED: every block string is authored (compared through the faithfulness gate's own normal form) or one of eight declared connective constants, with the guard's firing observed on a planted paraphrase AND on a genuinely merging composer . **Closed end to end by 03-04:** `weekly_slots` derives the four `NL_` deck slots from the composed Surface and a full AND a sparse weekly render through Phase 2's writer to a deterministic, marked, Draft-watermarked deck — every property asserted by reopening the WRITTEN bytes, the Surface `model_dump()`-identical afterwards |
+| WKLY-03 | Phase 3 — Weekly compose | **Complete** (03-01 the type-level half · 03-03 the routing). `AssetRecord`/`AssetBlock` make a provenance-less placement unrepresentable, and `load_weekly_spec` now routes every row of `docs/weekly-spec.md` §"The routing": the three provenance minimums in field order, the deep link required iff `stands_in_for: values`, the placement-time sha256 re-check (including the substitution case), the two `team[].photo` reference rows — each with the spec's exact disclosure string — and a root escape (direct or via symlink) that RAISES and contributes nothing to `missing[]`. The image is hashed, never decoded. 13 parametrized routing cases, every refusal paired with a well-formed asset that still places; the containment mutation was observed RED (and observed silently placing an out-of-root file) . **Scope recorded by 03-04:** a placed `AssetBlock` reaches the HTML surface (text-only: `figure.diagram` + caption, no `<img>`) and its caption can feed a text slot; the IMAGE does not reach the deck, because the writer has no `add_picture` path and no phase criterion budgets one. Written up in `docs/weekly-spec.md` as a round-two item |
+| WKLY-04 | Phase 3 — Weekly compose | **Complete** (03-04). A synthetic `.xlsx` authored in-test goes through `resolve("excel")` — the REGISTERED ADAPT-03 backend — into `parse`/`distill`, and its claims reach a composed weekly's `KpiStripBlock` (delta derived by `compose.compute_delta` from two INDEPENDENTLY content-addressed endpoint cells, never a text match) and `ClaimsBlock`, each kept claim re-sliceable from the live transcript at its own offsets. The three absences WKLY-04 is really about are ASSERTED, not promised: the adapters directory gained no file, `powerbi_adapter.py`/`_tmdl.py`/`_pbir.py` are byte-unchanged against the milestone base, and `weeklyspec.py` contains no `openpyxl`/`xlsx`/`load_workbook` token — each resolving the base through the shared `milestone_base_ref` fixture, which FAILS rather than skips. Non-vacuity: an untraced and an un-addressed claim planted on the same binding are refused and disclosed by text. **Wording clarified, not scope-cut:** the live adapter is `.xlsx`-ONLY; a `.csv` path would need the new adapter module this requirement forbids, so values enter as `.xlsx` exports. **The `[excel]` extra now runs in CI** (the `weekly` job) — before this plan every excel test skipped itself |
+| WKLY-05 | Phase 4 — Sample corpus + recipe | **Complete** (04-01 the corpus + builder · 04-02 the integration + the deck gate). The committed `content/weekly/` corpus composes to a Draft `Surface(REPORT)` at `EPOCH_ZERO`/`R-001` and renders to HTML **and** to a `.pptx` deck, with all three honesty-path absences asserted in `surface.missing` AND `html.escape`d into the rendered panel — each located by the composer's own format string, never a retyped sentence. The deck lives OUTSIDE `site/` with a stdlib-checkable `part_digest` sidecar (tier 1, non-vacuity arm included), and `newsletters weekly` is the one command that regenerates it. **04-02 closed the carried gate set over ALL corpora:** `newsletters check --corpus weekly` is wired AND proven to BLOCK on a monkeypatched Published surface (nonzero exit + `BLOCK` + `merge blocked`, with `content/` asserted byte-unchanged after), the weekly reaches the published tree via `_CORPUS_LAYOUT` with every href resolving (180 links, 20 pages), all four Records strips name three neighbours, and the `[pptx]`-gated tier-2 gate proves `part_digest(fresh) == part_digest(committed)` for BOTH the deck and its sidecar. Double-render stability re-proved on the corpus's own inputs across a real `time.sleep(3)`. Gates: 859 passed / 0 skipped · `lint-imports` 2 kept · four `check` cleans · `bare-install` byte-untouched · mypy/black/isort no-new-failures |
+| WKLY-06 | Phase 4 — Sample corpus + recipe | **Complete** (04-03). `docs/weekly.md` — eight steps in the WORK-01 voice, each naming its exact command and the trust property it preserves (read-only · stays on your machine · no network · nothing committed · nothing publishes without the `Draft › In Review › Published` gate and a recorded human). It LINKS `docs/weekly-spec.md` for the authoring contract instead of restating the eight-key schema, carries the two costed template warnings (`word_wrap`/`auto_size` overflow — P-07; document-slides-only slot lookup — IN-07), states the scope gaps out loud (no CSV reader, no Power BI value reader, no `--workbook` flag — the export path is a Python-API seam), and points at `content/weekly/` as the worked example with its three planted absences. **Verified by EXECUTION, not by reading:** all six fenced `newsletters …` commands were run against the committed corpus in document order, the deck-regenerating one reproducing the committed deck AND sidecar byte-for-byte, with `git status --porcelain` empty afterwards. Two guards keep it honest as the CLI evolves — `test_recipe_commands_match_the_shipped_cli` (validates every command + option against the LIVE Typer app; `>= 4` non-vacuity floor; discriminating arms) and `test_recipe_carries_the_load_bearing_anchors` (the recipe's TRUST claims cannot be edited away). `test_docs_describe_four_corpora` additionally holds `architecture`/`surfaces`/`CLAUDE`/`content README` to the four-corpus shape |
+
+**Coverage:** v1.3 requirements: 6 total · Mapped to phases: 6 · Unmapped: 0 ✓
+
+**Phase 1 (Specify + de-risk) carries no requirement of its own.** It de-risks WKLY-01 (the
+`.pptx` determinism definition, the generated-by-marker mechanism, the named-placeholder contract)
+and WKLY-02 (the Weekly Spec schema + the four new block kinds). Its outputs are spec text and a
+recorded, evidence-backed determinism decision — the requirements themselves are satisfied in
+Phases 2–4. See `.planning/ROADMAP.md`.
+
+---
+*Requirements defined: 2026-08-29 from the committed seed after verifying its current-state claims against the live repo.*
+*Traceability mapped: 2026-08-29 when `.planning/ROADMAP.md` (4 phases) was created.*

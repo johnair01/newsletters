@@ -34,7 +34,7 @@ def _assemble(tmp_path: pathlib.Path, name: str = "site") -> pathlib.Path:
 # --------------------------------------------------------------------------- #
 
 
-def test_assemble_composes_three_corpora_and_chrome(tmp_path: pathlib.Path) -> None:
+def test_assemble_composes_four_corpora_and_chrome(tmp_path: pathlib.Path) -> None:
     out = _assemble(tmp_path)
     # rev1 fronts the site at the root; the other records sit alongside.
     assert (out / "index.html").is_file()
@@ -43,6 +43,17 @@ def test_assemble_composes_three_corpora_and_chrome(tmp_path: pathlib.Path) -> N
     assert (out / "module" / "library.html").is_file()
     assert (out / "module" / "report-module-a.html").is_file(), (
         "the module report is the page that 404'd on the LIVE site — it must be in the tree"
+    )
+    assert (out / "weekly" / "library.html").is_file()
+    # The weekly report page's filename is DERIVED from the composed surface identity, never
+    # retyped: ``Site.from_surfaces`` slugs ``surface.id``, so a re-authored week moves the
+    # filename and a hardcode here would go quietly stale exactly when it mattered.
+    from newsletters.weeklysite import build_weekly_surfaces
+
+    report = f"{build_weekly_surfaces(root=REPO_ROOT)[0].id}.html"
+    assert (out / "weekly" / report).is_file(), (
+        f"the weekly report page {report} is not in the assembled tree — the RECORD publishes; "
+        "its .pptx deck deliberately does not (it lives outside site/, W0-2 / T-04-08)"
     )
     # Assembly chrome.
     assert (out / ".nojekyll").is_file()
@@ -91,9 +102,53 @@ def test_assemble_refuses_foreign_out_dir(tmp_path: pathlib.Path) -> None:
     with pytest.raises(FileExistsError):
         assemble_site(precious, repo_root=REPO_ROOT)
     assert (precious / "keep.txt").read_text() == "not yours"
-    # …but a PREVIOUS assembly (recognized by its .nojekyll marker) reassembles cleanly.
+    # …but a PREVIOUS assembly (both markers: .nojekyll + the generated-by marker in its
+    # index.html) reassembles cleanly.
     out = _assemble(tmp_path)
     assemble_site(out, base_path=_BASE_PATH, repo_root=REPO_ROOT)
+
+
+def test_assemble_refuses_the_near_miss_pages_checkout(tmp_path: pathlib.Path) -> None:
+    """WR-05: ``.nojekyll`` ALONE no longer licenses ``rmtree`` — it is Pages furniture.
+
+    The data-loss path this pins: essentially every static GitHub Pages checkout carries a
+    ``.nojekyll``, so the old single-marker guard treated ANY such tree — somebody else's
+    gh-pages checkout, one mistyped ``--out`` away — as "a previous assembly of ours" and
+    destroyed it. Ownership now takes BOTH markers; the near-misses (foreign index beside a
+    ``.nojekyll``; a ``.nojekyll`` with no index at all) are refused with the tree intact, and
+    ``force=True`` is the one explicit way through.
+    """
+    foreign_index = "<html>somebody else's site</html>"
+    checkout = tmp_path / "gh-pages"
+    checkout.mkdir()
+    (checkout / ".nojekyll").write_bytes(b"")
+    (checkout / "index.html").write_text(foreign_index)
+    with pytest.raises(FileExistsError, match="ownership proof"):
+        assemble_site(checkout, repo_root=REPO_ROOT)
+    assert (checkout / "index.html").read_text() == foreign_index, "the guard clobbered anyway"
+
+    marker_no_index = tmp_path / "marker-no-index"
+    marker_no_index.mkdir()
+    (marker_no_index / ".nojekyll").write_bytes(b"")
+    (marker_no_index / "data.txt").write_text("keep me")
+    with pytest.raises(FileExistsError):
+        assemble_site(marker_no_index, repo_root=REPO_ROOT)
+    assert (marker_no_index / "data.txt").read_text() == "keep me"
+
+    # force=True is the explicit human override for exactly this refusal…
+    assemble_site(checkout, repo_root=REPO_ROOT, force=True)
+    assert _MARKER in (checkout / "index.html").read_text(encoding="utf-8")
+    # …and the tree it just built proves ownership, so a re-assembly needs no force.
+    assemble_site(checkout, repo_root=REPO_ROOT)
+
+
+def test_assemble_refuses_a_file_at_out(tmp_path: pathlib.Path) -> None:
+    """WR-05: a FILE at ``out`` is a clean teaching refusal, not a bare NotADirectoryError."""
+    out = tmp_path / "out"
+    out.write_text("a file, not a dir")
+    with pytest.raises(FileExistsError, match="FILE, not a directory"):
+        assemble_site(out, repo_root=REPO_ROOT)
+    assert out.read_text() == "a file, not a dir"
 
 
 # --------------------------------------------------------------------------- #
@@ -135,8 +190,10 @@ def test_assembled_internal_links_resolve(tmp_path: pathlib.Path) -> None:
 
 
 # --------------------------------------------------------------------------- #
-# Guarantee (b) — no drift: committed corpus == fresh render (rev1 + work; module
-# already guarded by tests/test_modulesite.py::test_committed_equals_fresh_build)
+# Guarantee (b) — no drift: committed corpus == fresh render (rev1 + work here; module
+# and weekly are already guarded by their OWN corpus suites'
+# ``test_committed_equals_fresh_build`` — tests/test_modulesite.py, tests/test_weeklysite.py —
+# which is where a corpus's drift check belongs: beside the builder that produced it)
 # --------------------------------------------------------------------------- #
 
 
@@ -204,7 +261,12 @@ def test_fonts_referenced_are_present(tmp_path: pathlib.Path) -> None:
             checked += 1
     assert checked > 0, "no font references found — extraction looks broken"
     # The SIL-OFL licenses ship beside every corpus's vendored fonts.
-    for fonts_dir in (out / "fonts", out / "work/fonts", out / "module/fonts"):
+    for fonts_dir in (
+        out / "fonts",
+        out / "work/fonts",
+        out / "module/fonts",
+        out / "weekly/fonts",
+    ):
         ofls = list(fonts_dir.glob("OFL-*.txt"))
         assert len(ofls) == 3, f"{fonts_dir} must carry the three OFL license files, has {ofls}"
 

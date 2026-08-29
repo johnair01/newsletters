@@ -7,6 +7,460 @@
 
 ## Where we are right now
 
+**2026-08-29 (end of run) — v1.3 BUILD COMPLETE. AUDIT PASSED. THE PR TO `main` IS THE HUMAN
+GATE (branch `claude/new-session-gw8tik`, 139 commits).** All four phases shipped, each through
+the full loop (research → plan → plan-check → execute → code-review → fix → independent verify →
+independent gate re-run): the determinism spike and specs (Phase 1), the deterministic
+template-driven PPTX writer (Phase 2), the weekly compose path with four new block kinds
+(Phase 3), and the fourth corpus + operator recipe (Phase 4). The milestone audit PASSED —
+6/6 requirements, 14/14 cross-phase connections, 6/6 E2E flows, Nyquist-compliant in all four
+phases, 0 blockers (`.planning/v1.3-MILESTONE-AUDIT.md`). Final self-validation closed the
+loop the way the kickoff demanded: **the existing ADAPT-04 reader loaded the writer's own
+committed deck — 7/7 claims content-addressed and entailed, zero silent drops, the author's
+voice byte-verbatim end to end.** Final gates, run by the orchestrator, once each: **871
+passed / 0 skipped** (the milestone's own W21 rule made every skip a failure) · lint-imports
+2 kept · `newsletters check` clean over all FOUR corpora · committed==fresh everywhere,
+ledgers append-only · determinism `--check` green · bare-install byte-untouched ·
+mypy/black/isort no-new-failures. **Milestone completion/cleanup was deliberately NOT run**
+(kickoff Step 3): the EiC reviews the PR first; completion happens after. Open items carried
+honestly to the PR: real-PowerPoint open (no `.pptx` consumer here) · first observed CI green
+of the `pptx`/`weekly` jobs (no `gh` here) · contentStatus tri-state amendment · deck images
+(round two) · AUDIT-W1 template core-properties bleed · AUDIT-W2 recipe prose guards ·
+DEF-15. The sample weekly ships **Draft, watermarked** — the publish gate is untouched.
+
+**2026-08-29 (newest) — v1.3 PHASE 4 IS DONE: THERE IS NOW A WEEKLY YOU CAN READ, AND A RECIPE
+SOMEBODY WHO ISN'T US CAN FOLLOW (plans 04-01, 04-02, 04-03 — the whole phase; branch
+`claude/new-session-gw8tik`).** Phases 1–3 built the machinery. This phase does the two things
+that turn machinery into a product: it ships a **worked example you can open**, and it writes down
+**how you would do this with your own week** — with every command in the instructions actually run
+against the sample before we claimed it works.
+
+- **A fourth corpus, `content/weekly/`, is committed and rendered** (04-01). A fabricated module's
+  week — spec, a saved mail message, an image, a copy of the template deck, its own ledger, the
+  rendered HTML page and the `.pptx` deck — all readable in the repo. It composes to a **Draft**
+  report at `R-001` and renders a page whose honesty panel is populated.
+- **The sample is honest on purpose, and that's the whole point of it.** Three absences are planted
+  and every one reaches the *reviewer*, not just the data: a lane that declares **no KPIs** (which
+  comes from the module config that already existed — real content, not content invented to make a
+  demo look honest), a recognition with **no source** sitting right beside one that resolves, and
+  an image missing its **folder** provenance, refused *before* the file is even read. A sample that
+  hides what it doesn't know teaches the wrong lesson to whoever copies it.
+- **The deck was produced by the shipped command, not by a script we wrote for the occasion.** That
+  matters more than it sounds: it means the sample and the instructions cannot have drifted apart
+  on day one. Re-running that exact command during this plan reproduced the committed deck **byte
+  for byte**.
+- **The fourth corpus is wired into every place that knew about three** (04-02) — the published
+  layout, the `--corpus` selector, both CI gates, and the cross-record strip on all four Libraries.
+  The plan listed sixteen places; there were **seventeen**. The seventeenth was found by a red test
+  in the same command as the change, because a previous session had written that guard as an
+  explicit allow-list instead of a permissive skip. A guard that must be widened tells you it
+  exists.
+- **We proved the two things the sample could not prove about itself** (04-02): the gate for this
+  corpus can actually **fire** (a planted published blocker turns `check --corpus weekly` red, and
+  the test then proves not one committed byte moved), and the committed deck equals a **fresh
+  render** — compared part-by-part, never as raw bytes, because zip compression differs between
+  machines while the contents don't.
+- **`docs/weekly.md` — the recipe — now exists** (04-03): eight steps from "what you need" to "what
+  the sample looks like", each naming the exact command and the trust property it preserves. Two
+  tests keep it honest: one parses **every command line in the document** and checks it against the
+  live CLI (rename a flag and the suite goes red instead of the doc rotting), and one asserts the
+  document still carries its safety statements — read-only, stays on your machine, no network,
+  nothing committed, and nothing publishes.
+- **And we ran the recipe.** All six commands, in document order, against the committed sample:
+  they all worked, the deck regeneration reproduced the committed digest, and `git status` was
+  clean afterwards. A recipe whose commands were never run is a promise, not a proof.
+- **Four documents that said "three corpora" now say four** (04-03) — the architecture spec (whose
+  `--corpus` section was still stale at *two*), the surfaces spec, `CLAUDE.md` and
+  `content/README.md` (which still said "empty until then", untrue since v1.1). The fix is a
+  **test**, not a grep in a summary, so the fifth corpus can't make them stale silently.
+
+**The decisions, and why:**
+
+- **A sibling corpus, not an extension of `content/module`.** One builder per byte-stable corpus is
+  this repo's shape, and the boundary is kept at the *ledger* layer: the weekly counts its own
+  references from `R-001`, so the sample and the real corpora can never collide on a number. The
+  weekly still *binds* the module's lane config — one fabricated module, one source of truth — and
+  that coupling is deliberately loud: change the module config and **both** corpora's committed
+  pages move and both drift gates go red in the same run.
+- **The deck is a corpus artifact, not a download.** It lives *outside* the corpus's `site/`
+  directory, and the assembler copies `site/` only — so a deck cannot reach the published site
+  because of the **layout**, not because someone remembered. Serving it would mean a download link
+  on the page plus a copy step in the assembler: one task, costed and written down, deliberately not
+  built. A served binary is a file whose approval state a reader cannot see; the page, with its
+  honesty panel and its Draft badge, is where we want a reader to land.
+- **`check --corpus weekly` is wired even though it is vacuous today — and we said so out loud.**
+  The gate exempts anything that isn't Published, because publication *is* the trust boundary, and
+  this sample ships Draft. So its exit code proves the wiring and nothing else. What actually
+  carries trust for this corpus is the **honesty panel** — plus the test that proves the gate fires
+  the day somebody does publish. Writing "green" without that sentence would have been the exact
+  dishonesty this project exists to remove.
+
+**Two limitations carried openly, neither patched:**
+
+1. **The weekly record carries only its spec as a source.** Claims contributed by the lane bindings
+   and by the resolved mail message point at sources the surface itself doesn't list. Measured
+   consequence today: nothing — no broken link, no false staleness. It would only matter if this
+   Draft sample were ever published, which is exactly why it ships Draft. Phase 3's code is frozen
+   and reviewed; this is recorded in the builder's own docstring rather than patched under the
+   radar.
+2. **The deck is text-only.** No image reaches a slide this milestone (unchanged from Phase 3, and
+   still written into `docs/weekly-spec.md` with a round-two flag).
+
+**The truths still hold.** Nothing here publishes; every claim on the page traces to the author's
+own file; the whole phase runs with zero AI; the composer wrote none of the words. The one that
+was *strained* and is worth naming: "the trust layer is the product" sits awkwardly beside a gate
+that is vacuous for a Draft corpus — so we did not let the exit code stand in for the trust, we
+said which test carries it instead.
+
+**Still open, and both belong to the PR review:** nobody has watched the `pptx` or `weekly` CI jobs
+go green (no `gh` in this environment), and nobody has opened one of these decks in real
+PowerPoint. Both stated, not assumed.
+
+**2026-08-29 (earlier) — v1.3 PHASE 3 IS DONE: THE WEEKLY IS NOW A DECK, THE NUMBERS COME FROM YOUR
+EXPORT, AND — FINALLY — A ROBOT ACTUALLY RUNS THE TESTS (plan 03-04 of 4, branch
+`claude/new-session-gw8tik`).** Three plans built the weekly's parts; this one turns them into
+something you can send, and closes the gap that made all of it only *look* proven.
+
+- **A hand-written weekly now comes out the other end as a PowerPoint.** You write the YAML; the
+  package fills the four named boxes in the template an operator authored, stamps the deck as
+  machine-generated, and — because nobody has approved it yet — writes DRAFT across every slide.
+  Render it twice and you get byte-identical files. Every one of those claims is checked by
+  *reopening the file that was written*, never by asking the writer whether it worked.
+- **The week with nothing to confess still renders — and the slide says so in the record's own
+  words.** This was the interesting design call. The template declares a "lowlights" box, and the
+  writer refuses to ship an empty named box (a blank box on a slide is a lie of omission). The
+  obvious fix — skip the box — would mean a weekly with no lowlights *fails to render at all*. The
+  other obvious fix — write "Nothing to report" — is the composer inventing the single most
+  consequential line in the deck. So the line on that slide **is** the honesty-panel disclosure
+  itself, and the composer checks that the string it is about to print really is in the record's
+  `missing[]` list; if it isn't, it refuses. We broke it on purpose (made it print an em dash
+  instead) and watched six tests go red.
+- **Your numbers arrive the boring way, on purpose.** Export the BI view to a spreadsheet, and the
+  adapter this repo already had reads it — every cell becomes a value pinned to its own address in
+  the export, and the weekly's KPI strip derives its ↑/↓ from *two independently traced cells*,
+  never from a number somebody typed. We wrote **no new reader**. Three tests assert the absences:
+  the adapters folder gained no file, the Power BI reader is byte-for-byte what it was, and the
+  weekly loader contains no spreadsheet code at all. ("`.csv`" in the old prose was a wording
+  slip — the live reader is `.xlsx`-only, and a CSV path would be exactly the new reader this
+  requirement forbids.)
+- **The thing that was actually broken: nothing was running these tests.** Nine test modules —
+  including the 88-test one that is the whole authoring path — ran in **no CI job whatsoever**.
+  Green because nobody pressed play. That is the second time this build has hit that exact failure,
+  so the fix is a job that names all nine, installs what they need, fetches the full git history
+  (three of the guards compare against the branch point and *fail* rather than skip without it),
+  and **fails if the run reports a single skipped test**. Verified by running the job's exact
+  command here first: 174 passed, 0 skipped.
+- **The whole suite now runs with zero skips for the first time in this milestone** — 699 passed /
+  64 skipped before, 812 passed / 0 skipped after. Every one of those 64 was a spreadsheet test
+  quietly excusing itself.
+
+What deliberately did *not* ship, said out loud: **the deck is text-only.** The writer has no
+image-placement path at all, no criterion asked for one, and we measured the image-determinism
+property in Phase 1 but have not spent it. Pictures reach the web page; they do not reach the
+slides. That is written into `docs/weekly-spec.md` as a decision with a round-two flag, not left
+for someone to discover.
+
+**Still open, and both belong to the PR review, not to the phase:** nobody has watched the new CI
+job go green (no `gh` here), and nobody has opened one of these decks in real PowerPoint (this
+environment has no PowerPoint and LibreOffice ships without the Impress filters). Stated, not
+assumed — the whole point of the lesson above is that an unobserved run is not evidence.
+
+**2026-08-29 (earlier) — v1.3 PHASE 3, PLAN 03: A PICTURE NOW HAS TO EARN ITS PLACE, AND THE
+COMPOSER IS NOT ALLOWED TO IMPROVE YOUR WRITING (plan 03-03 of 4, branch
+`claude/new-session-gw8tik`).** Last plan let you hand-write a weekly and be believed word for
+word. This one closes the two things that were still promises: the images, and the composing.
+
+- **An image gets onto a page only if its paperwork survives four questions.** Is the file
+  actually inside this project? Does it say which folder, which date and which event it came
+  from? If it's a screenshot standing in for numbers, does it link to the report those numbers
+  came from? And — checked *now*, not when you wrote it down — does the file on disk still hash
+  to the fingerprint your record claims? Fail any of them and the image is not placed; the
+  reviewer is told exactly which question it failed, in the spec's own words. Pass them all and
+  it goes on the page carrying the fingerprint line from your own file as its evidence.
+- **A path that points outside the project doesn't get "disclosed". It gets refused.** That
+  distinction sounds pedantic until you break it on purpose, which we did: with the containment
+  check removed, the loader didn't error — it happily *placed a file from outside the project*
+  onto the surface, with full provenance and nothing in the honesty panel. Routing it to
+  "missing" instead of raising would have made that same read look honest. It raises. A symlink
+  that points outside is caught the same way, because we resolve the link *before* we ask where
+  it lives.
+- **We never open the image.** We hash its bytes and nothing else — no image library is reachable
+  from this code, and a test greps for one. A malicious or booby-trapped picture is just bytes to
+  a hash.
+- **The composer is now forbidden, in code, from writing anything you didn't.** Every single
+  string that reaches the page is either something you typed or one of eight declared, listed,
+  numeral-free connective phrases (the lead paragraph and the section labels). There is a test
+  that walks the finished page and holds every string to that rule — and to prove the test isn't
+  decorative, we made the composer merge your six highlight lines into one, and watched four
+  tests go red. There's a fixture in the repo whose only job is to *tempt* a composer into
+  improving your writing: two lines begging to be summarised, two out of chronological order,
+  two begging to be joined. All six must come out separately, in your order, byte for byte.
+- **Nothing publishes.** The composed weekly arrives as a Draft and the module contains no call
+  that could advance the gate at all — asserted by grepping the source, not by hoping. Compose
+  the same file twice and you get byte-identical output.
+
+The one thing we got *wrong* first, and it's worth keeping: the "did the author write this?"
+check started as a plain substring test, and it accused the author's own multi-line highlight —
+because YAML re-folds long lines, so your text isn't a literal substring of your file. A test
+caught it, not a hunch. It now compares the way the faithfulness gate itself compares: forgiving
+whitespace and nothing else.
+
+Still to come in this phase: the deck itself, and a CI job that actually runs these 72 tests.
+
+**2026-08-29 (earlier) — v1.3 PHASE 3, PLAN 02: YOU CAN NOW HAND-WRITE A WEEKLY AND HAVE THE
+RECORD BELIEVE YOU — WORD FOR WORD, LINE BY LINE (plan 03-02 of 4, branch
+`claude/new-session-gw8tik`).** Last plan gave the weekly somewhere to *go*; this one gives it a
+way to *arrive*. Write a YAML file — your week, your module, your highlights and lowlights in your
+own words, who deserves credit, who the team is, which images and where they came from — and the
+package lifts it into the record without touching a syllable. Four things are worth understanding:
+
+- **We refused to write the same thing twice.** The Case Spec already had the delicate machinery
+  that pins each sentence you wrote to the exact characters of *your* file. The weekly needs the
+  identical thing. Copying it would have given us two of them, and two of anything like this drift
+  apart silently — which is the recorded reason `pptx_writer.py` exists at all. So it *moved*, word
+  for word, into its own file that both loaders import. The move is visibly a move: 131 lines
+  deleted, 7 added, and the Case Spec's own tests pass **untouched**, which is the only honest way
+  to say "nothing changed".
+- **The subtlest bug in this phase can't be caught by any gate, so we caught it with a line
+  number.** The pinning machinery reads your file forwards, once. If the code walks your document
+  in a different order than you wrote it, and a name appears twice — someone thanked in
+  *recognitions* who is also on the *team* — the two entries quietly swap evidence: each one points
+  at the other's line. Both still pass every faithfulness check, because the text is identical.
+  There is no test of "is this faithful?" that can see it. So we broke it on purpose once and
+  watched what happened: the team entry stole the recognition's line, and five things you actually
+  wrote were reported to the reviewer as *missing*. The guard that catches it asserts line numbers.
+  The more obvious guard — "do the spans move forwards?" — stayed green through the whole thing,
+  which is exactly why both are kept.
+- **A typo can't quietly eat a lowlight — and neither can a typo one level down.** `highlight:`
+  instead of `highlights:` fails loudly, naming what you typed and the eight things it could have
+  been. So does `resaon:` inside a recognition. A spec that silently ignores a mistyped key is a
+  spec that loses the thing you were bravest about writing.
+- **We never pretend to have evidence we don't have.** If you name a source for a recognition and
+  it resolves to something real, the record holds a *pointer* to it — deliberately with no quoted
+  span, because we haven't read that source and quoting from it would be inventing. If it resolves
+  to nothing, the recognition is still carried (dropping it would erase someone's credit) and the
+  broken id is named in the honesty panel so you can fix the typo. Both halves, every time.
+
+Nothing is placed on a slide yet and no images are hashed — that is deliberately the next plan.
+This one stops at the load.
+
+**2026-08-29 (earlier) — v1.3 PHASE 3 HAS STARTED: THE WEEKLY'S FOUR BLOCK KINDS ARE REAL, AND WE
+FOUND ANOTHER GUARD THAT COULD NEVER HAVE FAILED (plan 03-01 of 4, branch
+`claude/new-session-gw8tik`).** The weekly deck now has somewhere to *go*: highlights/lowlights,
+recognitions, the team, and a placed asset are four real types in the record, they survive a JSON
+round-trip, and each one draws on screen. Three things are worth understanding, because they are
+the reasoning and not the output:
+
+- **"An asset without provenance can't reach a surface" is now a fact about the type, not a rule
+  somebody has to remember.** We could have written a checking function — and then hoped every
+  future code path called it. Instead an `AssetBlock` simply *cannot be built* without its
+  provenance record and at least one trace: the attempt fails at construction with an error naming
+  the empty field. This is the same move the glossary already makes in this codebase. The tests
+  assert both refusals **and** that a well-formed one still builds — a model that rejected
+  everything would pass the refusals and prove nothing.
+- **A block can no longer vanish.** The renderer's block dispatch used to end in "if I don't
+  recognise this, return an empty string". That was harmless while every kind had a branch, and it
+  would have become the worst possible bug the moment one didn't: a lowlight that was written,
+  traced and *reviewed* would render as nothing at all, with no error anywhere. A surface silently
+  missing its lowlights is the precise failure this product exists to prevent. It now refuses,
+  loudly, and names the kind it doesn't know — and a test walks every kind in the union, so adding
+  a fifth without a branch fails immediately instead of quietly.
+- **And the uncomfortable one, again.** The thing that was supposed to protect the review gate —
+  the code that decides whether anything can ever be published — compared our *unsaved edits* to
+  the last save. So it went red while you were typing and green the moment you committed, which
+  means in CI, where nothing is ever unsaved, **it had never been capable of failing.** Two
+  milestones of "the gate is protected" rested on it. The replacement fingerprints the eight
+  functions that *are* the gate and checks that nothing was ever deleted from that file, and we
+  proved it works by breaking it on purpose once (a single blank line inside the publish function
+  turned it red) and putting it back. Worth noticing: only *one* of the two halves caught that —
+  which is why there are two.
+
+Zero new CSS was added, deliberately, so the published site is byte-for-byte what it was. The
+weekly's YAML path — the actual authoring experience — is the next plan.
+
+**2026-08-29 (earlier) — v1.3 PHASE 2 IS BUILT: THE PROOF NOW RUNS WHERE IT COUNTS
+(plan 02-03 of 3 — the phase's last, branch `claude/new-session-gw8tik`).** Two things were still
+unproven after the writer existed, and both are now closed:
+
+- **"Rendering the same thing twice gives the same bytes" is now proved *with a control*.** The test
+  renders one Surface, waits **three real seconds**, and renders it again. The wait is the whole
+  point: timestamps inside a `.pptx`'s zip container only tick every two seconds, so two renders in
+  a tight loop are identical *by accident* — a test that did that would have "proved" a stability
+  that does not exist. So next to the green there is now a test asserting the **un-normalized** pair
+  really is different, and different in exactly one field (the clock), with none of the deck's
+  actual content moving. That inequality is what makes the equality mean something. Those raw bytes
+  are captured from *inside* the writer rather than rebuilt alongside it — a rebuilt copy would only
+  ever prove things about the copy.
+- **The shipped template renders a real Surface, end to end, and one test checks everything at
+  once.** A real `Surface(REPORT, Draft)` goes through the template the repo actually ships, out to
+  a file; then the file is reopened and asked: are the four slots exactly what we wrote? Is the
+  `Footer` — which is *not* a slot, because it has no `NL_` prefix — untouched? Is the DRAFT
+  watermark there, on top? Is the generated-by marker readable? Is the Surface still Draft? One
+  artifact, all five phase criteria.
+
+**And the uncomfortable one: our CI has been green for this work without ever running it.** No job
+installed the optional `[pptx]` extra, so *every* pptx test module quietly skipped itself on every
+push — four modules, an `s` in the log where a `.` belonged, and a green that meant "not run". There
+is now a dedicated `pptx` CI job that installs the extra and runs all five modules (117 tests, none
+skipped). The AI-free `bare-install` job is deliberately byte-untouched: it stays the one job that
+proves the deterministic spine runs with zero extras and zero AI. The lesson is logged in `RETRO.md`
+and it generalises past this repo: **a test suite and the job that runs it are two different things,
+and only the second one is evidence.**
+
+Two things still need a human, and both are named rather than assumed: nobody has yet **opened one
+of these decks in real PowerPoint** (this environment has no `.pptx` viewer at all), and the new CI
+job's **first green has not been watched** from here. Both belong to the PR review.
+
+**2026-08-29 (later) — v1.3 PHASE 2: THE WRITER EXISTS AND A DECK ACTUALLY GETS WRITTEN
+(plan 02-02 of 3, branch `claude/new-session-gw8tik`).** Hand it a Surface, an operator's template
+and a `{shape name → lines}` mapping, and it produces a deterministic, watermarked, marked `.pptx`.
+Four things are worth understanding, because they are the *reasoning*, not just the output:
+
+- **The renderer refuses to guess, five different ways.** Content bound to a name the template does
+  not have; an `NL_` slot with nothing to put in it; two shapes sharing a name (legal in PowerPoint
+  — copy-paste is how you make one); a template that already owns the watermark name; a "slot" that
+  is a group or a picture and cannot hold text. Each one raises and *names the offender*, because a
+  refusal that does not tell you which box it means is a refusal you have to bisect by hand. The
+  alternative — a naive `{name: shape}` map — would silently drop a slot and ship a blank box to a
+  reader, which is the exact thing the fail-loud decision exists to prevent.
+- **We inherit the operator's formatting; we never build our own.** The obvious line every tutorial
+  writes (`text_frame.text = "..."`) is measurably destructive: it erases the run's 20pt bold *and*
+  the paragraph's bullet, and the deck still renders — quietly downgraded to theme defaults, which
+  no automated check in this repo could see. So paragraph 0 of the operator's box is treated as a
+  formatting **carrier**, and every extra line is a deep copy of it with the text swapped. python-
+  pptx has no bullet API at all, so a bullet can only ever be inherited. The moment the renderer
+  starts constructing formatting, it has started inventing layout — the one thing we said it must
+  never do. `fit_text()` is banned by name for the same family of reasons: it reads fonts installed
+  on *this machine*, so the output would stop being reproducible.
+- **The gate is read outward, never written back.** The watermark and the `contentStatus` field come
+  *from* `surface.is_published`. There is no assignment to any `Surface` field anywhere in the
+  writer — so there is no read-then-fix path, and therefore no auto-publish path. A test captures
+  the Surface before a render and asserts it is bit-for-bit identical after; `semantic.py` is
+  byte-unchanged.
+- **Every claim about a deck is checked by reopening the file we wrote.** Not the object in memory —
+  a writer that returned success without marking anything would pass any assertion made against
+  itself. And the two hardest properties are asserted in their *inverted* form too: a **Published**
+  deck must have **no** watermark and an empty status. Without that inversion, a renderer that
+  watermarked everything unconditionally would look perfect and would brand approved work as
+  unreviewed forever.
+
+Two questions are being **raised at the PR rather than decided quietly**: a Surface sitting in
+review is currently labelled `"draft"` exactly like an unreviewed one (the recorded decision says
+binary; the enum has three states — that is a real judgement call, not an implementation detail),
+and the decision note names the wrong OOXML element for the Surface id (`cp:identifier`; it is
+actually `dc:identifier` — wording only, no behaviour changes).
+
+Still honest about the green: **no CI job installs `[pptx]` yet**, so all 19 of these tests are
+skipped in CI. That is plan 02-03, together with the double-render determinism proof. And nobody has
+yet opened one of these decks in real PowerPoint — that human look is still the phase's gate.
+*(Superseded by the 02-03 entry above: the `pptx` CI job now exists and the tests run. The
+PowerPoint look is still open.)*
+
+**2026-08-29 (later still) — v1.3 PHASE 2 STARTED: THE RENDERER'S FOUNDATION IS IN `src/`, AND IT
+IS GUARDED BEFORE IT DOES ANYTHING (plan 02-01 of 3, branch `claude/new-session-gw8tik`).** Still no
+deck is rendered — that is plan 02-02 — but the ground it stands on is now real production surface
+instead of a spike fixture:
+
+- **One normalizer, and you can prove nobody tidied it.** The OPC-zip normalizer moved *verbatim*
+  out of `tests/fixtures/weekly/_determinism.py` into **`src/newsletters/pptx_writer.py`**, and the
+  fixture copy is deleted. Git recorded the move as a rename, so the review that matters — "did
+  anything change in the security-critical in-memory read/write loop?" — is a one-command diff, and
+  the answer is no. Zip-slip stays closed *by construction*, not by a validation somebody could
+  weaken later. Three `sys.path.insert` lines went with it, which is what actually closes the
+  module-shadowing hazard the Phase 1 review flagged: we removed the mechanism, not the symptom.
+- **The module is stdlib-only at import time, and two guards say so.** `newsletters.pptx_writer`
+  imports on a bare `pip install .` with python-pptx *blocked on `sys.meta_path`* — proved in a real
+  subprocess, in `tests/test_ai_optional.py`, which is the file the bare-install CI job runs. The
+  guards deliberately do **not** live next to the writer's own tests: that module skips itself when
+  the extra is missing, so a guard proving "this imports without the extra" would never run in the
+  one environment it exists for.
+- **Five test decks now stand in for an operator's real templates** — a rich happy-path deck with a
+  slot *nested inside a group*, plus one deck each for duplicate shape names, a template that
+  already owns the watermark name, an `NL_` shape that cannot hold text, and a slot left blank with
+  zero runs. Every one of them is a case the fail-loud contract must refuse teachingly rather than
+  crash on, and each was reopened and checked by hand rather than trusted to a green test.
+- **A research claim became a repo-owned fact.** `slide.shapes` does *not* descend into groups — so
+  a grouped slot is invisible in both directions, and an operator would swear the box is right there
+  in their Selection Pane. There is now a test that says so, which is what makes the writer's
+  group-recursive binding map falsifiable instead of merely well-intentioned.
+- **`python-pptx>=1.0.2` is a floor, not a ceiling,** and the reason is on the line: a floor lets a
+  security fix land; a ceiling would pretend we had tested versions we have not.
+
+Two things were deliberately *not* done, both because doing them would have bought convenience with
+evidence: the committed `template.pptx` was **not** regenerated (its part digests *are* the recorded
+determinism evidence), and the fixture template's `2026-01-01` timestamp was **not** consolidated
+onto `EPOCH_ZERO` — the difference is what will let plan 02-02's marker read-back actually fail if
+the writer forgets to write it. A test that cannot fail is not a test.
+
+Honest about the green: **no CI job installs `[pptx]` yet**, so every pptx test — including the two
+new ones — is skipped in CI today. Plan 02-03 adds that job. Until then this is a local green, and
+saying so is cheaper than discovering it at the PR.
+
+**2026-08-29 (later) — v1.3 PHASE 1 DONE: THE TWO EXPENSIVE UNKNOWNS ARE SETTLED, ON PAPER,
+WITH EVIDENCE (branch `claude/new-session-gw8tik`).** Phase 1 shipped spec text and a recorded
+decision — deliberately **no** renderer or composer code (`git diff --exit-code --
+src/newsletters/` is empty). Four things are now settled instead of discovered later:
+
+1. **Determinism has an answer, and it was measured, not assumed.** A rendered `.pptx` is
+   **byte-stable via a declared post-save zip normalization**: python-pptx's own output never
+   moves — only the ZIP container's clock does, because `zipfile` stamps `time.localtime()` when
+   it is handed a string arcname. Rewrite every archive entry with a fixed 1980 timestamp and the
+   file is reproducible. The measurement is committed
+   (`.planning/notes/2026-08-29-pptx-determinism-evidence.json`) and re-proved on every test run
+   by `tests/test_pptx_determinism.py`, negative control included. The claim is scoped **in
+   writing** to a fixed (python-pptx, zlib) pair, so the cross-machine gate compares the
+   *part-content digest*, never a full-file hash.
+2. **The generated-by marker lives in OPC core properties** — `cp:category` =
+   `generated-by:newsletters`, `cp:contentStatus` = `draft`, `dcterms:created/modified` =
+   `EPOCH_ZERO`, `cp:identifier` = the Surface id — because a notes slide adds four parts to
+   every deck and a reader can delete it by accident. Honest limit, recorded: it is
+   **provenance, not authenticity** (an operator can edit it).
+3. **The template contract is "fill the operator's existing slides, never `add_slide`"** — measured:
+   `add_slide` regenerates placeholder names and throws away the operator's Selection-Pane naming,
+   so a named-placeholder contract built on it would reject every real template. `NL_` is the
+   reserved prefix for renderer slots; duplicate names raise instead of last-wins dropping a slot.
+4. **The weekly is written down before it exists.** `docs/weekly-spec.md` is the new document a
+   module lead can hand-author a valid Weekly Spec from *alone* — the eight-key annotated YAML,
+   the seven loader rules, the four new block kinds field by field, and the asset-evidence record
+   with its exact `missing[]` routing (provenance minimum = folder + date + event label; a deep
+   link REQUIRED when a screenshot stands in for values). The invariant that matters:
+   `AssetBlock.asset` is **required**, so an asset without provenance is *unrepresentable*, not
+   merely policed — the same move `GlossaryTerm.definition: Claim` already makes.
+
+Where the evidence lives: the decision note
+(`.planning/notes/2026-08-29-pptx-determinism-decision.md`) is what Phase 2 reads instead of the
+research; the measurement JSON is what the note cites by value; `docs/weekly-spec.md` is what
+Phase 3 implements against. `docs/architecture.md` was also made honest in the same change — its
+block list had been silently missing `diagram` and `glossary` since the learning work, and now
+names all fifteen kinds.
+
+**Phase 2 may start now** on the `.pptx` writer (WKLY-01): the determinism definition, the marker
+fields with their literal read-back assertion, the template contract and the `NL_DRAFT_WATERMARK`
+shape are all **inputs**, not open questions. Two things Phase 2 must *verify rather than assume*:
+that a `python-pptx>=1.0.2` floor pin keeps `test_pptx_extra_declared` green, and — the one link
+this environment could not test — that a normalized deck opens correctly in **real PowerPoint**
+(no `.pptx` consumer exists here; `libreoffice-core` ships without the Impress filters). That is a
+human checkpoint, recorded rather than assumed away.
+
+**2026-08-29 — v1.2 FORMALLY CLOSED · v1.3 "THE WEEKLY, ONE SHOT" OPENING (branch
+`claude/new-session-gw8tik` — the session-designated branch, serving the seed's `gsd/v1.3-*`
+integration-branch role, same pattern as v1.1).** The Editor-in-Chief re-verified the live site
+(all key URLs 200, styled 404, marker) and approved the close: v1.2 archived
+(`.planning/milestones/v1.2-*` + `v1.2-phases/`), MILESTONES/PROJECT/RETROSPECTIVE updated,
+stale "Rev2 12-phase" note fixed in `CLAUDE.md`. **The ONE discussion round for v1.3 happened
+(kickoff Step 2) — four decisions recorded, no more questions this build; anything new is
+decided per these recommendations and logged:** (1) the weekly deck **reuses `REPORT`** with a
+`.pptx` renderer (an output format, not a new semantic kind); (2) asset provenance minimum =
+**folder + date + event label** (deep link optional — but REQUIRED for a BI screenshot standing
+in for values per WKLY-04); (3) template contract = **named placeholders**, fail-loud on
+missing/unknown names; (4) v1.2 close approved on live evidence. This is a fully autonomous
+run per the EiC's written authorization (kickoff Step 3): no between-phase human stop — **the
+human gate for this run is the final PR**; branch + PR only, never `main`; the content publish
+gate itself is untouched (the sample weekly ships Draft). Next: `/gsd-new-milestone` from
+`.planning/seeds/v1.3-weekly-one-shot.md` (seed committed @ `6e48e07`, current-state claims
+verified against the live repo), then Phase 1's `.pptx` determinism spike before anything
+depends on it.
+
 **2026-07-09 — CASE SPEC AUTHORING PATH BUILT (branch `claude/case-spec-authoring`, awaiting
 review).** An engineer can now hand-author a **Case Spec** — the design-era Operating
 Agreement schema, revived deliberately: `case / problem / current_state / imagined_state /
@@ -424,6 +878,57 @@ end-to-end; Wave 2 adds the conformance suite + the hard-rule tests.
 
 ## Decisions, and why (teaching log — decide once, don't re-litigate)
 
+- **One builder per byte-stable corpus, and the boundary lives at the ledger** (2026-08-29, v1.3
+  Phase 4 plan 01). The weekly is a *sibling* of the module corpus, not an extension of it: its own
+  builder, its own `content/weekly/`, its own append-only ledger restarting at `R-001`. It binds the
+  module's committed lane config rather than a second fabricated one — one fabricated module, one
+  source of truth — and that single coupling is deliberately loud, because a change to the module
+  config moves both corpora's committed pages and reddens both drift gates in the same run.
+- **The weekly deck is a corpus artifact, not a download** (2026-08-29, v1.3 Phase 4). It lives at
+  `content/weekly/deck/`, outside the corpus's `site/`, and `assemble_site` copies `content/*/site`
+  only — so no deck can reach the published tree **structurally**, not by discipline. Serving one
+  would need a download link on the page plus a copy step in the assembler: a costed **one-task
+  reversal**, recorded and not built. A served binary is a file whose gate state a reader cannot
+  see; the rendered page, honesty panel and Draft badge included, is where a reader should land.
+- **A vacuous gate is wired anyway — and named as vacuous** (2026-08-29, v1.3 Phase 4 plan 02).
+  `check --corpus weekly` exempts every non-Published surface, so a Draft corpus exits 0 whatever it
+  contains. We wired it (the selector must route the builder, never fork the gate), then said in the
+  docstring, the recipe and the summary that the exit code proves the *wiring* and the honesty panel
+  proves the *record* — and proved the gate can fire with a planted published blocker. A green
+  nobody can explain is the failure mode this project exists to remove.
+- **A recipe's commands are executed before the recipe is believed** (2026-08-29, v1.3 Phase 4 plan
+  03). Every fenced command in `docs/weekly.md` was run against the committed sample in document
+  order, and a test now parses each of them against the live CLI, so a renamed flag turns the suite
+  red instead of leaving the document teaching a wrong command with confidence. Copy-pasteable means
+  actually pasted.
+- **One span-minter, promoted rather than copied** (2026-08-29, v1.3 Phase 3 plan 02). The
+  machinery that pins each authored sentence to the exact characters of the author's file moved
+  *verbatim* out of the Case Spec into `specspan.py`, and both loaders import it. Two copies of a
+  trust mechanism drift apart silently — the same reason `pptx_writer.py` exists. The move is
+  visibly a move (131 deletions, 7 insertions) and the Case Spec's own tests passed **untouched**,
+  which is the only honest way to say "nothing changed".
+- **A gate that compares the working tree to the last commit is not a gate** (2026-08-29, v1.3
+  Phase 3 plan 01). `semantic.py`'s byte-freeze shelled `git diff HEAD`: red on an uncommitted
+  edit, green the instant it was committed — so in CI's clean checkout it could never fail. It is
+  replaced by source-hash pins over the eight functions that *are* the review gate, plus a
+  zero-deleted-lines diff against the **branch point** (`git merge-base HEAD origin/main`), which
+  is resolved once in `tests/conftest.py` and **fails rather than skips** when it cannot be found.
+  Worth keeping: a planted blank line turned the hash pin red while the zero-deletion half stayed
+  green. Two halves, two failure modes; neither alone is the protection.
+- **An empty section's slide line IS its disclosure** (2026-08-29, v1.3 Phase 3 plan 04). Not an
+  omitted box (the writer refuses an unfilled named slot, so the weekly would not render at all),
+  and not invented filler ("Nothing to report" would be the composer editorialising on the line
+  that matters most). The composer prints the record's own `missing[]` string and *checks
+  membership before printing it*, so a slide line can never drift into prose nobody wrote.
+- **The weekly deck is text-only this milestone** (2026-08-29, v1.3 Phase 3 plan 04). The writer
+  has no image-placement path; images reach the HTML surface and not the slides. Recorded in
+  `docs/weekly-spec.md` as a decision with a round-two flag — an absence that is written down is a
+  scope call, an absence that isn't is a bug waiting to be found by a reader.
+- **BI values arrive as an `.xlsx` export through the adapter we already have** (2026-08-29, v1.3
+  Phase 3 plan 04). No new reader, and the Power BI *definition* reader stays a definition reader —
+  both asserted by diff against the branch point rather than promised. The milestone's "`.csv`"
+  wording is a slip, clarified in writing: the live adapter is `.xlsx`-only and a CSV path would be
+  precisely the new module the requirement forbids.
 - **Faithfulness gate scope — "Option A": strict containment only where there's content-addressed
   evidence; un-addressed traces fall back to structural (is-traced)** (2026-06-17, Phase 3). An
   executor caught that the live capture path mints *empty-span* traces, so a strict "claim text must

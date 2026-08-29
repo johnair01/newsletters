@@ -1,0 +1,6 @@
+# SYNTHETIC TEST DATA — fabricated, Star-Trek-flavored content only. The DELIBERATELY sparse
+# Weekly Spec: only `week` and `module` are authored. Every other key — including `lowlights`,
+# the absence a weekly is most tempted to hide (docs/weekly-spec.md rule 4) — must be disclosed
+# in `Distillation.missing[]`, never fabricated and never quietly dropped. For tests only.
+week: "2374-W36"
+module: "Shuttlebay Operations"

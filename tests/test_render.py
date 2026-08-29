@@ -594,7 +594,7 @@ def test_no_dead_link_every_internal_href_resolves(tmp_path: pathlib.Path) -> No
                     # silently skipped: the shape is pinned to the known corpus layout, and
                     # the ASSEMBLED-tree link test (tests/test_publish.py) is their resolver
                     # of record — it fails if any of them dangles in the published tree.
-                    assert href.startswith(("work/", "module/", "../")), (
+                    assert href.startswith(("work/", "module/", "weekly/", "../")), (
                         f"{page.name} carries a path href {href!r} that is neither in-corpus "
                         "nor a known cross-corpus Records shape"
                     )
@@ -852,6 +852,7 @@ def test_records_strip_on_chrome_pages_only(tmp_path: pathlib.Path) -> None:
             assert 'class="nl-records"' in text, f"{page.name} is chrome but has no strip"
             assert 'href="work/library.html"' in text, f"{page.name} strip misses work"
             assert 'href="module/library.html"' in text, f"{page.name} strip misses module"
+            assert 'href="weekly/library.html"' in text, f"{page.name} strip misses weekly"
         else:
             assert 'class="nl-records"' not in text, (
                 f"{page.name} is a per-surface page but carries the Records strip"

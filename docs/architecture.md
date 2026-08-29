@@ -26,6 +26,17 @@ carry the whole system:
 > is ratified into the `SurfaceTemplate` presets (`templates.py`) + `ReviewPolicy` — a separate
 > core task. Recorded here so code and spec don't drift silently (per `CLAUDE.md`).
 
+> **Note (2026-08-29) — four block kinds ship in the union.** The v1.3 weekly adds `narrative`,
+> `recognitions`, `team` and `asset` to the discriminated `Block` union, which now carries
+> **fifteen** members — a count pinned by
+> `tests/test_weekly_blocks.py::test_block_union_has_fifteen_members`, so this sentence and the
+> code cannot drift apart silently. Their fields, their discriminator values, the
+> asset-evidence record with its exact `missing[]` routing, and the design-system classes each one
+> reuses are written in **[`docs/weekly-spec.md`](weekly-spec.md)** — the document a reader can
+> hand-author a valid Weekly Spec from alone. The weekly itself is a `Surface(REPORT)`: the `.pptx`
+> deck is an output *format*, so the `kind` list above does not grow. Recorded here so code and
+> spec don't drift silently (per `CLAUDE.md`).
+
 Supporting types:
 
 - **Corpus** — a reader's private profile: `role`, `owned[]` (services/areas), `read[]`
@@ -184,7 +195,9 @@ The Reports in `content/rev1/` are the working record of *why*; this section is 
   the **Report** self-approves (light PR); the **Article** requires a **peer** (approver ≠
   author). Enforced at `publish()` — still no auto-publish path.
 - **Surfaces compose from typed content `blocks`** (prose, claims, kpi, quote, chapters,
-  items, prompt, fanout, rationale). The blocks *are* the slots.
+  items, prompt, fanout, rationale, diagram, glossary — plus **narrative, recognitions, team,
+  asset**, the four v1.3 kinds specified ahead of implementation in `docs/weekly-spec.md`).
+  The blocks *are* the slots.
 - **Problem-solving agents are external.** Newsletters owns capture + trust + publish, never
   the agent. `capture.py` turns a finished `WorkSession` (a bundle of `Source`s) into a
   traced Draft Report — deterministically, post-session, tool-agnostic. `Provenance` +
@@ -229,14 +242,26 @@ operator runs (`src/newsletters/worksurface.py`):
    The selector routes the *builder*, never forks the gate — the work corpus passes the
    identical merge-block contract as Rev1.
 
-**The `--corpus {rev1|work}` selector.** Both `newsletters build` and `newsletters check`
-accept `--corpus` (default `rev1`, so existing behavior is unchanged):
+**The `--corpus {rev1|work|module|weekly}` selector (four corpora, as of v1.3).** Both
+`newsletters build` and `newsletters check` accept `--corpus` (default `rev1`, so existing
+behavior is unchanged):
 
-- `build --corpus rev1` → `content/rev1/site` (the sample); `build --corpus work` →
-  `content/work/site` (the real corpus).
-- `check --corpus rev1` gates the sample; `check --corpus work` gates the real corpus — both
-  through the **same** `review_blockers`. The work corpus keeps its **own** append-only ledger
-  (`content/work/ids.json`), so the sample/real boundary is preserved at the ledger layer.
+| `--corpus` | Builder | Default `build --out` | Ledger |
+|---|---|---|---|
+| `rev1` (default) | `dogfood.py` — the synthesized Rev1 sample | `content/rev1/site` | `content/rev1/ids.json` |
+| `work` | `worksurface.py` — the real hand-authored work corpus | `content/work/site` | `content/work/ids.json` |
+| `module` | `modulesite.py` — the synthetic swim-lane worked example | `content/module/site` | `content/module/ids.json` |
+| `weekly` | `weeklysite.py` — the synthetic weekly record (WKLY-05), composed against the `content/module` lane config | `content/weekly/site` | `content/weekly/ids.json` |
+
+Every corpus keeps its **own** append-only ledger, so the sample/real boundary — and now the
+per-corpus reference numbering (`R-001` restarts per corpus) — is preserved at the ledger layer.
+`check --corpus …` runs the **same** corpus-agnostic `review.review_blockers` over whichever
+corpus is selected: **the selector routes the BUILDER and never forks the gate** (T-11-13), so
+every corpus passes the identical merge-block contract. Reading a `check` exit code correctly
+matters: `review_blockers` exempts any surface that is not Published (publication *is* the trust
+boundary), so a corpus that ships Draft — like `weekly` — is gated vacuously today and its
+honesty panel, not its exit code, is what a reviewer reads. The gate is nonetheless proven to
+FIRE for each corpus against a planted published blocker.
 
 ---
 
@@ -245,9 +270,10 @@ accept `--corpus` (default `rev1`, so existing behavior is unchanged):
 The public site (`https://johnair01.github.io/newsletters/`) is the **rendered record**, published
 through **one channel** with the same trust properties as the content it carries.
 
-**The tree.** `publish.assemble_site()` (stdlib-only, deterministic, AI-free) composes the three
+**The tree.** `publish.assemble_site()` (stdlib-only, deterministic, AI-free) composes the four
 committed corpora: `content/rev1/site` at the **root**, `content/work/site` at `/work/`,
-`content/module/site` at `/module/`, plus `.nojekyll` and a base-path-absolute `404.html`
+`content/module/site` at `/module/`, `content/weekly/site` at `/weekly/`,
+plus `.nojekyll` and a base-path-absolute `404.html`
 (assembly chrome — the 404 embeds the base path, a property of the tree, not of any corpus).
 Exposed as `newsletters assemble --out dist/site --base-path /newsletters/`. Corpus files are
 **byte-copies of what a human reviewed and merged** — assemble never renders content fresh.
@@ -270,6 +296,17 @@ re-run pre-publish; one definition of "publishable", no bash re-implementation):
 2. committed corpus == fresh render, byte-for-byte, for **all** corpora (no drift);
 3. every referenced font resolves to a shipped woff2, OFL licenses travel;
 4. every page carries the `generated by newsletters.render` marker.
+
+**What does NOT publish, and why it is structural (v1.3).** `assemble_site` copies
+`content/*/site` **only**. The weekly's `.pptx` deck is written to `content/weekly/deck/` —
+*outside* that corpus's `site/` — so a deck **cannot** reach the published tree: it is
+unreachable by the layout, not by anybody's discipline (T-04-08, asserted by
+`tests/test_weeklysite.py::test_deck_is_not_in_the_published_tree`). The deck is a **corpus
+artifact**, the reviewable output an operator sends, not a download the site serves. Offering it
+as one would mean a `FanoutBlock` download-link route on the rendered page plus a copy step in
+`assemble_site` — a recorded, costed **one-task reversal**, deliberately NOT built: a served deck
+is a published binary whose gate state a reader cannot see, and the rendered page (with its
+honesty panel and its Draft badge) is the surface we want a reader to land on.
 
 **Not deployed:** the `web/` Next.js app (DEF-13) — it stays in-repo until it consumes the real
 corpus data; placeholder content must not wear the product's URL.

@@ -10,6 +10,17 @@
 #     the spine + AI-optional tests under that bare interpreter. This is the runtime source-of-truth.
 #   import-linter (PKG-04) — `pip install .[dev]`; `lint-imports` fails on any static core->AI edge.
 #     The fast complementary STATIC check (necessary-but-not-sufficient; misses plugin activation).
+#
+# Plus the guarantee jobs that ride on the same install discipline:
+#   merge-block (PROV-04) — `newsletters check` on every corpus; an unsafe PUBLISHED surface
+#     cannot merge.
+#   site-integrity (PUB-01..05) — the published-tree guarantees, via the same tests the deploy
+#     workflow re-runs before publishing.
+#   pptx (WKLY-01) — the ONLY job that installs the non-AI `[pptx]` extra, so the renderer's tests
+#     actually execute instead of skipping themselves.
+#   weekly (WKLY-02..04) — the ONLY job that installs the non-AI `[excel]` extra and the ONLY job
+#     that runs the weekly compose path at all; `fetch-depth: 0` so the base-ref gates can execute,
+#     and an explicit `0 skipped` assertion so a skip can never masquerade as a pass.
 
 name: CI — AI-optional invariant
 
@@ -109,6 +120,7 @@ jobs:
           newsletters check --corpus rev1
           newsletters check --corpus work
           newsletters check --corpus module
+          newsletters check --corpus weekly
 
   site-integrity:
     # PUB-01..05 (v1.2): the published-tree guarantees run on EVERY push/PR — assembled-tree
@@ -130,9 +142,107 @@ jobs:
           pip install ".[test,config]"
 
       - name: Run the published-tree guarantees + the site/render guards
+        # `tests/test_weeklysite.py` is here because it is STDLIB-ONLY by construction (04-01):
+        # it never imports python-pptx, so `[test,config]` runs all of it. Do NOT add a
+        # `[pptx]`-gated module to this job — this step has no `0 skipped` assertion, so such a
+        # test would skip forever and read as green (W21, already paid for twice). The weekly
+        # deck's tier-2 gate lives in the `weekly` job below for exactly that reason.
         run: |
           python -m pytest tests/test_publish.py tests/test_render.py tests/test_site.py \
+                           tests/test_weeklysite.py \
                            tests/test_worksurface.py tests/test_modulesite.py -q
+
+  pptx:
+    # WKLY-01 (v1.3, W21): the job that makes a pptx green MEAN something. Until this existed, NO
+    # CI job installed the `[pptx]` extra, so all four pptx test modules `importorskip`-skipped
+    # themselves on every run — a CI log with `s` where a `.` was expected, and a "green" that
+    # meant "not run". WKLY-01 SC-5 requires that a sample Surface renders through the synthetic
+    # template *in CI*, which is not satisfiable without a job that installs the extra.
+    #
+    # Why a SEPARATE job rather than adding the extra above (the merge-block precedent): `[pptx]`
+    # is a non-AI optional extra whose python-pptx never imports at module top level, so the
+    # AI-optional property is untouched — and the `bare-install` job remains the canonical AI-free,
+    # extra-free source of truth (PKG-03) and deliberately does NOT get this.
+    name: pptx renderer + adapter (WKLY-01)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install with test + pptx extras (python-pptx — non-AI, lazy-imported)
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[test,pptx]"
+
+      - name: Run the renderer, determinism, golden, adapter and loader tests
+        run: |
+          python -m pytest tests/test_pptx_writer.py tests/test_pptx_determinism.py \
+                           tests/test_pptx_golden.py tests/test_pptx_adapter.py \
+                           tests/test_pptx_loader.py -q
+
+  weekly:
+    # WKLY-02..04 (v1.3 Phase 3): the job that makes THIS phase's greens mean something. Until it
+    # existed, NOT ONE of the nine modules below ran in any CI job — `tests/test_weeklyspec.py`
+    # alone was 88 tests of the whole authoring, placement, compose and deck path, green because
+    # nobody ran it. That is the W21 shape a second time (the `[pptx]` gap Phase 2 closed), and a
+    # test suite and the job that runs it are two different artifacts: only the second is evidence.
+    #
+    # Why a SEPARATE job rather than widening `bare-install` (the merge-block/pptx precedent):
+    # `[excel]` (openpyxl), `[config]` (PyYAML) and `[pptx]` (python-pptx) are non-AI optional
+    # extras that never import at module top level, so the AI-optional property is untouched — and
+    # `bare-install` stays the canonical AI-free, EXTRA-FREE source of truth (PKG-03), byte
+    # untouched. `[excel]` is here because WKLY-04's values-via-export proof `importorskip`s
+    # openpyxl, and `[pptx]` because the SC-5 deck tests do.
+    name: weekly compose + values + deck (WKLY-02..04)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # LOAD-BEARING, not boilerplate. `tests/conftest.py::milestone_base_ref` resolves
+          # `git merge-base HEAD origin/main`, which a shallow checkout cannot provide — and it
+          # FAILS rather than skips when it cannot (by design: a gate that is green because it
+          # never ran is not a gate). The gate-freeze pins, the compose byte-freeze and the
+          # WKLY-04 ADAPT-05 diff guards all depend on this line.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install with the test + config + excel + pptx extras (all non-AI, lazy-imported)
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[test,config,excel,pptx]"
+
+      - name: Run the weekly compose-path modules and FAIL on ANY skip (W21)
+        # `set -o pipefail` so pytest's exit code survives the pipe into `tee`. The skip check is
+        # the point of this step: an `importorskip` whose extra silently stopped being installed
+        # would turn this job back into the W21 shape — a green that means "not run" — and the
+        # only difference a reader would see is an `s` where a `.` was expected.
+        #
+        # `tests/test_weekly_golden.py` (v1.3 Phase 4) is here and NOWHERE ELSE for exactly that
+        # reason. It is the [pptx]-gated tier-2 gate — the committed weekly deck vs a FRESH
+        # render — so it needs an extra that only this job and `pptx` install, and it needs a job
+        # that treats a skip as a failure. In `site-integrity` (which installs [test,config] and
+        # has no skip assertion) it would skip forever and read as green. Its stdlib-only sibling,
+        # `tests/test_weeklysite.py`, is the module that belongs there instead.
+        run: |
+          set -o pipefail
+          python -m pytest tests/test_weeklyspec.py tests/test_weekly_blocks.py \
+                           tests/test_weekly_values.py tests/test_semantic_gate_frozen.py \
+                           tests/test_casespec.py tests/test_compose.py \
+                           tests/test_swimlane.py tests/test_abstraction_guard.py \
+                           tests/test_weekly_golden.py \
+                           tests/test_excel_adapter.py -q | tee "$RUNNER_TEMP/weekly.log"
+          if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/weekly.log"; then
+            echo "::error::this job reported SKIPPED tests. A skipped compose-path module is the" \
+                 "W21 failure (a green that means 'not run'), already paid for once in this repo." \
+                 "Fix the install (an optional extra is missing) rather than the assertion."
+            exit 1
+          fi
 
   import-linter:
     # PKG-04 (static contract, standing every push): forbid any core->AI import edge.

@@ -49,7 +49,6 @@ from pydantic import BaseModel, Field
 
 from ._yaml_loader import load_config as _parse_config
 from .adapters._timestamps import EPOCH_ZERO
-from .distill.faithfulness import SpanContainmentFaithfulness
 from .semantic import (
     Block,
     Claim,
@@ -60,9 +59,9 @@ from .semantic import (
     Review,
     Source,
     Surface,
-    Trace,
 )
 from .site import slugify
+from .specspan import GATE, SpanMinter, absent
 from .templates import REPORT
 
 __all__ = ["CaseSpec", "CaseSpecLoad", "load_case_spec", "build_case_report"]
@@ -90,9 +89,6 @@ _KNOWN_KEYS = (
 _STR_KEYS = (_CASE_KEY, _PROBLEM_KEY, _CURRENT_KEY, _IMAGINED_KEY, _REASONING_KEY)
 # The design pattern's canonical slots: inputs → reasoning → outputs → reusable record.
 _DESIGN_SLOTS = ("inputs", "reasoning", "outputs", "reusable_record")
-
-# ONE definition of "faithful" — the live gate, reused, never reimplemented.
-_GATE = SpanContainmentFaithfulness()
 
 
 class CaseSpec(BaseModel):
@@ -172,135 +168,15 @@ def _validate(parsed: object) -> dict[str, Any]:
     return parsed
 
 
-class _SpanMinter:
-    """Locate each authored value in the RAW file text and mint it — or disclose it.
-
-    A forward-only cursor (the ``swimlane._Minter`` precedent) so duplicate values get
-    distinct offsets. Two strategies, in order: (1) exact verbatim ``str.find`` — the span
-    IS the value; (2) for a block scalar (whose folded value is not a verbatim substring),
-    a raw BLOCK REGION located by a forward line scan — the field's value block for a
-    mapping value, the ITEM's own region (after its ``-`` marker) for a sequence item, so
-    one block-scalar item never swallows its siblings' spans — kept only if the live
-    span-containment gate entails the claim against that region. A value neither strategy
-    can honestly pin is returned as a disclosure string (verbatim, for ``missing[]``).
-    """
-
-    def __init__(self, source: Source) -> None:
-        self._source = source
-        self._raw = source.transcript
-        self._cursor = 0
-        self._lines = self._raw.splitlines(keepends=True)
-        offsets, pos = [], 0
-        for line in self._lines:
-            offsets.append(pos)
-            pos += len(line)
-        self._line_offsets = offsets
-        self._line_cursor = 0
-
-    def mint(
-        self, key: str, value: str, topic: str, *, list_item: bool = False
-    ) -> Union[Claim, str]:
-        idx = self._raw.find(value, self._cursor)
-        if idx != -1:
-            end = idx + len(value)
-            claim = Claim(
-                text=value,
-                evidence=[Trace.from_source(self._source, idx, end)],
-                topics=[topic],
-            )
-            self._advance(end)
-            return claim
-        region = self._item_region() if list_item else self._field_region(key)
-        if region is not None:
-            start, end = region
-            claim = Claim(
-                text=value,
-                evidence=[Trace.from_source(self._source, start, end)],
-                topics=[topic],
-            )
-            if _GATE.entails(claim):
-                self._advance(end)
-                return claim
-        return (
-            f"field {topic!r} could not be located as a span of the authored file — "
-            f"its text is disclosed here, never rendered as a traced claim: {value!r}"
-        )
-
-    def _advance(self, pos: int) -> None:
-        """Move both cursors past ``pos`` (forward-only; duplicates stay distinct)."""
-        self._cursor = max(self._cursor, pos)
-        while (
-            self._line_cursor + 1 < len(self._lines)
-            and self._line_offsets[self._line_cursor + 1] <= self._cursor
-        ):
-            self._line_cursor += 1
-
-    def _field_region(self, key: str) -> Optional[tuple[int, int]]:
-        """The raw span of ``key:``'s value block: after the colon through deeper-indented lines."""
-        needle = key + ":"
-        for i in range(self._line_cursor, len(self._lines)):
-            line = self._lines[i]
-            stripped = line.lstrip()
-            if not stripped.startswith(needle):
-                continue
-            indent = len(line) - len(stripped)
-            start = self._line_offsets[i] + indent + len(needle)
-            j = i + 1
-            while j < len(self._lines):
-                nxt = self._lines[j]
-                if nxt.strip() == "":
-                    j += 1
-                    continue
-                if len(nxt) - len(nxt.lstrip()) > indent:
-                    j += 1
-                    continue
-                break
-            end = self._line_offsets[j] if j < len(self._lines) else len(self._raw)
-            return start, end
-        return None
-
-    def _item_region(self) -> Optional[tuple[int, int]]:
-        """The raw span of the next UNCONSUMED sequence item's value: after its ``-``
-        marker through deeper-indented lines. Per-item — never the whole list — so a
-        block-scalar item's region cannot swallow sibling items or advance the cursor
-        past them."""
-        for i in range(self._line_cursor, len(self._lines)):
-            line = self._lines[i]
-            stripped = line.lstrip()
-            if not (stripped.startswith("- ") or stripped.rstrip() == "-"):
-                continue
-            indent = len(line) - len(stripped)
-            start = self._line_offsets[i] + indent + 1  # after the '-' marker
-            if start < self._cursor:
-                continue  # this item is already consumed — never re-trace it
-            j = i + 1
-            while j < len(self._lines):
-                nxt = self._lines[j]
-                if nxt.strip() == "":
-                    j += 1
-                    continue
-                if len(nxt) - len(nxt.lstrip()) > indent:
-                    j += 1
-                    continue
-                break
-            end = self._line_offsets[j] if j < len(self._lines) else len(self._raw)
-            return start, end
-        return None
-
-
-def _absent(field: str) -> str:
-    return f"field {field!r} is absent or empty — disclosed, never fabricated"
-
-
 def _disclose_gaps(parsed: dict[str, Any], spec: CaseSpec) -> list[str]:
     """Every absent/empty schema field, in schema order. ``config`` absence is not a gap
     (a spec with no org slots is simply fully portable)."""
     gaps: list[str] = []
     for key in (_CASE_KEY, _PROBLEM_KEY, _CURRENT_KEY, _IMAGINED_KEY):
         if not getattr(spec, key).strip():
-            gaps.append(_absent(key))
+            gaps.append(absent(key))
     if parsed.get(_DESIGN_KEY) is None:
-        gaps.append(_absent(_DESIGN_KEY))
+        gaps.append(absent(_DESIGN_KEY))
     else:
         for slot in _DESIGN_SLOTS:
             if not spec.design.get(slot, "").strip():
@@ -308,9 +184,9 @@ def _disclose_gaps(parsed: dict[str, Any], spec: CaseSpec) -> list[str]:
                     f"design slot {slot!r} is absent or empty — disclosed, never fabricated"
                 )
     if not spec.reasoning.strip():
-        gaps.append(_absent(_REASONING_KEY))
+        gaps.append(absent(_REASONING_KEY))
     if not spec.portable:
-        gaps.append(_absent(_PORTABLE_KEY))
+        gaps.append(absent(_PORTABLE_KEY))
     return gaps
 
 
@@ -343,7 +219,7 @@ def load_case_spec(path: Union[str, Path], *, root: Optional[Path] = None) -> Ca
     )
     parsed = _validate(_parse_config(transcript))
 
-    minter = _SpanMinter(source)
+    minter = SpanMinter(source)
     claims: list[Claim] = []
     missing: list[str] = []
 
@@ -389,7 +265,7 @@ def load_case_spec(path: Union[str, Path], *, root: Optional[Path] = None) -> Ca
 
     # Enforced by construction: every emitted claim satisfies the LIVE gate.
     for claim in claims:
-        if not _GATE.entails(claim):
+        if not GATE.entails(claim):
             raise RuntimeError(
                 f"case-spec faithfulness violated: claim {claim.text!r} does not pass "
                 "span-containment against its own trace — refusing to emit it."

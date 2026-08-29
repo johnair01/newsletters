@@ -1,6 +1,6 @@
 """Assemble the published site tree (PUB-01/PUB-02) — the ONE definition of "the site".
 
-The published GitHub Pages site is the **rendered record**: the three committed corpora
+The published GitHub Pages site is the **rendered record**: the four committed corpora
 composed into a single tree, plus the two pieces of assembly chrome (``.nojekyll`` and the
 base-path-absolute ``404.html``). This module is deliberately a *library function* rather
 than workflow shell: the exact code path that publishes is the one the unit tests, the CI
@@ -15,7 +15,11 @@ Trust properties:
   which is assembly chrome (it embeds the base path, a property of the tree, not of any
   corpus) and is deterministic renderer output like everything else.
 * **Fail loud, never partial.** A missing corpus raises before a single file is written; a
-  non-empty ``out_dir`` that is not a previous assembly is refused, never clobbered.
+  non-empty ``out_dir`` that is not a previous assembly is refused, never clobbered. "Previous
+  assembly" means OUR markers, plural (WR-05): the ``.nojekyll`` chrome **and** the renderer's
+  generated-by marker in ``index.html`` — ``.nojekyll`` alone is every GitHub Pages tree's
+  furniture, not an ownership proof, and treating it as one made any static-site checkout one
+  mistyped ``--out`` away from ``rmtree``. ``force=True`` is the explicit human override.
 * **Deterministic.** Sorted walk, byte-copy, no timestamps — two assemblies of the same tree
   are byte-identical (proven by test).
 
@@ -28,15 +32,46 @@ import shutil
 from pathlib import Path
 
 # corpus source dir (relative to the repo root) → destination inside the assembled tree.
-# The rev1 sample record fronts the site at the ROOT; the real work record and the synthetic
-# module worked-example sit alongside. The Records strips rendered into each corpus's chrome
-# pages (Phase 1, PUB-03) assume exactly this layout — the assembled-tree link test is the
-# contract that keeps the two in agreement.
+# The rev1 sample record fronts the site at the ROOT; the real work record, the synthetic
+# module worked-example and the synthetic weekly worked-example sit alongside. The Records
+# strips rendered into each corpus's chrome pages (Phase 1, PUB-03) assume exactly this
+# layout — the assembled-tree link test is the contract that keeps the two in agreement.
+#
+# ONLY ``content/*/site`` is copied, and that is load-bearing rather than incidental: the
+# weekly corpus also commits a rendered ``.pptx`` under ``content/weekly/deck/``, and it is
+# unpublishable HERE, by layout, rather than by anyone remembering to exclude it (T-04-08).
 _CORPUS_LAYOUT: tuple[tuple[str, str], ...] = (
     ("content/rev1/site", "."),
     ("content/work/site", "work"),
     ("content/module/site", "module"),
+    ("content/weekly/site", "weekly"),
 )
+
+
+def _is_previous_assembly(out: Path) -> bool:
+    """True iff ``out`` looks like a tree THIS tool assembled — the pre-``rmtree`` proof.
+
+    Ownership needs BOTH markers (WR-05): the ``.nojekyll`` assembly chrome AND the renderer's
+    generated-by marker inside ``index.html``. ``.nojekyll`` alone is the standard furniture of
+    essentially every GitHub Pages checkout, so it proves "a static site lives here" — exactly
+    the tree the clobber guard exists to protect, not license to destroy. The marker sentence is
+    read from ``render.GENERATED_MARKER`` (one source of truth; the same sentence
+    ``test_every_assembled_page_carries_generated_marker`` enforces on every page we emit), so a
+    previous assembly ALWAYS carries it and a foreign tree essentially never does.
+    """
+    if not (out / ".nojekyll").is_file():
+        return False
+    index = out / "index.html"
+    if not index.is_file():
+        return False
+    from .render import (
+        GENERATED_MARKER,
+    )  # in-package; kept lazy beside the CLI's lazy style
+
+    try:
+        return GENERATED_MARKER in index.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return False  # unreadable index == unproven ownership == refuse
 
 
 def assemble_site(
@@ -44,13 +79,17 @@ def assemble_site(
     *,
     base_path: str = "/newsletters/",
     repo_root: str | Path = ".",
+    force: bool = False,
 ) -> list[Path]:
     """Compose the committed corpora into the publishable tree at ``out_dir``.
 
     Returns every written path (files only) in deterministic write order. ``base_path`` is
     the URL prefix the tree will be served under (GitHub project pages →
     ``/newsletters/``); it is embedded ONLY in ``404.html`` — every other page keeps the
-    corpus's relative links and works under any prefix.
+    corpus's relative links and works under any prefix. A non-empty ``out_dir`` is replaced
+    only when it proves it is OURS (see :func:`_is_previous_assembly`) or when the caller
+    passes ``force=True`` — the explicit, human "yes, clobber that tree" that no marker
+    heuristic should ever imply.
     """
     root = Path(repo_root)
     missing = [src for src, _ in _CORPUS_LAYOUT if not (root / src).is_dir()]
@@ -61,10 +100,23 @@ def assemble_site(
         )
 
     out = Path(out_dir)
-    if out.exists() and any(out.iterdir()) and not (out / ".nojekyll").exists():
+    if out.exists() and not out.is_dir():
         raise FileExistsError(
-            f"refusing to overwrite {out} — it is non-empty and not a previous assembly "
-            "(no .nojekyll marker). Pick an empty/new out dir."
+            f"refusing to overwrite {out} — it is a FILE, not a directory. assemble_site only "
+            "replaces a directory that proves it is a previous assembly; pick a new --out."
+        )
+    if (
+        out.is_dir()
+        and any(out.iterdir())
+        and not force
+        and not _is_previous_assembly(out)
+    ):
+        raise FileExistsError(
+            f"refusing to overwrite {out} — it is non-empty and does not prove it is a previous "
+            "assembly of THIS tool (that takes BOTH the .nojekyll chrome AND the generated-by "
+            "marker in its index.html; .nojekyll alone is every GitHub Pages tree's furniture, "
+            "not an ownership proof). Pick an empty/new out dir — or pass --force only if you "
+            "are certain this tree is yours to destroy."
         )
     if out.exists():
         shutil.rmtree(out)

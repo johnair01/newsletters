@@ -56,7 +56,31 @@ from .site import Ledger, slugify
 from .swimlane import SectionBinding, SwimlaneLoad
 from .templates import REPORT
 
-__all__ = ["compute_delta", "compose_module_report"]
+__all__ = [
+    "NO_KPIS",
+    "ONE_ENDPOINT",
+    "UNCOMPUTABLE_DELTA",
+    "addressed",
+    "compose_kpi_item",
+    "compose_module_report",
+    "compute_delta",
+    "dedup_in_order",
+]
+
+# ---------------------------------------------------------------------------- #
+# The KPI disclosure wording — module constants with exactly ONE source (WR-04, 03-review).
+# `weeklyspec.build_weekly_report` shares them: two copies of a disclosure string drift exactly
+# as two normalizers do, and the honesty panel would then read two voices for one rule.
+# ---------------------------------------------------------------------------- #
+NO_KPIS = "section {heading!r} declares no KPIs — strip omitted"
+UNCOMPUTABLE_DELTA = (
+    "KPI {label!r} declares a movement whose two endpoints are not both content-addressed "
+    "numeric values — no delta derived (never a fabricated 0)"
+)
+ONE_ENDPOINT = (
+    "KPI {label!r} declares period movement but only one endpoint is usable — no delta derived "
+    "(never a fabricated 0)"
+)
 
 # --------------------------------------------------------------------------- #
 # compute_delta — the pure Δ derivation (COMP-02).
@@ -179,8 +203,14 @@ def _title(source_id: str) -> str:
     return label.title() if label else "Module"
 
 
-def _dedup_in_order(items: list[str]) -> list[str]:
-    """Order-preserving union (file order preserved; NO ``set()`` -> no non-total ordering)."""
+def dedup_in_order(items: list[str]) -> list[str]:
+    """Order-preserving union (file order preserved; NO ``set()`` -> no non-total ordering).
+
+    PUBLIC because ``weeklyspec.build_weekly_report`` shares it (IN-01, 03-review): a
+    ``binding.missing`` entry repeating a loader disclosure would render twice in the honesty
+    panel. One implementation, the same promotion move ``addressed`` and ``compose_kpi_item``
+    made — a name two modules import is not private.
+    """
     out: list[str] = []
     for item in items:
         if item not in out:
@@ -188,12 +218,19 @@ def _dedup_in_order(items: list[str]) -> list[str]:
     return out
 
 
-def _addressed(claim: Claim) -> bool:
-    """True iff the claim is traced AND every trace is content-addressed (the trust gate)."""
+def addressed(claim: Claim) -> bool:
+    """True iff the claim is traced AND every trace is content-addressed (the trust gate).
+
+    PUBLIC because ``weeklyspec.build_weekly_report`` shares it: this is the ONE predicate that
+    decides whether a claim may reach a reviewed block, and two copies of a trust predicate drift
+    exactly as two normalizers do (``pptx_writer``'s "ONE normalizer contract" precedent). It lost
+    its leading underscore for the same reason ``specspan``'s three names did — a name two modules
+    import is not private.
+    """
     return claim.is_traced and all(trace.is_addressed for trace in claim.evidence)
 
 
-def _compose_kpi_item(
+def compose_kpi_item(
     item: KpiItem, endpoints: list[Claim], missing: list[str]
 ) -> KpiItem:
     """Emit one display ``KpiItem`` — deriving Δ ONLY from two content-addressed numeric endpoints.
@@ -206,23 +243,23 @@ def _compose_kpi_item(
       ``missing[]`` note (COMP-02: an absent endpoint is disclosed, never silently deltaless).
     * zero endpoints -> a point-in-time ``value:`` declaration — no movement promised, value-only,
       NO note (disclosure tracks declared-but-unmet expectations, not the absence of a promise).
+
+    PUBLIC because ``weeklyspec.build_weekly_report`` shares it (WR-04, 03-review): this is the
+    ONE place the endpoint policy and its disclosure wording live, and a second copy of a trust
+    predicate drifts exactly as two normalizers do — the same promotion move ``addressed`` and
+    ``specspan``'s three names already made. It lost its leading underscore because a name two
+    modules import is not private.
     """
     delta: Optional[str] = None
     direction: Optional[Literal["up", "down"]] = None
     if len(endpoints) >= 2:
         first, last = endpoints[0], endpoints[-1]
-        if _addressed(first) and _addressed(last):
+        if addressed(first) and addressed(last):
             delta, direction = compute_delta(first.text, last.text)
         if delta is None:
-            missing.append(
-                f"KPI {item.label!r} declares a movement whose two endpoints are not both "
-                "content-addressed numeric values — no delta derived (never a fabricated 0)"
-            )
+            missing.append(UNCOMPUTABLE_DELTA.format(label=item.label))
     elif len(endpoints) == 1:
-        missing.append(
-            f"KPI {item.label!r} declares period movement but only one endpoint is usable — "
-            "no delta derived (never a fabricated 0)"
-        )
+        missing.append(ONE_ENDPOINT.format(label=item.label))
     return KpiItem(label=item.label, value=item.value, delta=delta, dir=direction)
 
 
@@ -271,7 +308,7 @@ def _quote_block(quote: Optional[Claim], owner: Optional[str]) -> Optional[Quote
     A missing/untraced/unaddressed quote yields ``None`` (the caller discloses the gap); quote text
     is NEVER fabricated.
     """
-    if quote is None or not _addressed(quote):
+    if quote is None or not addressed(quote):
         return None
     return QuoteBlock(text=quote.text, attr=owner or _UNASSIGNED_ATTR)
 
@@ -344,19 +381,17 @@ def compose_module_report(
         items: list[KpiItem] = []
         for index, kpi in enumerate(binding.kpi_items):
             endpoints = endpoints_by_kpi[index] if index < len(endpoints_by_kpi) else []
-            items.append(_compose_kpi_item(kpi, endpoints, missing))
+            items.append(compose_kpi_item(kpi, endpoints, missing))
 
         if binding.kpi_items:
             blocks.append(KpiStripBlock(heading=binding.heading, items=items))
         else:
-            missing.append(
-                f"section {binding.heading!r} declares no KPIs — strip omitted"
-            )
+            missing.append(NO_KPIS.format(heading=binding.heading))
 
         # Traced-or-missing: SELECT content-addressed claims; route the rest to missing[].
         kept: list[Claim] = []
         for claim in binding.claims:
-            if _addressed(claim):
+            if addressed(claim):
                 kept.append(claim)
             else:
                 missing.append(claim.text)
@@ -388,7 +423,7 @@ def compose_module_report(
         eyebrow="Report · module scope",
         blocks=blocks,
         traces=[load.source],
-        missing=_dedup_in_order(missing),
+        missing=dedup_in_order(missing),
         byline=[author],
         review=Review(policy=REPORT.review_policy, author=author),
         created=EPOCH_ZERO,

@@ -137,16 +137,84 @@ _CASESPEC_CONFIG_VALUES = frozenset(
     }
 )
 
+# (5) Weekly Spec fixture vocabulary — tests/fixtures/weekly/weekly-{full,sparse}.yml. Everything
+#     the weekly corpus names: the period labels, the module name, the crew names, the `assets:`
+#     keys, the recognition source id, the provenance labels and the `config:` values. Every one of
+#     them is a CONFIG value of a *fixture*, so `src/newsletters/weeklyspec.py` may key on the
+#     GENERIC schema words (`week`, `module`, `highlights`, `assets`, `folder`, `event`, `sha256`)
+#     and must never contain one of these. Listing them here is what keeps the guard non-vacuous
+#     for Phase 3's corpus rather than merely non-failing.
+_WEEKLYSPEC_FIXTURE_VALUES = frozenset(
+    {
+        # period labels
+        "2374-W35",
+        "2374-W36",
+        "2374-W37",
+        # module + crew names (the confidentiality-risk class)
+        "Shuttlebay Operations",
+        "Miles O'Brien",
+        "Kira Nerys",
+        "Julian Bashir",
+        # `assets:` keys — the spec-local handles `photo:` and prose refer to
+        "bay-cycle-throughput",
+        "crew-rota-board",
+        "crew-manifest-scan",
+        # the recognition source id
+        "mail:23740824-rota",
+        # provenance labels (folder + event) — org-specific by definition
+        "Weekly review pack",
+        "Friday bay review",
+        # the `config:` subtree's values — registry / metric names
+        "Bay Rotation Registry Delta",
+        "Docking Clamp Cycle Count",
+    }
+)
+
+# (6) The COMMITTED weekly corpus's vocabulary — content/weekly/weekly-2374-w41.yml and its
+#     inbox/.eml. Same rule as (5), one step more serious: (5) guards a test fixture, this guards
+#     PUBLISHED sample content. `src/newsletters/weeklysite.py` may name the GENERIC structural
+#     paths (`content/weekly`, `inbox`, `template.pptx`) and the schema words, and must never
+#     contain one of these authored values — a builder that knows its corpus's crew names has
+#     stopped being a builder.
+_WEEKLYSITE_CORPUS_VALUES = frozenset(
+    {
+        # period label + module name
+        "2374-W41",
+        "Docking Ring Logistics",
+        # crew names (the confidentiality-risk class) — incl. the config-bound byline
+        "Jadzia Dax",
+        "Elim Garak",
+        "Ezri Tigan",
+        "Tora Ziyal",
+        # `assets:` keys — the spec-local handles `photo:` and the provenance rows refer to
+        "ring-berth-utilisation",
+        "manifest-annex-photo",
+        # the recognition source id (the committed .eml's filename == part of its Source.id)
+        "berth-rota-thanks.eml",
+        # provenance labels (folder + event) — org-specific by definition
+        "Ring turnaround pack",
+        "Thursday ring review",
+        # the `config:` subtree's values — registry / metric names
+        "Upper Ring Berth Registry Nine",
+        "Berth Turnaround Cycle Count",
+    }
+)
+
 # All literal tokens, longest-first so an alternation prefers the most specific match.
 _DENY_LITERALS = tuple(
     sorted(
-        _FIXTURE_IDS | _SAMPLE_TEAM_NAMES | _SEED_SCHEME | _CASESPEC_CONFIG_VALUES,
+        _FIXTURE_IDS
+        | _SAMPLE_TEAM_NAMES
+        | _SEED_SCHEME
+        | _CASESPEC_CONFIG_VALUES
+        | _WEEKLYSPEC_FIXTURE_VALUES
+        | _WEEKLYSITE_CORPUS_VALUES,
         key=len,
         reverse=True,
     )
 )
 
-# (5) Pattern-based ids from the seed scheme: `eng-NN` (numbered engineers) and `toolset-N`. These
+# (7) Pattern-based ids from the seed scheme: `eng-NN` (numbered engineers) and `toolset-N`. These
 #     cover the whole family without enumerating every index.
 _DENY_PATTERNS = (
     re.compile(r"\beng-\d{2,}\b"),
@@ -227,3 +295,37 @@ def test_guard_detects_planted_leak() -> None:
         "context = f'module-config:{rel}'\narea_id = parsed.get('area')\n"
     )
     assert _scan_text(clean) == set(), _scan_text(clean)
+
+
+def test_guard_detects_planted_weekly_fixture_leak() -> None:
+    """The scanner FIRES on the WEEKLY corpus's own vocabulary — the Phase-3 non-vacuity arm.
+
+    Adding tokens to ``_DENY_LITERALS`` proves nothing on its own: a token the matcher cannot see
+    would sit in the denylist looking like protection while the guard stayed green for the wrong
+    reason. So this arm plants one of each *class* of weekly fixture identifier (an ``assets:``
+    key, a crew name, a ``config:`` value, a period label) into realistic source-looking text and
+    asserts the SAME ``_scan_text`` used against real ``src/`` catches every one — while the
+    GENERIC weekly schema words that ``weeklyspec.py`` legitimately keys on stay clean.
+    """
+    planted = (
+        "_ASSETS_KEY = 'assets'  # generic structural key — must stay clean\n"
+        "DEFAULT_PHOTO = 'bay-cycle-throughput'  # planted assets-key leak\n"
+        "DEFAULT_LEAD = \"Miles O'Brien\"  # planted crew-name leak\n"
+        "REGISTRY = 'Bay Rotation Registry Delta'  # planted config-value leak\n"
+        "PERIOD = '2374-W35'  # planted period-label leak\n"
+    )
+    hits = _scan_text(planted)
+    assert "bay-cycle-throughput" in hits, hits
+    assert "Miles O'Brien" in hits, hits
+    assert "Bay Rotation Registry Delta" in hits, hits
+    assert "2374-W35" in hits, hits
+
+    # The weekly schema's own words ARE the shape the loader keys on — never a leak.
+    clean_weekly = (
+        "_WEEK_KEY = 'week'\n_MODULE_KEY = 'module'\n_HIGHLIGHTS_KEY = 'highlights'\n"
+        "_LOWLIGHTS_KEY = 'lowlights'\n_RECOGNITIONS_KEY = 'recognitions'\n"
+        "_TEAM_KEY = 'team'\n_ASSETS_KEY = 'assets'\n_CONFIG_KEY = 'config'\n"
+        "_PROVENANCE_MINIMUMS = ('folder', 'date', 'event')\n"
+        "context = f'weekly-spec:{rel}'\n"
+    )
+    assert _scan_text(clean_weekly) == set(), _scan_text(clean_weekly)

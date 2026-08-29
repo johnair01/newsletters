@@ -1,0 +1,24 @@
+# SYNTHETIC TEST DATA — fabricated, Star-Trek-flavored content only (no real org/tool/
+# metric/site/program names). This fixture exists to BAIT a composer into editorializing.
+# Every pair below is something a summarizing, sorting or merging composer would "improve":
+#
+#   * highlights[0] + [1] — a SUMMARIZABLE pair (the second restates the first with its
+#     consequence; a summarizer would collapse them into one line).
+#   * highlights[2] + [3] — an OUT-OF-ORDER pair (Thursday is authored before Tuesday; a
+#     sorter would swap them and silently rewrite the author's emphasis).
+#   * highlights[4] + [5] — a MERGEABLE pair (two clauses about one change; a merger would
+#     join them with a comma or an "and").
+#
+# The composer must carry all six lines SEPARATELY, in FILE ORDER, BYTE-IDENTICAL.
+# For tests only.
+week: "2374-W37"
+module: "Shuttlebay Operations"
+highlights:
+  - "The rota was rewritten this week."
+  - "The rota rewrite removed the last single approval point."
+  - "Bay four reopened on Thursday."
+  - "Bay two reopened on Tuesday."
+  - "The clamp check moved to the morning slot."
+  - "The clamp check now runs before the readiness drill."
+lowlights:
+  - "A readiness drill was skipped and nobody flagged it until Friday."

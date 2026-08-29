@@ -28,8 +28,12 @@ import sys
 
 from newsletters.review import Blocker, BlockerKind, review_blockers
 from newsletters.semantic import (
+    AssetBlock,
+    AssetRecord,
     Claim,
     ClaimsBlock,
+    NarrativeBlock,
+    NarrativeItem,
     ReviewState,
     Source,
     Surface,
@@ -193,6 +197,115 @@ def test_blocks_open_missing_published_surface() -> None:
         "unsubstantiated: we doubled revenue",
         "unsubstantiated: churn fell",
     }
+
+
+def test_blocks_stale_narrative_claim_on_a_published_weekly() -> None:
+    """WR-03 (03-review): the weekly's NarrativeBlock claims are published claims too.
+
+    Both the PR-gate untraced check and this merge-block checker used to iterate ONLY
+    ``ClaimsBlock`` — a published weekly whose spec file later drifted had stale narrative
+    claims no gate ever re-checked. The scenario: a highlight minted from a real span of the
+    spec file, published, then the spec file drifts. ``newsletters check`` (this function)
+    must fire.
+    """
+    transcript = 'highlights:\n  - "Cut the checklist from nine steps to two."\n'
+    spec = Source(id="weekly-w35.yml", transcript=transcript)
+    line = "Cut the checklist from nine steps to two."
+    start = transcript.index(line)
+    claim = Claim(
+        text=line,
+        evidence=[Trace.from_source(spec, start, start + len(line))],
+        topics=["highlights"],
+    )
+    surface = Surface(
+        id="weekly-w35",
+        template=REPORT,
+        title="2374-W35",
+        blocks=[
+            NarrativeBlock(
+                heading="What went well",
+                tone="highlight",
+                items=[NarrativeItem(text=line, claim=claim)],
+            )
+        ],
+        traces=[spec],
+    )
+    surface.publish(reviewer="reviewer-a")
+    assert review_blockers(surface, {spec.id: spec}) == [], "clean until the file drifts"
+
+    spec.transcript = transcript + 'lowlights:\n  - "appended after publication"\n'
+    blockers = review_blockers(surface, {spec.id: spec})
+    assert [b.kind for b in blockers] == [BlockerKind.STALE]
+    assert blockers[0].detail == line
+    assert blockers[0].locator == "weekly-w35.yml"
+
+
+def test_blocks_stale_asset_evidence_on_a_published_weekly() -> None:
+    """WR-03, the other invisible carrier: ``AssetBlock.evidence`` traces are re-checked too.
+
+    A placed asset's evidence IS the provenance record's span of the spec file; when the spec
+    drifts after publication, the record no longer vouches for what the reviewer approved.
+    """
+    sha = "3b1f0c9a2d5e47b8c0f1a6d3e9b2748c5a0d1f63e874b295c3a7d0e16f28b4c9"
+    transcript = f"assets:\n  lane-throughput:\n    sha256: {sha}\n"
+    spec = Source(id="weekly-w35.yml", transcript=transcript)
+    start = transcript.index(sha)
+    record = AssetRecord(
+        key="lane-throughput",
+        file="assets/lane-throughput.png",
+        sha256=sha,
+        folder="Weekly review pack",
+        date="2374-08-24",
+        event="Friday bay review",
+    )
+    surface = Surface(
+        id="weekly-w35",
+        template=REPORT,
+        title="2374-W35",
+        blocks=[
+            AssetBlock(
+                asset=record,
+                evidence=[Trace.from_source(spec, start, start + len(sha))],
+            )
+        ],
+        traces=[spec],
+    )
+    surface.publish(reviewer="reviewer-a")
+    assert review_blockers(surface, {spec.id: spec}) == [], "clean until the file drifts"
+
+    spec.transcript = transcript + "    caption: appended after publication\n"
+    blockers = review_blockers(surface, {spec.id: spec})
+    assert [b.kind for b in blockers] == [BlockerKind.STALE]
+    assert "lane-throughput" in blockers[0].detail
+    assert blockers[0].locator == "weekly-w35.yml"
+
+
+def test_pr_gate_refuses_an_untraced_narrative_claim() -> None:
+    """The other half of WR-03: ``open_pull_request`` (invariant 2) sees narrative claims now."""
+    surface = Surface(
+        id="weekly-w35",
+        template=REPORT,
+        title="2374-W35",
+        blocks=[
+            NarrativeBlock(
+                items=[
+                    NarrativeItem(
+                        text="an untraced line",
+                        claim=Claim(text="an untraced line", evidence=[]),
+                    )
+                ]
+            )
+        ],
+    )
+    try:
+        surface.open_pull_request()
+    except ValueError as error:
+        assert "untraced" in str(error).lower()
+    else:
+        raise AssertionError(
+            "open_pull_request accepted an untraced NarrativeBlock claim — invariant 2 "
+            "is still blind to the weekly's claim carriers"
+        )
 
 
 def test_draft_surface_is_exempt() -> None:

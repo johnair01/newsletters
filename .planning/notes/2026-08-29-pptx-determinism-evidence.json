@@ -1,0 +1,35 @@
+{
+  "recorded": "2026-08-29",
+  "python": "3.11.15",
+  "python_pptx": "1.0.2",
+  "zlib": "1.3",
+  "platform": "Linux-6.18.44-fc-v22-x86_64-with-glibc2.39",
+  "template_sha256": "4461a6329aa4e74c25e3879a5212d646d7b7816c12e772b15befa70c2e722618",
+  "seconds_between_writes": 3,
+  "raw_a_sha256": "a7e0b25e5b7fe9423e021407bca1e67f29da9f1630ffeecdf844578c9ae05bf0",
+  "raw_b_sha256": "6c36d06ad6ea4ab369b581d51f56882b0053b1ef650f1c74c7ec96512a7b5ab1",
+  "raw_bytes_equal": false,
+  "varying_parts": [],
+  "varying_zip_fields": [
+    "date_time"
+  ],
+  "normalized_a_sha256": "56fa2a61d4993ded9139fafd0cb17f4d30435fdc5ca59efc61acdc812eb6869a",
+  "normalized_b_sha256": "56fa2a61d4993ded9139fafd0cb17f4d30435fdc5ca59efc61acdc812eb6869a",
+  "normalized_bytes_equal": true,
+  "part_digest_a": "d7ff171a5ea083f01d48e21a405fbf7d8fe1e0ef487a5173959334774a162897",
+  "part_digest_b": "d7ff171a5ea083f01d48e21a405fbf7d8fe1e0ef487a5173959334774a162897",
+  "outcome": "BYTE-STABLE via a declared post-save zip normalization: two real python-pptx writes 3s apart differ ONLY in zip ['date_time'], every unzipped part is byte-identical, and normalize_opc_zip makes the files byte-identical. Scoped to a fixed (python-pptx, zlib) pair; the implementation-independent assertion is part_digest.",
+  "notes": {
+    "seconds_between_writes": "DOS zip timestamps have 2-second granularity; a shorter gap can leave two writes inside one tick, which are already byte-identical and would record a false positive.",
+    "raw_bytes_equal": "False is the CORRECT result and is the negative control: un-normalized python-pptx output across a time boundary must differ, or the byte-equality result below is not attributable to the normalizer.",
+    "varying_parts": "[] means every unzipped part was byte-identical across the two writes \u2014 the deck's CONTENT is deterministic; only the container drifted.",
+    "varying_zip_fields": "['date_time'] is python-pptx's single non-determinism: _ZipPkgWriter.write() passes a str arcname to zipfile.writestr, so stdlib stamps time.localtime().",
+    "normalized_bytes_equal": "True is the recorded determinism outcome: BYTE-STABLE via a declared post-save zip normalization. Scoped to a fixed (python-pptx, zlib) pair.",
+    "part_digest_a": "Implementation-INDEPENDENT content identity: sha256 over sorted (part name, sha256(part bytes)). This is the digest a committed==fresh gate must compare.",
+    "raw_a_sha256": "Recorded as evidence, NEVER asserted across environments \u2014 DEFLATE output varies by zlib implementation (zlib vs zlib-ng).",
+    "normalized_a_sha256": "Same caveat as raw_a_sha256: evidence of what this machine measured, not a cross-environment contract.",
+    "zlib": "Recorded because it scopes the byte-identity claim; a different zlib may produce different compressed bytes for identical part content.",
+    "python_pptx": "python-pptx makes no documented byte-output-stability promise across versions; the exercised version is part of the evidence.",
+    "template_sha256": "The fabricated template these writes rendered through \u2014 pins WHAT was measured."
+  }
+}

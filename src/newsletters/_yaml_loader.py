@@ -15,10 +15,12 @@ This module itself must therefore have NO top-level ``import yaml`` / ``from yam
 bare-install gate (``tests/test_ai_optional.py``, extended by Plan 01-04) asserts grep-count 0 for
 those edges.
 
-SECURITY (CONTEXT hard rule / threat T-01-01): config YAML is parsed with :func:`yaml.safe_load`
-ONLY, never :func:`yaml.load`. ``yaml.load`` can construct arbitrary Python objects from untrusted
-config text; config files are data, not code. This is a hard "faithful, not suggestive / no
-surprises" boundary.
+SECURITY (CONTEXT hard rule / threat T-01-01): config YAML is parsed through a
+``yaml.SafeLoader`` subclass ONLY — safe-only construction, never ``yaml.load`` with a full
+loader, which can construct arbitrary Python objects from untrusted config text; config files are
+data, not code. This is a hard "faithful, not suggestive / no surprises" boundary. The one
+extension the subclass carries is a REFUSAL, not a widening: duplicate mapping keys raise a
+teaching ``ValueError`` instead of silently keeping the last occurrence (03-review CR-01).
 """
 
 from __future__ import annotations
@@ -65,12 +67,22 @@ def _load_yaml() -> Any:
 
 
 def load_config(text: str) -> Any:
-    """Parse module-config YAML text with ``safe_load`` ONLY.
+    """Parse module-config YAML text with safe-only construction — and REFUSE duplicate keys.
 
-    ``yaml.safe_load`` is the sole parse path (CONTEXT hard rule / threat T-01-01): config files
-    are data, not code, so we NEVER call ``yaml.load`` (which can construct arbitrary Python
-    objects from untrusted input). Malformed YAML raises ``yaml.YAMLError``, which the caller
-    surfaces (never swallowed).
+    Safe-only (CONTEXT hard rule / threat T-01-01): config files are data, not code, so the parse
+    path is a ``yaml.SafeLoader`` subclass and NOTHING else — we NEVER call ``yaml.load`` with a
+    full loader (which can construct arbitrary Python objects from untrusted input). Malformed
+    YAML raises ``yaml.YAMLError``, which the caller surfaces (never swallowed).
+
+    DUPLICATE MAPPING KEYS ARE A REFUSAL (03-review CR-01). ``yaml.safe_load`` keeps only the
+    LAST occurrence of a duplicated key, silently dropping everything the first one carried — a
+    weekly authored with ``highlights:`` twice (a plausible append or merge-conflict mistake)
+    would lose its entire first list before any validator ever saw it. That is precisely the
+    failure the strict spec schemas exist to refuse ("Refusing to drop authored content
+    silently"), so the refusal lives HERE, at the ONE parse boundary, and every loader that
+    parses through it (``casespec``, ``swimlane``, ``weeklyspec``) inherits it. The check runs on
+    every mapping node at every depth — a duplicated field inside a recognition or an asset
+    record is the same silent drop one level down.
 
     Args:
         text: the raw YAML config text (typically ``path.read_text("utf-8")``).
@@ -80,9 +92,45 @@ def load_config(text: str) -> Any:
 
     Raises:
         ImportError: if ``PyYAML`` is not installed (via :func:`_load_yaml`).
+        ValueError: if any mapping carries the same key twice (a teaching error naming the key
+            and BOTH line numbers — never a silent last-wins drop).
         yaml.YAMLError: if the config text is malformed.
     """
-    return _load_yaml().safe_load(text)
+    yaml = _load_yaml()
+
+    class _NoDuplicateKeys(yaml.SafeLoader):  # a SafeLoader SUBCLASS — still safe-only
+        pass
+
+    def _checked_mapping(loader: Any, node: Any, deep: bool = False) -> Any:
+        seen: dict[Any, Any] = {}
+        for key_node, _value_node in node.value:
+            key = loader.construct_object(key_node, deep=deep)
+            try:
+                first = seen.get(key)
+            except TypeError:
+                # An unhashable key (a list/mapping key) — SafeLoader.construct_mapping below
+                # raises its own ConstructorError for it; duplicate detection does not apply.
+                continue
+            if first is not None:
+                raise ValueError(
+                    f"duplicate key {key!r} at line {key_node.start_mark.line + 1} "
+                    f"(first authored at line {first.start_mark.line + 1}) — YAML keeps only "
+                    "the LAST occurrence, silently dropping everything the first one carried. "
+                    "Refusing to drop authored content silently."
+                )
+            seen[key] = key_node
+        return yaml.SafeLoader.construct_mapping(loader, node, deep=deep)
+
+    _NoDuplicateKeys.add_constructor(
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _checked_mapping
+    )
+    # Drive the loader directly (exactly what ``yaml.load(text, Loader=...)`` does internally),
+    # so no ``yaml.load`` call — the module's safe-only banner stays literally true.
+    loader = _NoDuplicateKeys(text)
+    try:
+        return loader.get_single_data()
+    finally:
+        loader.dispose()
 
 
 __all__ = ["_load_yaml", "load_config", "MISSING_YAML_MESSAGE"]

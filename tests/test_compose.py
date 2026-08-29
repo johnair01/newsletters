@@ -531,18 +531,34 @@ def test_unowned_and_sourced_quote_honesty() -> None:
     assert unowned_quotes[0].attr == "unassigned"
 
 
-def test_faithfulness_coverage_semantic_templates_site_are_untouched() -> None:
-    """Pitfall 11 / T-02-16: this suite weakens NO gate — the protected files are byte-untouched."""
+def test_faithfulness_coverage_templates_site_are_untouched(milestone_base_ref: str) -> None:
+    """Pitfall 11 / T-02-16: this suite weakens NO gate — the protected files are byte-untouched.
+
+    Two corrections landed in v1.3 Phase 3:
+
+    1. The base ref used to be the working-tree diff against the last commit, which made this
+       assertion red on an uncommitted edit and green the instant it was committed — in CI's clean
+       checkout it had never been capable of failing. It now compares against
+       `git merge-base HEAD origin/main`, resolved through the `milestone_base_ref` fixture
+       (tests/conftest.py) — the one definition of that ref in the suite — so this gate is
+       non-vacuous for the first time.
+    2. The core semantic module was REMOVED from the list below. It legitimately grows this
+       phase — the four weekly block kinds join the `Block` union — so a blanket byte-freeze on it
+       would have to be relaxed, which is the one thing a gate must never teach. Its protection did
+       not disappear: it moved to `tests/test_semantic_gate_frozen.py`, which pins the sha256 of
+       the eight functions that ARE the review gate and separately asserts that the module's diff
+       against the milestone base deletes zero lines. The four files below are unaffected by this
+       phase and stay under the blanket freeze.
+    """
     gate_files = [
         "src/newsletters/distill/faithfulness.py",
         "src/newsletters/distill/coverage.py",
-        "src/newsletters/semantic.py",
         "src/newsletters/templates.py",
         "src/newsletters/site.py",
     ]
     repo_root = Path(__file__).resolve().parent.parent
     result = subprocess.run(
-        ["git", "diff", "HEAD", "--exit-code", "--", *gate_files],
+        ["git", "diff", milestone_base_ref, "--exit-code", "--", *gate_files],
         cwd=repo_root,
         capture_output=True,
         text=True,

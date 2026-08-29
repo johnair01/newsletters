@@ -19,6 +19,7 @@ Two complementary gates live here, because neither alone is sufficient (see
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 import tomllib
@@ -117,24 +118,41 @@ def test_pyproject_dependency_boundary() -> None:
 
 
 def test_import_linter_contract_holds() -> None:
-    """`lint-imports` exits 0 — core has no STATIC AI import edge (the forbidden contract)."""
-    lint_imports = REPO_ROOT / ".venv" / "bin" / "lint-imports"
-    if not lint_imports.exists():
-        # Fall back to the module entrypoint; skip only if import-linter is wholly absent
-        # (e.g. a bare [test]-only env). The dev/CI env has it via [dev].
-        try:
-            import importlinter  # noqa: F401
-        except ImportError:
+    """`lint-imports` exits 0 — core has no STATIC AI import edge (the forbidden contract).
+
+    THE CONSOLE SCRIPT IS RESOLVED RELATIVE TO THE RUNNING INTERPRETER, never a hardcoded
+    `.venv/bin/` (which fails on Windows `Scripts/` and any non-`.venv` env), and the old
+    `python -m importlinter.cli lint` fallback is REFUSED (Phase-2 review WR-04, verified live):
+    `importlinter/cli.py` has no `if __name__ == "__main__"` block and there is no
+    `importlinter/__main__.py`, so `-m` imports the module, executes NOTHING, and exits 0 —
+    the contract assertion passed unconditionally, including with a broken core->AI edge.
+    A guard test whose fallback is a no-op is a false green; missing tooling now fails loud
+    (script absent while importlinter is installed) or skips with a reason (bare env).
+    """
+    script = Path(sys.executable).parent / (
+        "lint-imports.exe" if os.name == "nt" else "lint-imports"
+    )
+    if not script.exists():
+        found = shutil.which("lint-imports")
+        if found is None:
             import pytest
 
-            pytest.skip(
-                "import-linter not installed (bare env); contract enforced in dev/CI"
+            try:
+                import importlinter  # noqa: F401
+            except ImportError:
+                pytest.skip(
+                    "import-linter not installed (bare env); contract enforced in dev/CI"
+                )
+            pytest.fail(
+                "importlinter is installed but no lint-imports console script was found next "
+                "to the interpreter or on PATH. Refusing the `python -m importlinter.cli` "
+                "fallback: importlinter.cli has no __main__ guard, so `-m` imports it, runs "
+                "nothing, and exits 0 — a false green that would pass with a broken core->AI "
+                "edge. Reinstall import-linter so its console script exists."
             )
-        cmd = [sys.executable, "-m", "importlinter.cli", "lint"]
-    else:
-        cmd = [str(lint_imports)]
+        script = Path(found)
 
-    proc = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
+    proc = subprocess.run([str(script)], cwd=REPO_ROOT, capture_output=True, text=True)
     assert proc.returncode == 0, (
         f"import-linter contract FAILED (core imports an AI package):\n"
         f"--- stdout ---\n{proc.stdout}\n--- stderr ---\n{proc.stderr}"
@@ -578,6 +596,81 @@ def test_pptx_loader_returns_module_when_present() -> None:
     mod = _load_pptx()
     assert getattr(mod, "__name__", None) == "pptx", mod
     assert "pptx" not in set(AI_MODULES), "python-pptx must never be classed as AI"
+
+
+# --- WKLY-01 / SC-5: the same two gates, for the WRITER module ---------------------------------- #
+#
+# WHY THESE TWO LIVE HERE AND NOT IN tests/test_pptx_writer.py. That module guards itself with a
+# module-scope `pytest.importorskip("pptx")`, so on a bare install the WHOLE file is skipped — and a
+# guard whose entire claim is "this module imports WITHOUT the extra" is worthless in a file that
+# does not run when the extra is absent. `test_ai_optional.py` has no importorskip and is what the
+# CI `bare-install` job runs, which is the only place these two assertions mean anything. Moving
+# them next to the writer's own tests would turn both into `s` in the one environment they exist to
+# police (02-RESEARCH Pitfall 7: "green" that means "not run").
+
+PPTX_WRITER_PATH = REPO_ROOT / "src" / "newsletters" / "pptx_writer.py"
+
+
+def test_pptx_writer_has_no_toplevel_pptx_import() -> None:
+    """The writer module has ZERO top-level (runtime) `import pptx` / `from pptx`.
+
+    `newsletters.pptx_writer` carries the stdlib-only OPC normalizer at module level, so it must
+    stay importable on a bare `pip install .`; the writer half reaches python-pptx lazily, inside
+    its render function, through `adapters._pptx_loader._load_pptx()`. A top-level import here would
+    make the normalizer (and its duplicate-member refusal) unreachable without the extra. (A
+    `TYPE_CHECKING`-guarded import would live under an `if TYPE_CHECKING:` block, indented, not at
+    column 0, so the column-0 check below does not see it.)
+    """
+    source = PPTX_WRITER_PATH.read_text()
+    toplevel_edges = [
+        line
+        for line in source.splitlines()
+        # column-0 (module-top) import statements only — indented ones live inside functions or
+        # the TYPE_CHECKING guard and are not executed on a bare runtime import.
+        if line.startswith("import pptx") or line.startswith("from pptx")
+    ]
+    assert not toplevel_edges, (
+        f"pptx_writer.py has top-level pptx import(s) — breaks the bare install: "
+        f"{toplevel_edges}"
+    )
+
+
+def test_pptx_writer_imports_without_pptx() -> None:
+    """`from newsletters import pptx_writer` SUCCEEDS even when python-pptx cannot be imported.
+
+    Simulates a bare install by installing a `sys.meta_path` finder that blocks `pptx` BEFORE the
+    import (works regardless of whether the dev .venv has python-pptx). A red here means the writer
+    module has acquired an EAGER python-pptx edge: `pip install .` can no longer import it, the
+    normalizer's contracts stop running on the bare-install job, and the AI-optional / minimal-core
+    invariant is broken for a non-AI reason.
+    """
+    code = (
+        "import sys\n"
+        "from importlib.abc import MetaPathFinder\n"
+        "class _Block(MetaPathFinder):\n"
+        "    def find_spec(self, name, path=None, target=None):\n"
+        "        if name == 'pptx' or name.startswith('pptx.'):\n"
+        "            raise ImportError('blocked pptx (simulated bare install)')\n"
+        "        return None\n"
+        "sys.modules.pop('pptx', None)\n"
+        "sys.meta_path.insert(0, _Block())\n"
+        "import newsletters\n"
+        "from newsletters import pptx_writer\n"
+        "assert 'pptx' not in sys.modules, sys.modules.get('pptx')\n"
+        "print('pptx_writer imports clean without pptx')\n"
+    )
+    env = {**os.environ, "PYDANTIC_DISABLE_PLUGINS": "true"}
+    proc = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=REPO_ROOT,
+    )
+    assert proc.returncode == 0, (
+        f"newsletters.pptx_writer failed to import without python-pptx — the writer has an eager "
+        f"pptx edge and a bare install can no longer import it:\n{proc.stdout}{proc.stderr}"
+    )
 
 
 # --- LANE-04 / T-04-02 / T-04-03: the optional [config] (PyYAML) lazy boundary + AI-free swimlane -

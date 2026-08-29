@@ -12,19 +12,50 @@ fork — a title+body slide, a free text box, a table, speaker notes, a chart, a
 empty slide. The docstring of each builder pins the EXPECTED adapter routing (claims vs unextracted);
 `test_pptx_golden.py` asserts those expectations against the LIVE adapter.
 
-BYTE-REPRODUCIBILITY (threat T-06-11). Unlike openpyxl, python-pptx does NOT stamp the save-time
-wall-clock into the OOXML zip — it writes a fixed zip-entry `date_time` and only embeds a timestamp
-when we set `core_properties.created`/`.modified`. We pin those to a FIXED datetime, so a plain
-`prs.save()` is already byte-stable across runs (probed against python-pptx 1.0.2). For the
-SmartArt fixture (which rebuilds the zip after XML injection) we additionally route through
-`_normalize_zip`, which rewrites every entry's `date_time` to a fixed constant and re-deflates in
-entry order — belt-and-braces so the injected-XML path stays byte-stable too. The generator uses no
-`now()` and no `random`, so `sha256(file)` is stable across processes.
+BYTE-REPRODUCIBILITY (threat T-06-11). CORRECTED 2026-08-29 — the original wording of this
+paragraph claimed "python-pptx does NOT stamp the save-time wall-clock into the OOXML zip — it
+writes a fixed zip-entry `date_time`". **That claim is false, and it is superseded here.** A real
+double write 3 seconds apart, measured and committed in
+`.planning/notes/2026-08-29-pptx-determinism-evidence.json`, records `raw_bytes_equal: false` with
+`varying_zip_fields: ["date_time"]`: `_ZipPkgWriter.write()` passes a **str** arcname to
+`zipfile.writestr` (`pptx/opc/serialized.py:234-242`), so stdlib stamps `time.localtime()` on every
+entry. The likely cause of the original claim is a same-second probe — two `prs.save()` calls
+inside one wall-clock second ARE byte-identical (DOS zip timestamps have 2-second granularity), so
+a probe without a delay "confirms" a stability that is not there. What IS true, and is what the
+committed corpus actually rests on: every fixture is finalized through `_finalize` ->
+`_normalize_zip`, which rewrites each entry's `date_time` to a fixed constant and re-deflates in
+entry order. **The fixtures are byte-stable because they route through `_normalize_zip`, not
+because `prs.save()` is stable.** We additionally pin `core_properties.created`/`.modified` to a
+FIXED datetime and recurse into the chart fixture's embedded `.xlsx`; the generator uses no `now()`
+and no `random`, so `sha256(file)` is stable across processes.
 
-NOTE on the DETERMINISM ASSERTION (06-04 Task 2): the load-bearing property ADAPT-06 needs is
-determinism on the PARSED `Source` (identical bytes -> byte-identical `model_dump_json`, L5), NOT
-byte-identical re-saved `.pptx` files. Byte-reproducible fixtures are a nice-to-have for a clean
-`git diff`; the Source-determinism property is the one the golden test asserts.
+ONE NORMALIZER CONTRACT (recorded 2026-08-29; pointer updated by Phase 2 plan 02-01). `_normalize_zip`
+here and `normalize_opc_zip` in **`src/newsletters/pptx_writer.py`** are the SAME contract with two
+call sites: rewrite every entry with a fixed `date_time`, preserve emitted entry order and
+`external_attr`, never touch part bytes. The `src` module is **canonical** (it also pins
+`create_system=0` and an explicit `compress_type`); Phase 2 promoted it there verbatim from the now
+deleted `tests/fixtures/weekly/_determinism.py`, and the weekly fixture scripts import it directly.
+
+`_author_fixtures._normalize_zip` does **NOT** delegate to it yet: the delegation is carried to
+**Phase 4**, with its cost stated (02-01-PLAN decision P-08). Delegating swaps this file's
+`_FIXED_ZIP_DATE_TIME` (2026-01-01) for the canonical DOS epoch (1980-01-01) and adds
+`create_system=0`, so all nine golden binaries would have to be regenerated to stay correct — and
+Phase 2's own pre-verification gate (`git diff --exit-code -- tests/fixtures/pptx/*.pptx`) forbids
+exactly that. Phase 4 owns the committed==fresh `.pptx` gate work, which is where a deliberate
+corpus regeneration belongs. Two normalizers would otherwise drift for the same reason two epoch
+sentinels would; the delegation is scheduled, not optional.
+
+NOTE on the DETERMINISM ASSERTION (06-04 Task 2) — **SUPERSEDED for the WRITER side by
+`.planning/notes/2026-08-29-pptx-determinism-decision.md`.** The original reasoning, which remains
+correct for the LOADER side (ADAPT-06) and is kept here rather than deleted: the load-bearing
+property ADAPT-06 needs is determinism on the PARSED `Source` (identical bytes -> byte-identical
+`model_dump_json`, L5), NOT byte-identical re-saved `.pptx` files; byte-reproducible fixtures are a
+nice-to-have for a clean `git diff`, and the Source-determinism property is the one the golden test
+asserts. What changed: the deferred risk A3 ("determinism on re-saved `.pptx` bytes") was the exact
+question Phase 1 was asked to settle, and it is now settled for the writer — BYTE-STABLE via a
+declared post-save zip normalization, scoped to a fixed (python-pptx, zlib) pair, with the
+implementation-independent `part_digest` as the cross-environment assertion. Loader-side scope
+unchanged; writer-side scope now stronger.
 
 THE 1x1 PNG (Pillow-free, gotcha A2). `add_picture` needs valid image bytes but does not require us
 to call Pillow: we embed a constant ~68-byte 1x1 transparent PNG byte literal via `io.BytesIO`, so
@@ -106,15 +137,19 @@ def _pin_core_xml(data: bytes) -> bytes:
 def _normalize_zip(raw: bytes) -> bytes:
     """Rewrite every ZIP entry's date_time to a fixed constant, preserving entry order + content.
 
-    python-pptx already writes a fixed zip date_time, but two paths still drift cross-process and are
-    pinned here (belt-and-braces, threat T-06-11): (1) the SmartArt fixture rebuilds the archive
-    after XML injection; forcing a fixed `date_time` on every member keeps it stable; (2) the chart
-    fixture embeds a nested `.xlsx` (chart data) whose own `docProps/core.xml` carries an openpyxl
-    wall-clock — we recurse into any embedded `.xlsx` and pin its core props too.
+    python-pptx does NOT write a fixed zip date_time — it stamps ``time.localtime()`` into every
+    entry (str arcname -> stdlib-manufactured `ZipInfo`; measured and corrected 2026-08-29, see the
+    module header) — so this rewrite to `_FIXED_ZIP_DATE_TIME` is what makes ALL nine fixtures
+    byte-stable, not a belt-and-braces extra. Additionally pinned here (threat T-06-11): (1) the
+    SmartArt fixture rebuilds the archive after XML injection, and forcing a fixed `date_time` on
+    every member keeps that rebuild stable too; (2) the chart fixture embeds a nested `.xlsx`
+    (chart data) whose own `docProps/core.xml` carries an openpyxl wall-clock — we recurse into any
+    embedded `.xlsx` via `_normalize_embedded_xlsx` and pin its core props.
     """
-    zin = zipfile.ZipFile(io.BytesIO(raw))
     out = io.BytesIO()
-    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zout:
+    with zipfile.ZipFile(io.BytesIO(raw)) as zin, zipfile.ZipFile(
+        out, "w", zipfile.ZIP_DEFLATED
+    ) as zout:
         for item in zin.infolist():  # original entry order -> deterministic
             data = zin.read(item.filename)
             if item.filename == "docProps/core.xml":
@@ -131,9 +166,10 @@ def _normalize_zip(raw: bytes) -> bytes:
 
 def _normalize_embedded_xlsx(raw: bytes) -> bytes:
     """Recurse into an embedded `.xlsx` zip: pin its `docProps/core.xml` + fix its entry mtimes."""
-    zin = zipfile.ZipFile(io.BytesIO(raw))
     out = io.BytesIO()
-    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zout:
+    with zipfile.ZipFile(io.BytesIO(raw)) as zin, zipfile.ZipFile(
+        out, "w", zipfile.ZIP_DEFLATED
+    ) as zout:
         for item in zin.infolist():
             data = zin.read(item.filename)
             if item.filename == "docProps/core.xml":

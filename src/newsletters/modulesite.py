@@ -203,6 +203,7 @@ def build_module_site(
             records=(
                 ("The Rev1 record", "../index.html"),
                 ("The work record", "../work/library.html"),
+                ("The weekly record", "../weekly/library.html"),
             ),
             home_href="../index.html",
         ),
