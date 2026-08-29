@@ -741,6 +741,14 @@ class Surface(BaseModel):
         for b in self.blocks:
             if isinstance(b, ClaimsBlock):
                 out.extend(b.claims)
+            # WR-03 (03-review): NarrativeBlock items carry real published claims too — the
+            # weekly's highlights/lowlights. Invariant 2 inspects every claim CARRIER, not one
+            # block kind of the four; an item whose claim is None was disclosed to missing[]
+            # at load time and stays a disclosure, never dressed up as a claim here.
+            # (AssetBlock carries bare Traces whose >=1 minimum the type enforces; its drift
+            # check lives in review.review_blockers beside this one.)
+            if isinstance(b, NarrativeBlock):
+                out.extend(i.claim for i in b.items if i.claim is not None)
         return out
 
     def open_pull_request(self, pr_url: Optional[str] = None) -> "Surface":

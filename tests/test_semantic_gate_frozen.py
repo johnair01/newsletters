@@ -64,7 +64,12 @@ _FROZEN = {
     "Review._published_requires_satisfied_policy": (
         "ee1430360b5be0f91955747abcc76756b412eacf6e2318cf359414a4720391d2"
     ),
-    "Surface._published_claims": "f204f598fbe2f78200fe75befd9e3abb549229be9093b3837332062459ea052e",
+    # Updated in the SAME commit as the widening it pins (the discipline the test above
+    # demands), sanctioned by 03-REVIEW WR-03: `_published_claims` now also walks
+    # `NarrativeBlock` items' claims, so invariant 2 sees every claim carrier — the weekly's
+    # highlights/lowlights were invisible to the PR gate before this. Pure insertion (Half B
+    # verified); the planted-mutation observation was re-run after the update and still bites.
+    "Surface._published_claims": "ea523ffe913c29956b1f38da5688c7a2a1a61498285ff9f1af66ce58c2bb5fa9",
     "Surface.open_pull_request": "878ceeeed00f310a77e27a9d100fb33b3f1ad4776600d205e142c609879d1fe4",
     "Surface.approve": "3af3e9238d8e21345b920838213795e586c80526e76f316f0b7d1da825c8d939",
     "Surface.publish": "539d5296d15a64eb7c8b53306f64227116a44350e9acb887ce572d77c732f9cf",

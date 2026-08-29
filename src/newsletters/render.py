@@ -628,10 +628,17 @@ def _block_html(b, site: Site | None = None, sources: dict[str, Source] | None =
     # so the implementer has no visual discretion here.
     if isinstance(b, NarrativeBlock):
         # The tone label is the block's, repeated per line as the `.cat` tag; the authored text
-        # is carried verbatim into `.bo` and never summarised (weekly-spec rule 3).
+        # is carried verbatim into `.bo` and never summarised (weekly-spec rule 3). Each item's
+        # traced claim gets the SAME stale/unfaithful badge every rendered claim gets
+        # (`_claim_badge` — WR-03, 03-review): a published weekly whose spec file drifted was
+        # invisible in the render too. A healthy claim yields the empty string, so clean markup
+        # is byte-identical to the pre-badge shape; an item with no claim was disclosed at load
+        # time and renders unbadged.
         rows = "".join(
             f'<div class="item"><span class="sg-tag cat">{_e(b.tone)}</span>'
-            f'<div class="bo">{_e(i.text)}</div></div>'
+            f'<div class="bo">{_e(i.text)}'
+            + (_claim_badge(i.claim, sources) if i.claim is not None else "")
+            + "</div></div>"
             for i in b.items
         )
         h = f'<h3 class="block-h">{_e(b.heading)}</h3>' if b.heading else ""

@@ -230,7 +230,7 @@ The classes each new block reuses — named here so Phase 3 had **no visual disc
 
 | Block | HTML |
 |-------|------|
-| `NarrativeBlock` | `div.block` + `h3.block-h` + one `div.item` per line: the tone label in `span.sg-tag.cat`, the verbatim text in `div.bo` |
+| `NarrativeBlock` | `div.block` + `h3.block-h` + one `div.item` per line: the tone label in `span.sg-tag.cat`, the verbatim text in `div.bo` — a drifted or unfaithful item claim carries the same inline `span.claim-badge` every rendered claim gets (03-review WR-03); a healthy line renders byte-identically to the badge-free shape |
 | `RecognitionsBlock` | `div.block` + `h3.block-h` + one `div.item` per recognition: `div.ti` the person, `div.bo` the reason |
 | `TeamBlock` | `div.block` + `h3.block-h` + one `div.chapter` per member: `div.t` the role, `div.ti` the name, `div.bo` the short lines |
 | `AssetBlock` | `div.block` + `figure.diagram` with `div.dh` the heading and `<figcaption>` the caption |

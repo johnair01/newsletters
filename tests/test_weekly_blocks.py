@@ -360,6 +360,35 @@ def test_asset_block_emits_no_image_tag() -> None:
     assert 'class="diagram"' in html and 'class="dh"' in html and "<figcaption>" in html
 
 
+def test_stale_narrative_claim_carries_the_claim_badge_and_a_healthy_one_does_not() -> None:
+    """WR-03 (03-review), the render half: drift on a narrative claim is VISIBLE, not silent.
+
+    The `NarrativeBlock` branch renders each item's traced claim through the SAME `_claim_badge`
+    every rendered claim gets. Both directions: a drifted claim shows the inline STALE badge;
+    a healthy claim (and an item with no claim) renders byte-identically to the badge-free
+    shape, so the committed corpora and the clean-fixture assertions are undisturbed.
+    """
+    line = "Cut the checklist from nine steps to two."
+    transcript = f'highlights:\n  - "{line}"\n'
+    spec = Source(id="weekly-w35.yml", transcript=transcript)
+    start = transcript.index(line)
+    claim = Claim(
+        text=line, evidence=[Trace.from_source(spec, start, start + len(line))]
+    )
+    block = NarrativeBlock(tone="highlight", items=[NarrativeItem(text=line, claim=claim)])
+
+    healthy = _block_html(block, sources={spec.id: spec})
+    assert "claim-badge" not in healthy
+    assert f'<div class="bo">{line}</div>' in healthy, healthy
+
+    spec.transcript = transcript + 'lowlights:\n  - "appended after publication"\n'
+    drifted = _block_html(block, sources={spec.id: spec})
+    assert ">STALE</span>" in drifted and "claim-badge" in drifted, drifted
+
+    unclaimed = _block_html(NarrativeBlock(items=[NarrativeItem(text=line)]))
+    assert "claim-badge" not in unclaimed
+
+
 def test_unrecognized_block_raises_a_teaching_error_naming_its_kind() -> None:
     """The fall-through is a refusal, not a silent empty string.
 
