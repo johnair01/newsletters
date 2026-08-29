@@ -47,11 +47,15 @@ Load and placement are two different jobs, and this module is the LOAD half.
 
 from __future__ import annotations
 
-from typing import Any
+from pathlib import Path
+from typing import Any, Optional, Sequence, Union
 
 from pydantic import BaseModel, Field
 
-from .semantic import Distillation, Source, Trace
+from ._yaml_loader import load_config as _parse_config
+from .adapters._timestamps import EPOCH_ZERO
+from .semantic import Claim, Distillation, Source, Trace
+from .specspan import GATE, SpanMinter, absent
 
 __all__ = [
     "AuthoredAsset",
@@ -59,6 +63,7 @@ __all__ = [
     "AuthoredRecognition",
     "WeeklySpec",
     "WeeklySpecLoad",
+    "load_weekly_spec",
 ]
 
 # The schema — GENERIC field names only (never an org/fixture value; LANE-03 discipline, policed
@@ -107,6 +112,17 @@ _PROVENANCE_MINIMUMS = ("folder", "date", "event")
 
 _SPEC_DOC = "docs/weekly-spec.md"
 _QUOTE_FIX = "quote the value so YAML cannot type-coerce it"
+
+# The spec's own wording for an authored reference that names nothing (``docs/weekly-spec.md``
+# §"The routing", last row). A ``source:`` that resolves to no known ``Source`` gets the
+# ABSENT-source treatment — never a minted empty ``Trace`` and never a silent field drop, because
+# either direction would fabricate or erase exactly what ``missing[]`` exists to surface. The one
+# difference from a truly absent ``source:`` is this text, which names the id so the author can
+# fix the typo.
+_UNRESOLVABLE_SOURCE = (
+    "recognition for {person!r}: source {source!r} does not resolve to a known Source "
+    "— carried, with the unresolvable id disclosed"
+)
 
 
 class AuthoredRecognition(BaseModel):
@@ -332,3 +348,218 @@ def _validate(parsed: object) -> dict[str, Any]:
             f"got {type(config).__name__}."
         )
     return parsed
+
+
+def _resolve_recognition_evidence(
+    recognitions: list[AuthoredRecognition], known_ids: set[str], missing: list[str]
+) -> None:
+    """Second pass: turn each authored ``source:`` into a POINTER, a disclosure, or both halves.
+
+    Runs over ALREADY-MINTED data and never re-enters the minter — the forward cursor must only
+    ever be walked in file order, so reference resolution is a separate pass by construction, not
+    by convention.
+
+    Three outcomes, one per row of ``docs/weekly-spec.md``:
+
+    * ``source:`` absent → ``evidence == []`` plus the absence disclosure. The recognition is
+      still carried: the author's word is the evidence, and ``person`` / ``reason`` are already
+      minted as gate-entailed claims at real spans of the spec file (rule 6).
+    * ``source:`` resolves to a known ``Source`` → exactly ONE span-less ``Trace`` to that id.
+      No span: the loader has not read that source's text, and minting a span for text it has
+      never seen would be fabrication.
+    * ``source:`` resolves to nothing → ``evidence == []`` plus the unresolvable-id disclosure
+      NAMING the id, so the author can fix the typo.
+    """
+    for index, recognition in enumerate(recognitions):
+        if not recognition.source.strip():
+            missing.append(absent(f"{_RECOGNITIONS_KEY}[{index}].source"))
+        elif recognition.source in known_ids:
+            recognition.evidence = [Trace(source_id=recognition.source)]
+        else:
+            missing.append(
+                _UNRESOLVABLE_SOURCE.format(
+                    person=recognition.person, source=recognition.source
+                )
+            )
+
+
+def _disclose_gaps(spec: WeeklySpec) -> list[str]:
+    """Every absent/empty schema key, in SCHEMA ORDER, plus each container's per-item absences.
+
+    ``config`` absence is NOT a gap — a weekly with no org slots is simply fully portable (the
+    Case Spec precedent). Two other absences are deliberately not disclosed here:
+
+    * ``recognitions[].source`` — owned by :func:`_resolve_recognition_evidence`, so the absent
+      and the unresolvable cases sit adjacent in ``missing[]`` and read as the one rule they are.
+    * the ``assets[]`` provenance fields — owned by PLACEMENT (plan 03-03), which carries the
+      spec's exact per-condition wording (``provenance field {field!r} is absent — the minimum is
+      folder + date + event label``). Duplicating it here would give the reviewer the same gap
+      twice in two different voices.
+
+    Everything else reuses ``specspan.absent`` verbatim so the honesty panel reads consistently
+    across both spec kinds.
+    """
+    gaps: list[str] = []
+    for key in _KNOWN_KEYS:
+        if key == _CONFIG_KEY:
+            continue
+        value = getattr(spec, key)
+        if not value:
+            gaps.append(absent(key))
+            continue
+        if key == _RECOGNITIONS_KEY:
+            for index, recognition in enumerate(value):
+                for field in ("person", "reason"):
+                    if not getattr(recognition, field).strip():
+                        gaps.append(absent(f"{key}[{index}].{field}"))
+        elif key == _TEAM_KEY:
+            for index, member in enumerate(value):
+                for field in _MEMBER_FIELDS:
+                    carried = getattr(member, field)
+                    if not (carried.strip() if isinstance(carried, str) else carried):
+                        gaps.append(absent(f"{key}[{index}].{field}"))
+    return gaps
+
+
+def load_weekly_spec(
+    path: Union[str, Path],
+    *,
+    root: Optional[Path] = None,
+    known_sources: Sequence[Source] = (),
+) -> WeeklySpecLoad:
+    """Load one hand-authored Weekly Spec YAML file into ``Source`` + spec + ``Distillation``.
+
+    Read-only, deterministic, AI-free. Edge policy mirrors ``casespec.load_case_spec`` exactly:
+    the path resolves under ``root`` (default ``Path.cwd()``; escaping it raises ``ValueError`` —
+    a REFUSAL, never a ``missing[]`` entry, per ``docs/weekly-spec.md`` rule 7), a missing file
+    raises ``FileNotFoundError``, non-UTF-8 raises ``UnicodeDecodeError``. ``Source.transcript``
+    is the newline-normalized file text (``read_text(encoding="utf-8")`` folds CRLF to LF;
+    otherwise unaltered — and every span, offset and hash addresses that same normalized text);
+    ``Source.timestamp`` is ``EPOCH_ZERO``. Schema violations raise teaching ``ValueError``s (see
+    :func:`_validate`); everything absent, empty or unlocatable lands in
+    ``Distillation.missing[]``. Every emitted claim passes the LIVE span-containment gate —
+    enforced here by construction (a violation raises ``RuntimeError``).
+
+    ``known_sources`` are the ``Source``s a recognition's ``source:`` id may resolve against, in
+    addition to the spec file's own. An id that resolves to none of them is disclosed by name and
+    never becomes a ``Trace``.
+
+    THIS FUNCTION DOES NO PLACEMENT. It touches no file but the spec itself: no asset is hashed,
+    no image is opened, no ``AssetBlock`` is minted. The ``assets:`` records are carried verbatim
+    as ``AuthoredAsset``s and their provenance routing is plan 03-03's — the load/place seam.
+    """
+    root_path = (root or Path.cwd()).resolve()
+    candidate = Path(path)
+    absolute = candidate if candidate.is_absolute() else (root_path / candidate)
+    resolved = absolute.resolve()
+    rel = resolved.relative_to(root_path).as_posix()  # ValueError if it escapes root
+    transcript = resolved.read_text(encoding="utf-8")  # READ ONLY
+
+    source = Source(
+        id=rel,
+        context=f"weekly-spec:{rel}",
+        transcript=transcript,
+        timestamp=EPOCH_ZERO,
+    )
+    parsed = _validate(_parse_config(transcript))
+
+    minter = SpanMinter(source)
+    claims: list[Claim] = []
+    missing: list[str] = []
+
+    def _route(
+        key: str, value: Optional[str], topic: str, *, list_item: bool = False
+    ) -> Optional[str]:
+        """Mint one non-empty value; return it for the spec (empty → None, disclosed later)."""
+        if value is None or not value.strip():
+            return None
+        minted = minter.mint(key, value, topic, list_item=list_item)
+        if isinstance(minted, Claim):
+            claims.append(minted)
+        else:
+            missing.append(minted)
+        return value
+
+    spec_kwargs: dict[str, Any] = {}
+    # FILE ORDER — the correctness condition, not a style preference. Every nested collection is
+    # iterated via its OWN .items() rather than against a hardcoded field list, because the
+    # author's field order IS the file's order and the cursor is forward-only.
+    for key, value in parsed.items():
+        if key == _CONFIG_KEY:
+            spec_kwargs[_CONFIG_KEY] = dict(value or {})  # carried; NEVER minted
+        elif key in _STR_KEYS:
+            kept = _route(key, value, key)
+            if kept is not None:
+                spec_kwargs[key] = kept
+        elif key in _NARRATIVE_KEYS and value is not None:
+            spec_kwargs[key] = [
+                item
+                for item in value
+                if _route(key, item, key, list_item=True) is not None
+            ]
+        elif key == _RECOGNITIONS_KEY and value is not None:
+            recognitions: list[AuthoredRecognition] = []
+            for item in value:
+                fields: dict[str, str] = {}
+                for field, field_value in item.items():  # file order within the mapping
+                    kept = _route(field, field_value, f"{key}.{field}")
+                    fields[field] = kept if kept is not None else ""
+                recognitions.append(AuthoredRecognition(**fields))
+            spec_kwargs[key] = recognitions
+        elif key == _TEAM_KEY and value is not None:
+            members: list[AuthoredMember] = []
+            for item in value:
+                fields = {}
+                lines: list[str] = []
+                for field, field_value in item.items():  # file order within the mapping
+                    if field == "lines":
+                        lines = [
+                            line
+                            for line in (field_value or [])
+                            if _route(field, line, f"{key}.{field}", list_item=True)
+                            is not None
+                        ]
+                        continue
+                    kept = _route(field, field_value, f"{key}.{field}")
+                    fields[field] = kept if kept is not None else ""
+                members.append(AuthoredMember(lines=lines, **fields))
+            spec_kwargs[key] = members
+        elif key == _ASSETS_KEY and value is not None:
+            assets: list[AuthoredAsset] = []
+            for asset_key, record in value.items():  # file order within the mapping
+                # The mapping KEY is the spec-local handle, not an authored narrative value, so
+                # it is carried on the record rather than minted as a claim. Every record SCALAR
+                # is routed — including the `sha256` hex, which is a literal substring of the
+                # file and therefore traces verbatim like any other field.
+                fields = {}
+                for field, field_value in record.items():
+                    kept = _route(field, field_value, f"{key}.{field}")
+                    fields[field] = kept if kept is not None else ""
+                assets.append(AuthoredAsset(key=asset_key, **fields))
+            spec_kwargs[key] = assets
+
+    spec = WeeklySpec(**spec_kwargs)
+
+    # SECOND PASS over already-minted data — references only, never the minter.
+    known_ids = {source.id} | {known.id for known in known_sources}
+    _resolve_recognition_evidence(spec.recognitions, known_ids, missing)
+    missing.extend(_disclose_gaps(spec))
+
+    # Enforced by construction: every emitted claim satisfies the LIVE gate.
+    for claim in claims:
+        if not GATE.entails(claim):
+            raise RuntimeError(
+                f"weekly-spec faithfulness violated: claim {claim.text!r} does not pass "
+                "span-containment against its own trace — refusing to emit it."
+            )
+
+    distillation = Distillation(
+        narrative=(
+            f"Weekly Spec {rel!r}: {len(claims)} claim(s) traced to spans of the authored "
+            f"file; {len(missing)} gap(s) disclosed in missing[]."
+        ),
+        claims=claims,
+        missing=missing,
+        traces=[source],
+    )
+    return WeeklySpecLoad(source=source, spec=spec, distillation=distillation)
