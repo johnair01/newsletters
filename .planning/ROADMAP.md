@@ -71,7 +71,7 @@ name may leak into `src/`).
 ## Phases
 
 - [x] **Phase 1: Specify + de-risk** — Weekly Spec schema + block kinds specified against `docs/architecture.md`; the `.pptx` determinism spike, decided on evidence up front (completed 2026-08-29)
-- [ ] **Phase 2: Renderer** (WKLY-01) — template-driven deterministic PPTX writer + generated-by marker + Draft watermark + gate wiring
+- [x] **Phase 2: Renderer** (WKLY-01) — template-driven deterministic PPTX writer + generated-by marker + Draft watermark + gate wiring (completed 2026-08-29)
 - [ ] **Phase 3: Weekly compose** (WKLY-02, WKLY-03, WKLY-04) — new block kinds, the Weekly Spec path, asset evidence, BI values via export
 - [ ] **Phase 4: Sample corpus + recipe** (WKLY-05, WKLY-06) — CI-rendered synthetic weekly + `docs/weekly.md` operator recipe
 
@@ -249,7 +249,7 @@ operator through the loop on their own data, read-only and local.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Specify + de-risk | 3/3 | Complete    | 2026-08-29 |
-| 2. Renderer | 2/3 | In Progress | - |
+| 2. Renderer | 3/3 | Complete    | 2026-08-29 |
 | 3. Weekly compose | 0/0 | Not started | - |
 | 4. Sample corpus + recipe | 0/0 | Not started | - |
 
