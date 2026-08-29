@@ -80,7 +80,9 @@ from newsletters import (  # noqa: E402
     pptx_writer,
 )
 from newsletters.adapters._timestamps import EPOCH_ZERO  # noqa: E402
+from newsletters.pptx_writer import _walk as _writer_walk  # noqa: E402
 from newsletters.pptx_writer import (  # noqa: E402
+    _MAX_GROUP_DEPTH,
     DRAFT_STATUS,
     MARKER,
     SLOT_PREFIX,
@@ -702,6 +704,59 @@ def test_slot_without_text_frame_raises(tmp_path: pathlib.Path) -> None:
     assert "text box" in message and "asset" in message, (
         "the refusal no longer offers the two things the operator can actually do (point the slot "
         f"at a text box, or place the content as an asset). Message: {message}"
+    )
+
+
+def _nested_group_chain(depth: int) -> list:
+    """A fake shapes tree: `depth` groups nested inside each other, one leaf at the bottom.
+
+    Faked rather than authored through python-pptx on purpose: building hundreds of real nested
+    groups is slow and proves nothing extra — `_walk`'s recursion predicate is a `shape_type`
+    comparison plus a `.shapes` descent, which is exactly what these stand-ins carry.
+    """
+
+    class _Leaf:
+        shape_type = None
+        name = "leaf"
+
+    class _Group:
+        shape_type = MSO_SHAPE_TYPE.GROUP
+        name = "group"
+
+        def __init__(self, children: list) -> None:
+            self.shapes = children
+
+    shapes: list = [_Leaf()]
+    for _ in range(depth):
+        shapes = [_Group(shapes)]
+    return shapes
+
+
+def test_pathological_group_nesting_gets_a_teaching_error() -> None:
+    """IN-04: absurd group nesting raises a teaching ValueError, never a RecursionError.
+
+    A hand-crafted template with ~1000 nested groups used to blow the Python stack inside
+    `bind_slots` — a stack trace, the exact failure shape the refusals exist to prevent. The walk
+    is bounded at `_MAX_GROUP_DEPTH`; any real deck (human grouping is single-digit deep) is far
+    inside the bound, which the positive half proves.
+    """
+    within = list(
+        _writer_walk(_nested_group_chain(_MAX_GROUP_DEPTH), MSO_SHAPE_TYPE.GROUP)
+    )
+    assert len(within) == _MAX_GROUP_DEPTH + 1, (
+        "a chain AT the bound must still be fully walked (every group plus the leaf) — the bound "
+        f"exists for pathological input, not real decks. Walked {len(within)} shapes"
+    )
+
+    with pytest.raises(ValueError, match="levels deep") as caught:
+        list(
+            _writer_walk(
+                _nested_group_chain(_MAX_GROUP_DEPTH + 1), MSO_SHAPE_TYPE.GROUP
+            )
+        )
+    assert "Rebuild the template" in str(caught.value), (
+        "the refusal no longer tells the operator what to do about the pathological template. "
+        f"Message: {caught.value}"
     )
 
 

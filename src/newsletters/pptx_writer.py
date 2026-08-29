@@ -327,7 +327,15 @@ def differing_zipinfo_fields(a: bytes, b: bytes) -> list[str]:
 # ==================================================================================================
 
 
-def _walk(shapes: Any, group_type: Any) -> Iterator[Any]:
+# The nesting bound for `_walk`. No real deck nests groups anywhere near this deep (a human
+# grouping boxes in PowerPoint produces single-digit depth); the bound exists so a hand-crafted or
+# malicious template raises a teaching ValueError instead of blowing the Python stack (Phase-2
+# review IN-04 — a RecursionError stack trace is the exact failure shape the refusals exist to
+# prevent). Comfortably below CPython's default recursion limit even with pytest's frames on top.
+_MAX_GROUP_DEPTH = 64
+
+
+def _walk(shapes: Any, group_type: Any, _depth: int = 0) -> Iterator[Any]:
     """Every shape in a shapes collection, DESCENDING into group shapes.
 
     The recursion is load-bearing, not defensive. `slide.shapes` is **top-level only** (measured,
@@ -342,11 +350,22 @@ def _walk(shapes: Any, group_type: Any) -> Iterator[Any]:
     `group_type` is `MSO_SHAPE_TYPE.GROUP`, passed in rather than imported here so the predicate is
     MEASURED (an enum comparison) rather than duck-typed, and so there is exactly ONE lazy
     python-pptx import per render — in `bind_slots`, its only caller.
+
+    The recursion is BOUNDED at `_MAX_GROUP_DEPTH` (IN-04): an untrusted template with absurdly
+    nested groups gets a ``ValueError`` naming the nesting, never a ``RecursionError`` stack trace.
     """
+    if _depth > _MAX_GROUP_DEPTH:
+        raise ValueError(
+            f"template nests groups more than {_MAX_GROUP_DEPTH} levels deep — no deck authored "
+            "in PowerPoint looks like this (human grouping produces single-digit depth), so this "
+            "template is malformed or hand-crafted. Refusing to descend further rather than "
+            "exhausting the interpreter stack. Rebuild the template without the pathological "
+            "nesting."
+        )
     for shape in shapes:
         yield shape
         if shape.shape_type == group_type:
-            yield from _walk(shape.shapes, group_type)
+            yield from _walk(shape.shapes, group_type, _depth + 1)
 
 
 def bind_slots(
