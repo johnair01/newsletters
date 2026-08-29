@@ -41,8 +41,11 @@ closed.
 AI-OPTIONAL / BARE-INSTALL DISCIPLINE. Everything at module level here is **stdlib only**
 (`copy`, `hashlib`, `io`, `pathlib`, `zipfile` — the `Surface` annotation is under `TYPE_CHECKING`
 and never imported at runtime), so `newsletters.pptx_writer` imports on a bare `pip install .` with
-no `[pptx]` extra — which is what lets the duplicate-member and idempotence contracts run on the
-bare-install CI job. The writer obtains python-pptx **lazily**, inside its render
+no `[pptx]` extra — which is what keeps the normalizer importable (and its contracts testable) on a
+bare install; the duplicate-member and idempotence contracts themselves execute in the `pptx` CI
+job (the bare-install job only proves this module IMPORTS — its test list does not include the
+determinism suite, which would importorskip there anyway). The writer obtains python-pptx
+**lazily**, inside its render
 function, through the existing boundary `newsletters.adapters._pptx_loader._load_pptx()` — it does
 not re-implement that boundary and it does not widen it. There must therefore NEVER be a column-0
 ``import pptx`` / ``from pptx ...`` line in this file. That is not a convention; it is enforced by
