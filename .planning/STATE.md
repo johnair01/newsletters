@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: milestone
-status: executing
-stopped_at: "Completed 03-04-PLAN.md — Phase 3 complete (4/4 plans); next: Phase 4 planning (WKLY-05/06)"
-last_updated: "2026-08-29T08:10:00Z"
-last_activity: 2026-08-29 — Phase 3 plan 03-04 executed (`weekly_slots` + the deck, values via export, the `weekly` CI job)
+status: completed
+stopped_at: "Completed 03-04-PLAN.md — Phase 3 complete; next: Phase 4 planning (WKLY-05/06)"
+last_updated: "2026-08-29T08:38:41.434Z"
+last_activity: 2026-08-29
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 10
   completed_plans: 10
-  percent: 100
+  percent: 75
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-08-29)
 
 ## Current Position
 
-Phase: Phase 3: Weekly compose (WKLY-02..04) — plans complete (4 of 4) — awaiting phase verification
-Plan: 03-04 complete; next: Phase 4 planning (WKLY-05/06 — sample corpus + operator recipe)
-Status: Phase 3 complete; WKLY-02/03/04 all closed
-Last activity: 2026-08-29 — Phase 3 plan 03-04 executed (`weekly_slots` + the end-to-end deck, BI values via the existing ADAPT-03 adapter, the `weekly` CI job; the suite runs 0-skipped for the first time this milestone)
+Phase: Phase 4: Sample corpus + recipe (WKLY-05..06) — not started (ready to plan)
+Plan: —
+Status: Phase 3 complete & verified (passed 5/5). Independent gate re-run green (837 passed/0 skipped · lint-imports 2 kept · check ×3 OK · corpora clean · determinism --check OK).
+Last activity: 2026-08-29 — Phase 3 closed; advancing to Phase 4 (sample corpus + recipe)
 
 ## Performance Metrics
 

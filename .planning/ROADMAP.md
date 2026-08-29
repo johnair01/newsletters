@@ -211,14 +211,17 @@ makes it all mean something)
       the review gate's working-tree-only protection is replaced by source-hash pins on the eight
       gate functions plus a zero-deleted-lines diff against `git merge-base HEAD origin/main`
       (SC-1, plus SC-3's type-level half)
+
 - [x] `03-02-PLAN.md` — The Weekly Spec lift: the span minter promoted to `specspan.py` so exactly
       one honest-span implementation exists, then `weeklyspec.py`'s strict eight-key schema and
       `load_weekly_spec` — file-order minting, `config:` bound never claimed, every absence
       disclosed, two committed fixtures + a tiny PNG (SC-2's mechanism)
+
 - [x] `03-03-PLAN.md` — Asset evidence + the composer: all seven routing rows with their exact
       disclosure strings (a path escape raises, an absence discloses, the two never collapse), and
       `build_weekly_report` — fixed block order, Draft at `EPOCH_ZERO`, byte-identical
       double-compose, and the planted-editorialization guard (SC-3, SC-5's composition half)
+
 - [x] `03-04-PLAN.md` — The deck, the values, and the job that makes the greens mean something:
       `weekly_slots` + an end-to-end render through Phase 2's writer (text-only; empty sections
       disclose on the slide), BI values through the **existing** ADAPT-03 adapter with ADAPT-05
@@ -273,7 +276,7 @@ operator through the loop on their own data, read-only and local.
 |-------|----------------|--------|-----------|
 | 1. Specify + de-risk | 3/3 | Complete    | 2026-08-29 |
 | 2. Renderer | 3/3 | Complete    | 2026-08-29 |
-| 3. Weekly compose | 4/4 | Complete   | 2026-08-29 |
+| 3. Weekly compose | 4/4 | Complete    | 2026-08-29 |
 | 4. Sample corpus + recipe | 0/0 | Not started | - |
 
 Plans are created per phase by `/gsd-plan-phase`; `0/0` means "not yet planned", not "no work".
