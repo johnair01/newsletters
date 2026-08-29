@@ -18,7 +18,19 @@ findings:
   warning: 5
   info: 5
   total: 10
-status: issues_found
+status: fixed
+fixed: 2026-08-29
+fixed_outcomes:
+  WR-01: fixed (623851d)
+  WR-02: fixed (f492110)
+  WR-03: fixed (d666dc6)
+  WR-04: fixed (3f11647)
+  WR-05: fixed (5d8766e)
+  IN-01: carried
+  IN-02: carried
+  IN-03: fixed (d7bd0fb)
+  IN-04: carried
+  IN-05: fixed (d0cfa14)
 ---
 
 # Phase 4: Code Review Report
@@ -158,6 +170,37 @@ if out.exists() and any(out.iterdir()) and not (out / _MARKER).exists():
 
 ---
 
+## Fix outcomes (2026-08-29)
+
+All five Warnings fixed; two zero-risk Info items fixed; three Info items carried. One commit per
+finding, plus one style-baseline commit. Every gate re-run after the last fix: **871 passed / 0
+skipped** (862 baseline + 9 new regression tests), `lint-imports` 2 kept / 0 broken, all four
+`newsletters check` corpora clean, all four corpora rebuilt IN PLACE with `git status` clean
+(committed==fresh + ledgers byte-unchanged), `tests/test_pptx_determinism.py` green, and the
+`docs/weekly.md` fenced commands re-executed (the deck command against the doc's exact inputs to
+a scratch `--out`: its digest equals the committed sidecar byte-for-byte). Style baselines held
+exactly: mypy 15 errors / 5 files, black 69/33, isort 57 (DEF-15 set), no NEW failure anywhere.
+
+| Finding | Outcome | Commit | What landed |
+|---|---|---|---|
+| WR-01 | **fixed** | `623851d` | `build_weekly_site` resolves the ledger AND the vendored-fonts dir against `root`; a fontless root REFUSES loudly before any write; `_emit_fonts` gains a `fonts_dir` seam (cwd-anchored callers unchanged); foreign-cwd regression test pins no-stray-writes + fonts-present + committed-ledger-unchanged. |
+| WR-02 | **fixed** | `f492110` | `_discover_one_yml` enforces its own "exactly one": ambiguity is a `FileExistsError` naming every candidate and the ways out; `docs/weekly.md` §6 now says **replace** and states the refusal; regression test plants the w41/w42 trap. |
+| WR-03 | **fixed** | `d666dc6` | `newsletters build` exposes `--author`, plumbed to `build_weekly_site` (weekly-only; other corpora refuse it loudly); both weekly commands echo a builder `ValueError` as a teaching message + exit 1, no Typer traceback; tests prove the flag reaches the rendered byline. |
+| WR-04 | **fixed** | `3f11647` | New test unzips `template.pptx` + `deck/*.pptx` and scans every `.xml`/`.rels` part with the SAME scanner/allowance, plus `assets/*` filenames; parts-count floor + planted-zip arm keep it non-vacuous. (The `@example.invalid` local-part narrowness the finding notes in passing is carried — the literal denylist never matched dotted-lowercase forms in any file.) |
+| WR-05 | **fixed** | `5d8766e` | `assemble_site` ownership proof is now BOTH markers — `.nojekyll` AND `render.GENERATED_MARKER` (promoted to a named constant, byte-identical output) in `index.html` — or the new explicit `force=True` / `--force`; a FILE at `out` is a teaching refusal; near-miss + file-at-out regression tests; all four publish guarantees stayed green. |
+| IN-01 | carried | — | Deploy-workflow prose amendment; doc-only, next docs pass. |
+| IN-02 | carried | — | AST-walk upgrade of the no-gate scan; defense-in-depth only (the real gate is `semantic.py`). |
+| IN-03 | **fixed** | `d7bd0fb` | Symlink-escaping `inbox/*.eml` now refuses in the corpus's teaching voice (mirrors `_ASSET_ESCAPES_ROOT`), pinned by a test so an `os.path.relpath` refactor can never silently reopen the read. |
+| IN-04 | carried | — | `lanes_path` passthrough on `build_weekly_site`; new seam, not a defect in a shipped path. |
+| IN-05 | **fixed** | `d0cfa14` | Discovery globs `*.yml` AND `*.yaml`; the not-found error names both; the WR-02 ambiguity guard spans both extensions; `docs/weekly.md` §6 updated. |
+
+Style-baseline conformance commit: `38827bd` (black/isort on the two touched baseline-clean files;
+no behavior change). WR-01's mirrored family defect (`modulesite.py` / `build_work_site` ledger
+paths are also cwd-relative) is **carried**: no shipped caller passes a foreign `root` to those
+builders, and the disposition scoped the fix to the weekly builder — the family fix is a recorded
+follow-up, not a silent skip.
+
 _Reviewed: 2026-08-29_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
+_Fixed: 2026-08-29 — Claude (gsd-code-fixer)_
