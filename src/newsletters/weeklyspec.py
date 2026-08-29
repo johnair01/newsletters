@@ -59,7 +59,12 @@ from pydantic import BaseModel, Field
 
 from ._yaml_loader import load_config as _parse_config
 from .adapters._timestamps import EPOCH_ZERO
-from .compose import addressed, compute_delta
+
+# The SHARED trust predicates and disclosure wording (WR-04, 03-review): `compose_kpi_item` is
+# the ONE place the endpoint policy and its three disclosure strings live, exactly as `addressed`
+# is the one traced-or-missing predicate. Re-declaring either here re-opens the two-copies drift
+# this phase's own promotions (`specspan`, `addressed`) exist to prevent.
+from .compose import NO_KPIS, addressed, compose_kpi_item
 
 # The writer's reserved-prefix constant, IMPORTED rather than re-declared: `weekly_slots` builds
 # the mapping `pptx_writer.bind_slots` validates, and two copies of the prefix drift exactly as
@@ -74,7 +79,6 @@ from .semantic import (
     Claim,
     ClaimsBlock,
     Distillation,
-    KpiItem,
     KpiStripBlock,
     NarrativeBlock,
     NarrativeItem,
@@ -860,15 +864,6 @@ CONNECTIVE_CONSTANTS = frozenset(
 _NO_BINDINGS = (
     "no section bindings were supplied — no KPI strip and no claims block on this weekly"
 )
-_NO_KPIS = "section {heading!r} declares no KPIs — strip omitted"
-_UNCOMPUTABLE_DELTA = (
-    "KPI {label!r} declares a movement whose two endpoints are not both content-addressed "
-    "numeric values — no delta derived (never a fabricated 0)"
-)
-_ONE_ENDPOINT = (
-    "KPI {label!r} declares period movement but only one endpoint is usable — no delta derived "
-    "(never a fabricated 0)"
-)
 
 
 class _MintedClaims:
@@ -892,25 +887,6 @@ class _MintedClaims:
                 self._used.add(index)
                 return claim
         return None
-
-
-def _kpi_item(item: KpiItem, endpoints: Sequence[Claim], missing: list[str]) -> KpiItem:
-    """One display KPI. The Δ comes from ``compose.compute_delta`` — NEVER re-derived here.
-
-    Same policy as ``compose._compose_kpi_item``: two content-addressed numeric endpoints yield a
-    delta; a declared movement that cannot be computed is DISCLOSED, never fabricated as a 0.
-    """
-    delta: Optional[str] = None
-    direction: Optional[str] = None
-    if len(endpoints) >= 2:
-        first, last = endpoints[0], endpoints[-1]
-        if addressed(first) and addressed(last):
-            delta, direction = compute_delta(first.text, last.text)
-        if delta is None:
-            missing.append(_UNCOMPUTABLE_DELTA.format(label=item.label))
-    elif len(endpoints) == 1:
-        missing.append(_ONE_ENDPOINT.format(label=item.label))
-    return KpiItem(label=item.label, value=item.value, delta=delta, dir=direction)
 
 
 def build_weekly_report(
@@ -968,7 +944,7 @@ def build_weekly_report(
     for binding in bindings:  # BINDING ORDER — never a set, never a sort
         if binding.kpi_items:
             items = [
-                _kpi_item(
+                compose_kpi_item(
                     kpi,
                     (
                         binding.kpi_endpoints[index]
@@ -981,7 +957,7 @@ def build_weekly_report(
             ]
             strips.append(KpiStripBlock(heading=binding.heading, items=items))
         else:
-            missing.append(_NO_KPIS.format(heading=binding.heading))
+            missing.append(NO_KPIS.format(heading=binding.heading))
         for claim in binding.claims:  # traced-or-missing, via the SHARED predicate
             if addressed(claim):
                 kept_claims.append(claim)

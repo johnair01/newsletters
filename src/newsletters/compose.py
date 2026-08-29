@@ -56,7 +56,30 @@ from .site import Ledger, slugify
 from .swimlane import SectionBinding, SwimlaneLoad
 from .templates import REPORT
 
-__all__ = ["addressed", "compute_delta", "compose_module_report"]
+__all__ = [
+    "NO_KPIS",
+    "ONE_ENDPOINT",
+    "UNCOMPUTABLE_DELTA",
+    "addressed",
+    "compose_kpi_item",
+    "compose_module_report",
+    "compute_delta",
+]
+
+# ---------------------------------------------------------------------------- #
+# The KPI disclosure wording — module constants with exactly ONE source (WR-04, 03-review).
+# `weeklyspec.build_weekly_report` shares them: two copies of a disclosure string drift exactly
+# as two normalizers do, and the honesty panel would then read two voices for one rule.
+# ---------------------------------------------------------------------------- #
+NO_KPIS = "section {heading!r} declares no KPIs — strip omitted"
+UNCOMPUTABLE_DELTA = (
+    "KPI {label!r} declares a movement whose two endpoints are not both content-addressed "
+    "numeric values — no delta derived (never a fabricated 0)"
+)
+ONE_ENDPOINT = (
+    "KPI {label!r} declares period movement but only one endpoint is usable — no delta derived "
+    "(never a fabricated 0)"
+)
 
 # --------------------------------------------------------------------------- #
 # compute_delta — the pure Δ derivation (COMP-02).
@@ -200,7 +223,7 @@ def addressed(claim: Claim) -> bool:
     return claim.is_traced and all(trace.is_addressed for trace in claim.evidence)
 
 
-def _compose_kpi_item(
+def compose_kpi_item(
     item: KpiItem, endpoints: list[Claim], missing: list[str]
 ) -> KpiItem:
     """Emit one display ``KpiItem`` — deriving Δ ONLY from two content-addressed numeric endpoints.
@@ -213,6 +236,12 @@ def _compose_kpi_item(
       ``missing[]`` note (COMP-02: an absent endpoint is disclosed, never silently deltaless).
     * zero endpoints -> a point-in-time ``value:`` declaration — no movement promised, value-only,
       NO note (disclosure tracks declared-but-unmet expectations, not the absence of a promise).
+
+    PUBLIC because ``weeklyspec.build_weekly_report`` shares it (WR-04, 03-review): this is the
+    ONE place the endpoint policy and its disclosure wording live, and a second copy of a trust
+    predicate drifts exactly as two normalizers do — the same promotion move ``addressed`` and
+    ``specspan``'s three names already made. It lost its leading underscore because a name two
+    modules import is not private.
     """
     delta: Optional[str] = None
     direction: Optional[Literal["up", "down"]] = None
@@ -221,15 +250,9 @@ def _compose_kpi_item(
         if addressed(first) and addressed(last):
             delta, direction = compute_delta(first.text, last.text)
         if delta is None:
-            missing.append(
-                f"KPI {item.label!r} declares a movement whose two endpoints are not both "
-                "content-addressed numeric values — no delta derived (never a fabricated 0)"
-            )
+            missing.append(UNCOMPUTABLE_DELTA.format(label=item.label))
     elif len(endpoints) == 1:
-        missing.append(
-            f"KPI {item.label!r} declares period movement but only one endpoint is usable — "
-            "no delta derived (never a fabricated 0)"
-        )
+        missing.append(ONE_ENDPOINT.format(label=item.label))
     return KpiItem(label=item.label, value=item.value, delta=delta, dir=direction)
 
 
@@ -351,14 +374,12 @@ def compose_module_report(
         items: list[KpiItem] = []
         for index, kpi in enumerate(binding.kpi_items):
             endpoints = endpoints_by_kpi[index] if index < len(endpoints_by_kpi) else []
-            items.append(_compose_kpi_item(kpi, endpoints, missing))
+            items.append(compose_kpi_item(kpi, endpoints, missing))
 
         if binding.kpi_items:
             blocks.append(KpiStripBlock(heading=binding.heading, items=items))
         else:
-            missing.append(
-                f"section {binding.heading!r} declares no KPIs — strip omitted"
-            )
+            missing.append(NO_KPIS.format(heading=binding.heading))
 
         # Traced-or-missing: SELECT content-addressed claims; route the rest to missing[].
         kept: list[Claim] = []
