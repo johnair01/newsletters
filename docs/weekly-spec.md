@@ -116,10 +116,158 @@ The weekly adds four kinds to the discriminated `Block` union in `src/newsletter
 Each follows the union's live idiom exactly: a `kind: Literal["<name>"] = "<name>"` discriminator,
 an optional `heading`, and `Field(default_factory=list)` for every collection.
 
+### `NarrativeBlock` — the author's voice
+
+```python
+class NarrativeItem(BaseModel):
+    text: str                                    # the authored line, byte-verbatim
+    claim: Optional[Claim] = None                # the traced claim carrying that text
+
+class NarrativeBlock(BaseModel):
+    """Authored highlights / lowlights — the author's voice, never summarized."""
+    kind: Literal["narrative"] = "narrative"
+    heading: Optional[str] = None                # e.g. "Highlights" / "Lowlights"
+    tone: Literal["highlight", "lowlight"] = "highlight"
+    items: list[NarrativeItem] = Field(default_factory=list)
+```
+
+One block per tone. `NarrativeItem.text` is what the author typed; `claim` is the same text as a
+traced `Claim`, so the rendered line and its evidence never diverge.
+
+### `RecognitionsBlock` — credit, with or without a source
+
+```python
+class Recognition(BaseModel):
+    person: str
+    reason: str                                  # what they did, in the author's words
+    evidence: list[Trace] = Field(default_factory=list)   # empty ⇒ disclosed in missing[]
+
+class RecognitionsBlock(BaseModel):
+    kind: Literal["recognitions"] = "recognitions"
+    heading: Optional[str] = "Recognitions"
+    recognitions: list[Recognition] = Field(default_factory=list)
+```
+
+`evidence` may legitimately be empty — rule 6. The recognition is still carried and the absent
+evidence is disclosed; neither half is optional.
+
+### `TeamBlock` — who the module is, this week
+
+```python
+class TeamMember(BaseModel):
+    name: str
+    role: str = ""
+    lines: list[str] = Field(default_factory=list)        # short authored lines
+    photo: Optional[str] = None                           # an `assets:` KEY, never a path
+
+class TeamBlock(BaseModel):
+    kind: Literal["team"] = "team"
+    heading: Optional[str] = "The team"
+    members: list[TeamMember] = Field(default_factory=list)
+```
+
+`photo` holds an asset **key**, not a path, so a team photo goes through the same provenance
+routing as every other placed image instead of around it.
+
+### `AssetBlock` — one placed asset
+
+```python
+class AssetBlock(BaseModel):
+    """One placed asset. It is here ONLY because its provenance record was complete."""
+    kind: Literal["asset"] = "asset"
+    heading: Optional[str] = None
+    asset: AssetRecord                                     # REQUIRED — see the invariant below
+    caption: Optional[str] = None
+    evidence: list[Trace] = Field(default_factory=list)    # ≥1 by construction
+```
+
+**The invariant: `asset` is required, not optional.** There is no `AssetBlock` without an
+`AssetRecord`, and no `AssetRecord` without its provenance minimums — so "an asset without
+provenance reached a `Surface`" is **unrepresentable** rather than merely policed by a check
+somebody can forget to call. This is the same move `GlossaryTerm.definition: Claim` already makes
+in this codebase (faithfulness enforced *by the type*, not by a reviewer's diligence), and it is
+the type-level half of decision **D-02**.
+
+### Their place in the union
+
+The four join `Block = Annotated[Union[...], Field(discriminator="kind")]` in `semantic.py`,
+taking the member count from **eleven to fifteen**. The discriminator values are `"narrative"`,
+`"recognitions"`, `"team"` and `"asset"` — each declared as the member's `kind` `Literal`, so
+round-tripping a `Surface` through JSON resolves the right model without guessing.
+
+### The dispatch contract: every kind renders, or the dispatch fails loud
+
+`render.py`'s `_block_html` is an `isinstance` chain that ends in a bare `return ""`. Today every
+one of the eleven union members has a branch, so that fall-through is **unreachable** — this is
+not a live defect. Adding four kinds without four branches is exactly what makes it reachable, and
+it would fail in the worst available way: a block that was authored, traced and reviewed would
+render as the empty string, with no error anywhere. A surface silently missing its lowlights is
+the precise failure this product exists to prevent.
+
+So the contract, written down before the code exists: **Phase 3 adds four branches AND converts
+the fall-through into a teaching `raise` that names the unhandled `block.kind`.** A new kind
+renders under `docs/design-system.md` tokens, or the dispatch fails loud.
+
+The classes each new block reuses — named here so Phase 3 has **no visual discretion**
+(`--radius: 0`, existing tokens, no new CSS):
+
+| Block | HTML |
+|-------|------|
+| `NarrativeBlock` | `div.block` + `h3.block-h` + one `div.item` per line: the tone label in `span.sg-tag.cat`, the verbatim text in `div.bo` |
+| `RecognitionsBlock` | `div.block` + `h3.block-h` + one `div.item` per recognition: `div.ti` the person, `div.bo` the reason |
+| `TeamBlock` | `div.block` + `h3.block-h` + one `div.chapter` per member: `div.t` the role, `div.ti` the name, `div.bo` the short lines |
+| `AssetBlock` | `div.block` + `figure.diagram` with `div.dh` the heading and `<figcaption>` the caption |
+
 ## Assets — the evidence record
 
 An asset reaches a slide only because its provenance record was complete. This section is the
 record shape and the exact routing for every way it can be incomplete.
+
+```python
+class AssetRecord(BaseModel):
+    """A content-addressed file plus its provenance. A missing minimum ⇒ missing[], not a slide."""
+    key: str                        # the spec-local handle (the `assets:` mapping key)
+    file: str                       # repo-relative path, root-contained
+    sha256: str                     # content address of the FILE BYTES (hashlib.sha256)
+    folder: str                     # provenance minimum 1/3
+    date: str                       # provenance minimum 2/3 — ISO-8601 YYYY-MM-DD
+    event: str                      # provenance minimum 3/3 — the event label
+    link: Optional[str] = None      # REQUIRED iff stands_in_for == "values"
+    stands_in_for: Optional[Literal["values"]] = None
+    caption: Optional[str] = None
+    alt: Optional[str] = None
+```
+
+**Why the record is the evidence, and not the image.** `Source.transcript` is a `str`, and
+`Source.content_hash()` hashes that string — so **an image can never be a `Source`**. Any design
+that tries to make the binary the evidence fights the spine. Instead the *asset record text* is
+the `Source`, and the image's identity lives inside it as the `sha256` hex string. That hash is a
+literal substring of the record, so it traces verbatim like any other field via
+`Trace.from_source`, and the span-containment gate keeps its teeth over the provenance claims.
+
+**Why `stands_in_for` is author-declared and never inferred.** Deciding "is this a BI screenshot
+standing in for values?" from a filename, a folder or the image itself would be the composer
+forming an opinion about content — the exact instinct faithful-not-suggestive forbids. The author
+declares it; the loader enforces the consequence (a deep link, or the asset is not placed).
+
+### The routing — no discretion left to the implementer
+
+| Condition | Outcome | Disclosure |
+|-----------|---------|------------|
+| any of `folder` / `date` / `event` absent or empty | not placed; no `AssetBlock` minted | `asset {key!r}: provenance field {field!r} is absent — the minimum is folder + date + event label; disclosed, never placed` |
+| `stands_in_for == "values"` and `link` absent or empty | not placed | `asset {key!r}: a screenshot standing in for values requires a deep link to the report; disclosed, never placed` |
+| `file` missing on disk, or its `sha256` ≠ the recorded value | not placed | `asset {key!r}: file {file!r} does not match its recorded content address — refusing to place a file that is not the one the record describes` |
+| `file` path escapes the project root | **`ValueError`** — fail loud, **not** `missing[]` | mirrors `casespec.load_case_spec`'s root containment: a refusal, not an absence |
+| all three minimums present, the link present when required, and the hash matches | an `AssetBlock` is minted, with ≥1 `Trace` into the record | — |
+
+The third row is the substitution case: a record that describes image A while image B sits on
+disk. Placing it would publish a picture the record does not vouch for, so the content address is
+checked at placement time, not trusted from authoring time.
+
+**Determinism of placed images** (measured in `01-RESEARCH`): media parts are numbered in add
+order, so iterating `assets:` in **spec file order** keeps `ppt/media/image1..N` stable across
+renders; and two byte-identical images produce **one** media part, because python-pptx
+content-deduplicates.
 
 ## Determinism, and the extras it needs
 
