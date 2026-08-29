@@ -43,10 +43,11 @@ import zipfile
 from collections.abc import Iterator
 from pathlib import Path
 
+# _corpus_scan is the sibling test helper (leading underscore == not collected by pytest).
+# pytest's default "prepend" import mode puts tests/ on sys.path, so it resolves without a
+# tests package. (Comment sits at the section head: a comment BETWEEN these imports is the
+# one arrangement isort and black cannot agree on — DEF-15.)
 import pytest
-
-# Sibling test helper (leading underscore == not collected by pytest). pytest's default
-# "prepend" import mode puts tests/ on sys.path, so this resolves without a tests package.
 from _corpus_scan import scan_real_looking
 from pydantic import BaseModel
 from typer.testing import CliRunner
@@ -170,7 +171,9 @@ def test_committed_binaries_and_asset_names_are_synthetic(tmp_path: Path) -> Non
     scanned_parts = 0
     for pptx in binaries:
         parts = _pptx_text_parts(pptx)
-        assert parts, f"{pptx.name} yielded no text parts — the binary scan went vacuous"
+        assert (
+            parts
+        ), f"{pptx.name} yielded no text parts — the binary scan went vacuous"
         for name, text in parts:
             leaks = _scan_weekly(text)
             assert not leaks, (
@@ -180,14 +183,18 @@ def test_committed_binaries_and_asset_names_are_synthetic(tmp_path: Path) -> Non
             scanned_parts += 1
     # A .pptx carries dozens of xml/.rels parts; the floor guards the EXTRACTOR, so a rename
     # of the part suffixes cannot quietly turn this scan into a no-op.
-    assert scanned_parts >= 20, f"only {scanned_parts} parts scanned — extraction looks broken"
+    assert (
+        scanned_parts >= 20
+    ), f"only {scanned_parts} parts scanned — extraction looks broken"
 
     # Asset FILENAMES are published content too (they appear in the spec, the page, the repo).
     asset_names = sorted(p.name for p in (CORPUS / "assets").rglob("*") if p.is_file())
     assert asset_names, "no committed assets to scan — the corpus lost its asset arm"
     for name in asset_names:
         leaks = _scan_weekly(name)
-        assert not leaks, f"real-looking nomenclature in asset filename {name!r}: {sorted(leaks)}"
+        assert (
+            not leaks
+        ), f"real-looking nomenclature in asset filename {name!r}: {sorted(leaks)}"
 
     # Non-vacuous: the SAME extraction + scan trips on a planted leak inside a zip's slide xml,
     # and a binary media part alongside it does not blind the extractor.
@@ -196,13 +203,11 @@ def test_committed_binaries_and_asset_names_are_synthetic(tmp_path: Path) -> Non
         z.writestr("ppt/slides/slide1.xml", "<a:t>owner: Jean-Luc Picard</a:t>")
         z.writestr("ppt/media/image1.png", b"\x89PNG\r\n\x1a\n not text")
     hits = {
-        leak
-        for _name, text in _pptx_text_parts(planted)
-        for leak in _scan_weekly(text)
+        leak for _name, text in _pptx_text_parts(planted) for leak in _scan_weekly(text)
     }
-    assert "Jean-Luc Picard" in hits, (
-        f"the binary arm does not discriminate — a planted slide-text leak passed: {hits}"
-    )
+    assert (
+        "Jean-Luc Picard" in hits
+    ), f"the binary arm does not discriminate — a planted slide-text leak passed: {hits}"
 
 
 def test_template_is_byte_copy_of_fixture() -> None:
@@ -677,14 +682,16 @@ def test_build_from_foreign_cwd_honors_root(tmp_path: Path, monkeypatch) -> None
     written = build_weekly_site(out, root=REPO_ROOT)
 
     strays = sorted(p.relative_to(foreign_cwd) for p in foreign_cwd.rglob("*"))
-    assert not strays, (
-        f"a foreign-cwd build wrote into the cwd — paths a caller never named: {strays}"
-    )
+    assert (
+        not strays
+    ), f"a foreign-cwd build wrote into the cwd — paths a caller never named: {strays}"
     assert written, "build_weekly_site wrote nothing"
-    assert any((out / "fonts").glob("*.woff2")), (
-        "a foreign-cwd build emitted no self-hosted fonts — root= is only half-honored"
-    )
-    assert (CORPUS / "ids.json").read_bytes() == ledger_before, (
+    assert any(
+        (out / "fonts").glob("*.woff2")
+    ), "a foreign-cwd build emitted no self-hosted fonts — root= is only half-honored"
+    assert (
+        CORPUS / "ids.json"
+    ).read_bytes() == ledger_before, (
         "the foreign-cwd build did not re-save the COMMITTED ledger idempotently"
     )
 
@@ -937,9 +944,9 @@ def test_build_weekly_author_flag_is_real_and_plumbed(tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
     page = (out / _report_page_name()).read_text(encoding="utf-8")
     assert "Kira Meru" in page, "--author did not reach the rendered weekly byline"
-    assert _content_fingerprint() == before, (
-        "an --author override build moved a committed file under content/"
-    )
+    assert (
+        _content_fingerprint() == before
+    ), "an --author override build moved a committed file under content/"
 
     refused = runner.invoke(
         app,

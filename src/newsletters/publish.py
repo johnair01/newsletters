@@ -64,7 +64,9 @@ def _is_previous_assembly(out: Path) -> bool:
     index = out / "index.html"
     if not index.is_file():
         return False
-    from .render import GENERATED_MARKER  # in-package; kept lazy beside the CLI's lazy style
+    from .render import (
+        GENERATED_MARKER,
+    )  # in-package; kept lazy beside the CLI's lazy style
 
     try:
         return GENERATED_MARKER in index.read_text(encoding="utf-8", errors="ignore")
@@ -103,7 +105,12 @@ def assemble_site(
             f"refusing to overwrite {out} — it is a FILE, not a directory. assemble_site only "
             "replaces a directory that proves it is a previous assembly; pick a new --out."
         )
-    if out.is_dir() and any(out.iterdir()) and not force and not _is_previous_assembly(out):
+    if (
+        out.is_dir()
+        and any(out.iterdir())
+        and not force
+        and not _is_previous_assembly(out)
+    ):
         raise FileExistsError(
             f"refusing to overwrite {out} — it is non-empty and does not prove it is a previous "
             "assembly of THIS tool (that takes BOTH the .nojekyll chrome AND the generated-by "
