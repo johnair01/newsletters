@@ -40,9 +40,13 @@ import re
 from collections.abc import Iterator
 from pathlib import Path
 
+# Sibling test helper (leading underscore == not collected by pytest). pytest's default
+# "prepend" import mode puts tests/ on sys.path, so this resolves without a tests package.
+from _corpus_scan import scan_real_looking
 from pydantic import BaseModel
 from typer.testing import CliRunner
 
+from newsletters import weeklyspec
 from newsletters.adapters._timestamps import EPOCH_ZERO
 from newsletters.adapters.email_adapter import EmailAdapter
 from newsletters.cli import app
@@ -52,16 +56,14 @@ from newsletters.semantic import Claim
 from newsletters.site import Ledger, Site
 from newsletters.specspan import absent
 from newsletters.templates import REPORT
-from newsletters.weeklyspec import (
-    _ASSET_PROVENANCE_ABSENT,
-    _RECOGNITIONS_KEY,
-    load_weekly_spec,
-)
 from newsletters.weeklysite import build_weekly_site, build_weekly_surfaces
+from newsletters.weeklyspec import load_weekly_spec
 
-# Sibling test helper (leading underscore == not collected by pytest). pytest's default
-# "prepend" import mode puts tests/ on sys.path, so this resolves without a tests package.
-from _corpus_scan import scan_real_looking  # noqa: E402
+# The two module-private disclosure constants are reached through the MODULE rather than
+# imported by name, so this file's imports stay one-per-line (DEF-15: isort and black disagree
+# on every parenthesized multi-line import until isort gets a `profile = "black"`).
+_ASSET_PROVENANCE_ABSENT = weeklyspec._ASSET_PROVENANCE_ABSENT
+_RECOGNITIONS_KEY = weeklyspec._RECOGNITIONS_KEY
 
 # The committed corpus lives under the repo root (mirror test_modulesite's anchor).
 REPO_ROOT = Path(__file__).resolve().parent.parent

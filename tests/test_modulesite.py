@@ -35,14 +35,14 @@ import html
 import re
 from pathlib import Path
 
+# Sibling test helper (leading underscore == not collected by pytest). pytest's default
+# "prepend" import mode puts tests/ on sys.path, so this resolves without a tests package.
+from _corpus_scan import scan_real_looking
+
 from newsletters.adapters._timestamps import EPOCH_ZERO
 from newsletters.modulesite import build_module_site, build_module_surfaces
 from newsletters.semantic import ClaimsBlock, QuoteBlock
 from newsletters.site import Ledger, Site
-
-# Sibling test helper (leading underscore == not collected by pytest). pytest's default
-# "prepend" import mode puts tests/ on sys.path, so this resolves without a tests package.
-from _corpus_scan import scan_real_looking  # noqa: E402
 
 # The committed corpus lives under the repo root (mirror test_worksurface's anchor).
 REPO_ROOT = Path(__file__).resolve().parent.parent
