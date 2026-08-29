@@ -142,6 +142,20 @@ RICH_SLOTS: dict[str, list[str]] = {
     "NL_NEXT_WEEK": ["finish the thing that slipped"],
 }
 
+# The content mapping for the COMMITTED synthetic template — exactly the four `NL_` names it
+# carries (`Footer` is deliberately absent: it has no reserved prefix, so it is not a slot).
+# Fabricated and neutral, like everything else in this module. `NL_HIGHLIGHTS` carries more than one
+# line so the end-to-end render exercises the clone path rather than only the reuse path.
+COMMITTED_SLOTS: dict[str, list[str]] = {
+    "NL_WEEK_TITLE": ["2026-W35"],
+    "NL_MODULE": ["module-a"],
+    "NL_HIGHLIGHTS": [
+        "shipped the fabricated thing",
+        "closed the loop with the reviewer",
+    ],
+    "NL_LOWLIGHTS": ["the other fabricated thing slipped"],
+}
+
 # Every shape name the rich deck contains, across both slides and INCLUDING group members. The
 # group container and the footer are deliberately unprefixed: they are not slots.
 RICH_SHAPE_NAMES = {
@@ -1171,4 +1185,120 @@ def test_fill_order_does_not_affect_output_bytes(tmp_path: pathlib.Path) -> None
         "editing existing elements in place (it is appending or re-creating them), or something "
         "downstream of the fill has become order-sensitive. Differing parts: "
         f"{differing_parts(forward, backward)}"
+    )
+
+
+# --- SC-5: the SHIPPED template renders a real Surface, end to end ------------------------------
+#
+# Everything above renders through a deck this module built. These two render through
+# `tests/fixtures/weekly/template.pptx` — the artifact the repo actually ships, and therefore the
+# only one whose rendering proves the phase's claim. Both write ONLY into `tmp_path`: the fixture
+# directory stays read-only here (a stray write would break
+# `test_pptx_determinism.py::test_weekly_fixture_corpus_is_exactly_the_committed_template`).
+
+
+def test_sample_surface_renders_through_the_committed_template(
+    tmp_path: pathlib.Path,
+) -> None:
+    """SC-5, and the one place all five phase criteria are asserted against ONE artifact.
+
+    A real `Surface(REPORT, Draft)` goes through the COMMITTED synthetic template and out to disk;
+    every assertion below is made by REOPENING THE WRITTEN FILE. In order: the file exists and is a
+    valid archive (SC-2's container half); the four slots read back line for line (SC-1); the
+    unprefixed `Footer` is untouched, which is what makes the reserved prefix a discriminator rather
+    than a decoration; the generated-by marker and the pinned timestamps (SC-3); the watermark is
+    present and last in z-order (SC-3's gate mirror); and the Surface is still Draft (SC-4).
+    """
+    surface = _sample_weekly_surface()
+    out_path = tmp_path / "weekly-from-committed-template.pptx"
+    template_footer = next(
+        shape
+        for shape in Presentation(str(COMMITTED_TEMPLATE)).slides[0].shapes
+        if shape.name == "Footer"
+    ).text_frame.text
+
+    render_surface_pptx(
+        surface,
+        template=COMMITTED_TEMPLATE,
+        slots=COMMITTED_SLOTS,
+        out_path=out_path,
+    )
+
+    assert out_path.is_file() and out_path.stat().st_size > 0, (
+        "the render reported success but wrote no usable file — the disk entry point is the one "
+        "an operator actually calls"
+    )
+    with zipfile.ZipFile(out_path) as archive:
+        assert archive.testzip() is None, (
+            "the deck rendered from the SHIPPED template fails its own CRC check; whatever the "
+            "in-test decks prove, this is the artifact the repo tells operators to start from"
+        )
+
+    written = Presentation(str(out_path))  # reopen the FILE that was written
+    for name, lines in COMMITTED_SLOTS.items():
+        read_back = [paragraph.runs[0].text for paragraph in _paragraphs(written, name)]
+        assert read_back == lines, (
+            f"slot {name!r} did not read back as written. If a line is missing the clone chain "
+            f"dropped it; if the order differs the clone chain reversed it. Read back: {read_back}"
+        )
+
+    footer = next(shape for shape in written.slides[0].shapes if shape.name == "Footer")
+    assert footer.text_frame.text == template_footer, (
+        "the renderer modified `Footer`, which carries no `NL_` prefix and is therefore NOT a slot. "
+        "An operator's logo, footer and page numbers must survive a render untouched, or the "
+        f"reserved prefix is not discriminating. Found: {footer.text_frame.text!r}"
+    )
+
+    cp = written.core_properties
+    assert cp.category == MARKER, cp.category
+    assert cp.content_status == DRAFT_STATUS, cp.content_status
+    # dcterms:created serializes as W3CDTF and reads back tz-NAIVE (02-RESEARCH Pitfall 8). The
+    # committed template pins 2026-01-01 (`_author_template._FIXED`), so this is falsifiable: a
+    # writer that never touched the timestamps would read back that date, not the epoch.
+    assert cp.created == EPOCH_ZERO.replace(tzinfo=None), cp.created
+    assert cp.modified == EPOCH_ZERO.replace(tzinfo=None), cp.modified
+    assert cp.identifier == surface.id, cp.identifier
+
+    names = [shape.name for shape in written.slides[0].shapes]
+    assert WATERMARK_NAME in names, (
+        "the Draft deck rendered from the shipped template carries no watermark — an unreviewed "
+        f"page that does not look unreviewed. Shapes: {names}"
+    )
+    assert names[-1] == WATERMARK_NAME, (
+        "the watermark is not LAST in shape order, so it is not at the top of z-order and the "
+        f"operator's own boxes can paint over it. Shapes: {names}"
+    )
+
+    assert surface.review.state is ReviewState.DRAFT, (
+        "rendering moved the review gate. Nothing publishes without a human, and the renderer has "
+        f"no write path to the gate at all. State is now: {surface.review.state!r}"
+    )
+
+
+def test_draft_and_published_renders_differ() -> None:
+    """The cheap falsifiability check on the whole gate wiring.
+
+    Same template, same content, two gate states — the decks must be genuinely different artifacts
+    (the watermark, and `cp:contentStatus`). If a future refactor stopped reading
+    `surface.is_published`, both renders would collapse into one and every Draft assertion in this
+    module would stay green. This is the test that notices.
+
+    `part_digest` rather than raw bytes on purpose: it is the implementation-independent comparison,
+    so a red here means the CONTENT is identical, not that two zips happened to compress alike.
+    """
+    draft = render_surface_pptx_bytes(
+        _sample_weekly_surface(),
+        template=COMMITTED_TEMPLATE,
+        slots=COMMITTED_SLOTS,
+    )
+    published = render_surface_pptx_bytes(
+        _sample_weekly_surface(ReviewState.PUBLISHED),
+        template=COMMITTED_TEMPLATE,
+        slots=COMMITTED_SLOTS,
+    )
+
+    assert part_digest(draft) != part_digest(published), (
+        "a Draft render and a Published render of the same content produced identical part "
+        "content. The writer has stopped reading the review gate, so a Draft deck is now "
+        "indistinguishable from an approved one — the watermark and cp:contentStatus say nothing"
     )
