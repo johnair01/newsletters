@@ -4,7 +4,80 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
-## 2026-08-29 (latest) — W26: the seventeenth integration site, and the state tool's third strike
+## 2026-08-29 (latest) — W27: the milestone's frictions, and what each one hardened into
+
+**Friction observed (v1.3 plan 04-03 — the operator recipe, the spec deltas, and the phase sweep).**
+This is the milestone's closing entry, so it names the frictions that recurred across the whole of
+v1.3 rather than only the ones this plan met.
+
+1. **"A test suite and the job that runs it are two different artifacts" cost us THREE times.** W21
+   (`[pptx]` installed by no job), W25 (nine modules named by no job at all), and the shape survives
+   into this phase's design: `tests/test_weeklysite.py` is stdlib-only *by construction* precisely
+   so it can live in `site-integrity`, a job with **no** `0 skipped` assertion, without becoming a
+   green that means "not run". The recurrence is the honest finding: W21's rule was written down
+   and then applied to the extra that tripped it instead of to the class.
+2. **A document that describes the system goes stale the moment the system grows, and nothing
+   notices.** The `--corpus` section of `docs/architecture.md` was stale at **two** corpora — it had
+   survived the module corpus entirely — and `content/README.md` had said "Empty until then" since
+   v1.1. Four documents were wrong and every gate was green, because no gate reads prose.
+3. **A recipe whose commands were never run is a promise.** Two of the six documented commands
+   needed a decision that only *running* them surfaces: `build --corpus weekly` renders the corpus
+   at `content/weekly/` and takes no `--spec` (so an operator's HTML route is "put your spec in the
+   corpus dir", which the doc now says out loud), and there is **no `--workbook` flag** — the export
+   path is a Python-API seam this milestone. Both would have shipped as implied-by-omission lies in
+   a recipe written from the plan rather than from the CLI.
+4. **The `_EMAIL_RE` collision, and why the allowance is narrow and documented.** The committed
+   `.eml` corpus trips the synthetic-content scanner by design: the scanner treats an address SHAPE
+   as its proxy for a real person, and every header of a synthetic message is a shape. The
+   allowance is exactly one reserved domain (RFC 6761 `@example.invalid`), it is documented in the
+   test's own docstring rather than buried in a regex, and it carries a **second planted arm** — a
+   non-reserved address that must still trip *through* the allowance. Without that arm, "ignore the
+   reserved domain" is one refactor away from "ignore every address" and nobody would notice.
+5. **The GSD state tooling mutated `STATE.md` on error and reported values it had not written.**
+   Recorded across W24, W25 and W26; three occurrences is a tool bug, not bad luck.
+6. **DEF-15 taxed every plan in this milestone that added an import.** `isort` has no
+   `profile = "black"`, so the two tools disagree on every parenthesized multi-line import, and each
+   plan paid the same "is this failure mine?" tax and worked around it the same way (module-level
+   access, single-line imports). Four plans have now paid a toll on a fix that is one config line
+   plus one reformat.
+
+**Rules hardened**
+
+- *A gate's location is part of the gate.* When adding a test module, name the CI job it runs in and
+  the extras that job installs, in the module's own docstring — and put any extra-gated test only in
+  a job that **fails on skip**. (The durable form of W21/W25, now applied to the class rather than
+  to the instance that tripped it.)
+- *A doc that names a command is held to the command by a test.* `docs/weekly.md` is parsed by
+  `tests/test_weeklysite.py::test_recipe_commands_match_the_shipped_cli`, which drives its expected
+  set from the **live Typer app** and asserts a floor on how many command lines it found. A
+  doc-contract test that silently matches nothing passes forever and protects nothing.
+- *A doc that describes the system's shape is held to it by a test too.*
+  `test_docs_describe_four_corpora` asserts, for four documents, that the weekly is named and that
+  the specific stale wording is gone — so the **next** corpus turns them red instead of leaving them
+  quietly wrong. It reads the prose with code fences and HTML comments stripped and whitespace
+  collapsed, because the phrase it forbids spans a line break in `architecture.md`: a raw `in` check
+  would have passed on the stale document, which is a guard that only *looks* like one.
+- *Write the recipe from the CLI, then run it.* Every fenced command is executed against the
+  committed corpus in document order before the recipe is believed, and any command that needed
+  editing is fixed **in the doc** and re-run from the top — never corrected in a summary.
+- *Keep an allowance narrow, documented, and armed against its own widening.* State the allowance in
+  a docstring, scope it to the narrowest token that makes it true, and plant an arm that must still
+  trip through it.
+- Unchanged and still in force: **hand-edit `.planning/STATE.md`; run the other GSD state verbs but
+  diff every one of them before committing** (W26).
+
+**Still open**
+
+- **DEF-15 is now four plans old and maintainer-gated.** Recommendation for the PR: pay it in one
+  reviewed commit (`profile = "black"` + one repo-wide reformat), because the alternative is that
+  every future plan re-derives the same workaround.
+- Unchanged from Phases 2 and 3, and still PR-review items: nobody has watched the `pptx` or
+  `weekly` CI jobs go green (no `gh` here), and nobody has opened a deck in real PowerPoint. The
+  `weekly` job's exact command was re-run locally in this plan at **189 passed / 0 skipped**.
+- The compass entry flagged as missing in W26 is now written: `WHERE-WE-ARE.md` carries one entry
+  covering **all three** Phase 4 plans, with the decisions-and-why log and both known limitations.
+
+## 2026-08-29 (earlier) — W26: the seventeenth integration site, and the state tool's third strike
 
 **Friction observed (v1.3 plan 04-02 — wiring the fourth corpus in, and proving the deck)**
 

@@ -7,7 +7,95 @@
 
 ## Where we are right now
 
-**2026-08-29 (newest) — v1.3 PHASE 3 IS DONE: THE WEEKLY IS NOW A DECK, THE NUMBERS COME FROM YOUR
+**2026-08-29 (newest) — v1.3 PHASE 4 IS DONE: THERE IS NOW A WEEKLY YOU CAN READ, AND A RECIPE
+SOMEBODY WHO ISN'T US CAN FOLLOW (plans 04-01, 04-02, 04-03 — the whole phase; branch
+`claude/new-session-gw8tik`).** Phases 1–3 built the machinery. This phase does the two things
+that turn machinery into a product: it ships a **worked example you can open**, and it writes down
+**how you would do this with your own week** — with every command in the instructions actually run
+against the sample before we claimed it works.
+
+- **A fourth corpus, `content/weekly/`, is committed and rendered** (04-01). A fabricated module's
+  week — spec, a saved mail message, an image, a copy of the template deck, its own ledger, the
+  rendered HTML page and the `.pptx` deck — all readable in the repo. It composes to a **Draft**
+  report at `R-001` and renders a page whose honesty panel is populated.
+- **The sample is honest on purpose, and that's the whole point of it.** Three absences are planted
+  and every one reaches the *reviewer*, not just the data: a lane that declares **no KPIs** (which
+  comes from the module config that already existed — real content, not content invented to make a
+  demo look honest), a recognition with **no source** sitting right beside one that resolves, and
+  an image missing its **folder** provenance, refused *before* the file is even read. A sample that
+  hides what it doesn't know teaches the wrong lesson to whoever copies it.
+- **The deck was produced by the shipped command, not by a script we wrote for the occasion.** That
+  matters more than it sounds: it means the sample and the instructions cannot have drifted apart
+  on day one. Re-running that exact command during this plan reproduced the committed deck **byte
+  for byte**.
+- **The fourth corpus is wired into every place that knew about three** (04-02) — the published
+  layout, the `--corpus` selector, both CI gates, and the cross-record strip on all four Libraries.
+  The plan listed sixteen places; there were **seventeen**. The seventeenth was found by a red test
+  in the same command as the change, because a previous session had written that guard as an
+  explicit allow-list instead of a permissive skip. A guard that must be widened tells you it
+  exists.
+- **We proved the two things the sample could not prove about itself** (04-02): the gate for this
+  corpus can actually **fire** (a planted published blocker turns `check --corpus weekly` red, and
+  the test then proves not one committed byte moved), and the committed deck equals a **fresh
+  render** — compared part-by-part, never as raw bytes, because zip compression differs between
+  machines while the contents don't.
+- **`docs/weekly.md` — the recipe — now exists** (04-03): eight steps from "what you need" to "what
+  the sample looks like", each naming the exact command and the trust property it preserves. Two
+  tests keep it honest: one parses **every command line in the document** and checks it against the
+  live CLI (rename a flag and the suite goes red instead of the doc rotting), and one asserts the
+  document still carries its safety statements — read-only, stays on your machine, no network,
+  nothing committed, and nothing publishes.
+- **And we ran the recipe.** All six commands, in document order, against the committed sample:
+  they all worked, the deck regeneration reproduced the committed digest, and `git status` was
+  clean afterwards. A recipe whose commands were never run is a promise, not a proof.
+- **Four documents that said "three corpora" now say four** (04-03) — the architecture spec (whose
+  `--corpus` section was still stale at *two*), the surfaces spec, `CLAUDE.md` and
+  `content/README.md` (which still said "empty until then", untrue since v1.1). The fix is a
+  **test**, not a grep in a summary, so the fifth corpus can't make them stale silently.
+
+**The decisions, and why:**
+
+- **A sibling corpus, not an extension of `content/module`.** One builder per byte-stable corpus is
+  this repo's shape, and the boundary is kept at the *ledger* layer: the weekly counts its own
+  references from `R-001`, so the sample and the real corpora can never collide on a number. The
+  weekly still *binds* the module's lane config — one fabricated module, one source of truth — and
+  that coupling is deliberately loud: change the module config and **both** corpora's committed
+  pages move and both drift gates go red in the same run.
+- **The deck is a corpus artifact, not a download.** It lives *outside* the corpus's `site/`
+  directory, and the assembler copies `site/` only — so a deck cannot reach the published site
+  because of the **layout**, not because someone remembered. Serving it would mean a download link
+  on the page plus a copy step in the assembler: one task, costed and written down, deliberately not
+  built. A served binary is a file whose approval state a reader cannot see; the page, with its
+  honesty panel and its Draft badge, is where we want a reader to land.
+- **`check --corpus weekly` is wired even though it is vacuous today — and we said so out loud.**
+  The gate exempts anything that isn't Published, because publication *is* the trust boundary, and
+  this sample ships Draft. So its exit code proves the wiring and nothing else. What actually
+  carries trust for this corpus is the **honesty panel** — plus the test that proves the gate fires
+  the day somebody does publish. Writing "green" without that sentence would have been the exact
+  dishonesty this project exists to remove.
+
+**Two limitations carried openly, neither patched:**
+
+1. **The weekly record carries only its spec as a source.** Claims contributed by the lane bindings
+   and by the resolved mail message point at sources the surface itself doesn't list. Measured
+   consequence today: nothing — no broken link, no false staleness. It would only matter if this
+   Draft sample were ever published, which is exactly why it ships Draft. Phase 3's code is frozen
+   and reviewed; this is recorded in the builder's own docstring rather than patched under the
+   radar.
+2. **The deck is text-only.** No image reaches a slide this milestone (unchanged from Phase 3, and
+   still written into `docs/weekly-spec.md` with a round-two flag).
+
+**The truths still hold.** Nothing here publishes; every claim on the page traces to the author's
+own file; the whole phase runs with zero AI; the composer wrote none of the words. The one that
+was *strained* and is worth naming: "the trust layer is the product" sits awkwardly beside a gate
+that is vacuous for a Draft corpus — so we did not let the exit code stand in for the trust, we
+said which test carries it instead.
+
+**Still open, and both belong to the PR review:** nobody has watched the `pptx` or `weekly` CI jobs
+go green (no `gh` in this environment), and nobody has opened one of these decks in real
+PowerPoint. Both stated, not assumed.
+
+**2026-08-29 (earlier) — v1.3 PHASE 3 IS DONE: THE WEEKLY IS NOW A DECK, THE NUMBERS COME FROM YOUR
 EXPORT, AND — FINALLY — A ROBOT ACTUALLY RUNS THE TESTS (plan 03-04 of 4, branch
 `claude/new-session-gw8tik`).** Three plans built the weekly's parts; this one turns them into
 something you can send, and closes the gap that made all of it only *look* proven.
@@ -769,6 +857,29 @@ end-to-end; Wave 2 adds the conformance suite + the hard-rule tests.
 
 ## Decisions, and why (teaching log — decide once, don't re-litigate)
 
+- **One builder per byte-stable corpus, and the boundary lives at the ledger** (2026-08-29, v1.3
+  Phase 4 plan 01). The weekly is a *sibling* of the module corpus, not an extension of it: its own
+  builder, its own `content/weekly/`, its own append-only ledger restarting at `R-001`. It binds the
+  module's committed lane config rather than a second fabricated one — one fabricated module, one
+  source of truth — and that single coupling is deliberately loud, because a change to the module
+  config moves both corpora's committed pages and reddens both drift gates in the same run.
+- **The weekly deck is a corpus artifact, not a download** (2026-08-29, v1.3 Phase 4). It lives at
+  `content/weekly/deck/`, outside the corpus's `site/`, and `assemble_site` copies `content/*/site`
+  only — so no deck can reach the published tree **structurally**, not by discipline. Serving one
+  would need a download link on the page plus a copy step in the assembler: a costed **one-task
+  reversal**, recorded and not built. A served binary is a file whose gate state a reader cannot
+  see; the rendered page, honesty panel and Draft badge included, is where a reader should land.
+- **A vacuous gate is wired anyway — and named as vacuous** (2026-08-29, v1.3 Phase 4 plan 02).
+  `check --corpus weekly` exempts every non-Published surface, so a Draft corpus exits 0 whatever it
+  contains. We wired it (the selector must route the builder, never fork the gate), then said in the
+  docstring, the recipe and the summary that the exit code proves the *wiring* and the honesty panel
+  proves the *record* — and proved the gate can fire with a planted published blocker. A green
+  nobody can explain is the failure mode this project exists to remove.
+- **A recipe's commands are executed before the recipe is believed** (2026-08-29, v1.3 Phase 4 plan
+  03). Every fenced command in `docs/weekly.md` was run against the committed sample in document
+  order, and a test now parses each of them against the live CLI, so a renamed flag turns the suite
+  red instead of leaving the document teaching a wrong command with confidence. Copy-pasteable means
+  actually pasted.
 - **One span-minter, promoted rather than copied** (2026-08-29, v1.3 Phase 3 plan 02). The
   machinery that pins each authored sentence to the exact characters of the author's file moved
   *verbatim* out of the Case Spec into `specspan.py`, and both loaders import it. Two copies of a
