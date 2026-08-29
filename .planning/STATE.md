@@ -1,10 +1,11 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.3
-milestone_name: The Weekly, One Shot
-status: planning
-last_updated: "2026-08-29T02:43:46.208Z"
-last_activity: 2026-08-29
+milestone_name: milestone
+status: Roadmap created (4 phases, 6/6 requirements mapped) — ready for `/gsd-plan-phase 1`
+stopped_at: "Roadmap created. Next: `/gsd-plan-phase 1` (Specify + de-risk), then /gsd-autonomous through all phases."
+last_updated: "2026-08-29T03:29:43.100Z"
+last_activity: 2026-08-29 — v1.3 roadmap written (`.planning/ROADMAP.md`); traceability mapped
 progress:
   total_phases: 4
   completed_phases: 0
@@ -53,6 +54,7 @@ Last activity: 2026-08-29 — v1.3 roadmap written (`.planning/ROADMAP.md`); tra
   authorized by the EiC (2026-08-29): no between-phase human stop; the human gate is the
   final PR. The ONE discussion round is done — new questions are decided per the recorded
   recommendations and logged.
+
 - Roadmap mirrors the seed's approved 4-phase table; phase numbering resets to 1–4 (prior
   phase dirs archived under `.planning/milestones/`, `.planning/phases/` empty — no collision).
 

@@ -33,6 +33,7 @@ makes it traced, repeatable, and publishable-by-a-human.
 - **Reuse `Surface(REPORT)`.** The PPTX renderer is an output *format*, not a new semantic kind.
 - **Asset provenance minimum = folder + date + event label.** Deep link optional — **except** a BI
   screenshot standing in for values (WKLY-04), where it is **required**. No provenance → `missing[]`.
+
 - **Template contract = named placeholders, fail-loud** on missing/unknown names. The renderer
   never invents layout.
 
@@ -51,12 +52,15 @@ the live repo before building on them.
 
 1. **pytest** — full suite must not regress (639 green at v1.2 close, plus the Case Spec path
    added since) incl. each phase's new guard tests
+
 2. **lint-imports** — contracts KEPT (AI-optional core; no-external-write). New `[pptx]` writer
    imports must not create a core→extra edge
+
 3. **`newsletters check`** — over **ALL** corpora (`rev1`, `work`, `module`)
 4. **byte-stable double-render** — committed == fresh for every corpus, **extended to `.pptx`**
    under Phase 1's recorded determinism definition (byte-stable, or content-stable = unzipped
    parts byte-identical under normalized zip metadata)
+
 5. **bare-install CI** — untouched; stays the AI-free, extra-free source of truth
 6. **mypy / black / isort** — no-NEW-failures vs the 2026-07-02 baseline (carried)
 
@@ -116,8 +120,8 @@ not shipped features. WKLY-01 is satisfied in Phase 2; WKLY-02 in Phase 3.
      (no new dependency, no core import edge), `lint-imports` contracts stay KEPT, bare-install CI
      is untouched, and any spike scratch code is deleted or lands as a test fixture — never as an
      unguarded import in `src/newsletters/`.
-
 **Plans**: 3 plans (waves 1 -> 2 -> 3, strictly ordered: evidence, then decision, then spec)
+
 - [ ] `01-01-PLAN.md` — Determinism spike: real python-pptx double write across a time boundary, the spike as a durable test (part-digest / byte-equality / negative control), committed evidence, no production surface
 - [ ] `01-02-PLAN.md` — The recorded decision: byte-stable via a declared zip normalization (scoped), the core-properties marker with its read-back assertion, the fill-existing-slides template contract; supersedes the contradicting fixture docstring
 - [ ] `01-03-PLAN.md` — `docs/weekly-spec.md` (schema + the four block kinds field-by-field + the asset-evidence record and its `missing[]` routing); `docs/architecture.md` block-list drift fixed and pointers wired
@@ -252,11 +256,14 @@ Plans are created per phase by `/gsd-plan-phase`; `0/0` means "not yet planned",
 - **DEF-01..DEF-12** — see `.planning/milestones/v1.1-ROADMAP.md` §Deferred (area roll-up,
   project/interview kinds, owner-audit, quarter-editorial, persona/leadership/learning re-cuts,
   MOR/IQ↔Problem, Kpi baseline, DistillPort AI backend, Problem Board).
+
 - **DEF-13** — wire `web/` (the Signals Next.js app) to the real corpus data; until then it
   deploys only as the labeled `/web/` design preview.
+
 - **DEF-14** — adopt the `actions/deploy-pages` environment channel iff the maintainer aligns
   the repo settings (Pages source + environment allowlist); until then gh-pages push is the one
   channel.
+
 - **B1–B20 fix-batch** — maintainer-gated one-test guards
   (`.planning/reviews/2026-07-02-deep-review/07-tests-as-promises.md`).
 
