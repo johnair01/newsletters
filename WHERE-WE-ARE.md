@@ -7,7 +7,40 @@
 
 ## Where we are right now
 
-**2026-08-29 (newest) — v1.3 PHASE 2: THE WRITER EXISTS AND A DECK ACTUALLY GETS WRITTEN
+**2026-08-29 (newest) — v1.3 PHASE 2 IS BUILT: THE PROOF NOW RUNS WHERE IT COUNTS
+(plan 02-03 of 3 — the phase's last, branch `claude/new-session-gw8tik`).** Two things were still
+unproven after the writer existed, and both are now closed:
+
+- **"Rendering the same thing twice gives the same bytes" is now proved *with a control*.** The test
+  renders one Surface, waits **three real seconds**, and renders it again. The wait is the whole
+  point: timestamps inside a `.pptx`'s zip container only tick every two seconds, so two renders in
+  a tight loop are identical *by accident* — a test that did that would have "proved" a stability
+  that does not exist. So next to the green there is now a test asserting the **un-normalized** pair
+  really is different, and different in exactly one field (the clock), with none of the deck's
+  actual content moving. That inequality is what makes the equality mean something. Those raw bytes
+  are captured from *inside* the writer rather than rebuilt alongside it — a rebuilt copy would only
+  ever prove things about the copy.
+- **The shipped template renders a real Surface, end to end, and one test checks everything at
+  once.** A real `Surface(REPORT, Draft)` goes through the template the repo actually ships, out to
+  a file; then the file is reopened and asked: are the four slots exactly what we wrote? Is the
+  `Footer` — which is *not* a slot, because it has no `NL_` prefix — untouched? Is the DRAFT
+  watermark there, on top? Is the generated-by marker readable? Is the Surface still Draft? One
+  artifact, all five phase criteria.
+
+**And the uncomfortable one: our CI has been green for this work without ever running it.** No job
+installed the optional `[pptx]` extra, so *every* pptx test module quietly skipped itself on every
+push — four modules, an `s` in the log where a `.` belonged, and a green that meant "not run". There
+is now a dedicated `pptx` CI job that installs the extra and runs all five modules (117 tests, none
+skipped). The AI-free `bare-install` job is deliberately byte-untouched: it stays the one job that
+proves the deterministic spine runs with zero extras and zero AI. The lesson is logged in `RETRO.md`
+and it generalises past this repo: **a test suite and the job that runs it are two different things,
+and only the second one is evidence.**
+
+Two things still need a human, and both are named rather than assumed: nobody has yet **opened one
+of these decks in real PowerPoint** (this environment has no `.pptx` viewer at all), and the new CI
+job's **first green has not been watched** from here. Both belong to the PR review.
+
+**2026-08-29 (later) — v1.3 PHASE 2: THE WRITER EXISTS AND A DECK ACTUALLY GETS WRITTEN
 (plan 02-02 of 3, branch `claude/new-session-gw8tik`).** Hand it a Surface, an operator's template
 and a `{shape name → lines}` mapping, and it produces a deterministic, watermarked, marked `.pptx`.
 Four things are worth understanding, because they are the *reasoning*, not just the output:
@@ -49,6 +82,8 @@ actually `dc:identifier` — wording only, no behaviour changes).
 Still honest about the green: **no CI job installs `[pptx]` yet**, so all 19 of these tests are
 skipped in CI. That is plan 02-03, together with the double-render determinism proof. And nobody has
 yet opened one of these decks in real PowerPoint — that human look is still the phase's gate.
+*(Superseded by the 02-03 entry above: the `pptx` CI job now exists and the tests run. The
+PowerPoint look is still open.)*
 
 **2026-08-29 (later still) — v1.3 PHASE 2 STARTED: THE RENDERER'S FOUNDATION IS IN `src/`, AND IT
 IS GUARDED BEFORE IT DOES ANYTHING (plan 02-01 of 3, branch `claude/new-session-gw8tik`).** Still no

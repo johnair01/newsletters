@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 02-02-PLAN.md (the writer: binding, fill, watermark, marker, entry points); next: 02-03-PLAN.md (determinism proof + the [pptx] CI job)"
-last_updated: "2026-08-29T05:30:00.000Z"
-last_activity: 2026-08-29 — Phase 2 plan 02-02 executed (the writer)
+stopped_at: "Completed 02-03-PLAN.md (SC-2's determinism battery + the end-to-end render through the shipped template + the [pptx] CI job). Phase 2's three plans are done; next: phase verification, then Phase 3 planning"
+last_updated: "2026-08-29T05:45:00.000Z"
+last_activity: 2026-08-29 — Phase 2 plan 02-03 executed (the proof in CI); Phase 2 plans complete
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 6
-  completed_plans: 5
-  percent: 83
+  completed_plans: 6
+  percent: 100
 ---
 
 # Project State
@@ -25,16 +25,16 @@ See: .planning/PROJECT.md (updated 2026-08-29)
 
 ## Current Position
 
-Phase: Phase 2: Renderer (WKLY-01) — executing (3 plans)
-Plan: 02-02 complete (2/3); next 02-03 (determinism proof + the [pptx] CI job)
-Status: Ready to execute 02-03
-Last activity: 2026-08-29 — Phase 2 plan 02-02 executed (the writer)
+Phase: Phase 2: Renderer (WKLY-01) — all 3 plans complete; awaiting phase verification
+Plan: 02-03 complete (3/3)
+Status: Phase 2 plans complete — verify the phase, then plan Phase 3 (Weekly compose)
+Last activity: 2026-08-29 — Phase 2 plan 02-03 executed (the determinism proof + the [pptx] CI job)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- v1.3: 5 plans complete (roadmap defined 2026-08-29; 4 phases). Phase 1 executed in 3 waves, ~48min total; Phase 2 is 2/3 (~19min so far).
+- v1.3: 6 plans complete (roadmap defined 2026-08-29; 4 phases). Phase 1 executed in 3 waves, ~48min total; Phase 2 executed in 3 waves, ~31min total.
 - v1.2: 2 plans across 2 phases (closed 2026-08-29, archived).
 - v1.1: 12 plans across 4 phases (closed 2026-07-02, archived). v1.0: Phases 1–14 (archived).
 
@@ -43,7 +43,7 @@ Last activity: 2026-08-29 — Phase 2 plan 02-02 executed (the writer)
 | Phase | Plans | Status |
 |-------|-------|--------|
 | 1. Specify + de-risk | 3/3 | Plans complete — awaiting phase verification |
-| 2. Renderer (WKLY-01) | 2/3 | Executing — 02-01 (foundation) + 02-02 (the writer) complete |
+| 2. Renderer (WKLY-01) | 3/3 | Plans complete — awaiting phase verification (SC-1..SC-5 proved locally; the `pptx` job's first CI green and the real-PowerPoint open are PR-review items) |
 | 3. Weekly compose (WKLY-02/03/04) | 0/0 (unplanned) | Not started |
 | 4. Sample corpus + recipe (WKLY-05/06) | 0/0 (unplanned) | Not started |
 
@@ -56,6 +56,7 @@ Last activity: 2026-08-29 — Phase 2 plan 02-02 executed (the writer)
 | Phase 1 P03 | 22min | 3 tasks | 5 files |
 | Phase 2 P01 | 12min | 3 tasks | 8 files |
 | Phase 2 P02 | 7min | 3 tasks | 2 files |
+| Phase 2 P03 | 12min | 3 tasks | 2 files |
 
 **Recent Trend:**
 
@@ -83,6 +84,15 @@ Last activity: 2026-08-29 — Phase 2 plan 02-02 executed (the writer)
   render). An unconditional watermark and a writer with a gate write-path would both have passed a
   one-directional suite. Two amendments were raised for the PR body rather than resolved silently:
   the `cp:contentStatus` tri-state (P-04) and the `cp:identifier`→`dc:identifier` wording (W20).
+
+- Plan 02-03 closed the two things the writer alone could not prove, and one of them was a *gate that
+  never ran*. W21: no CI job installed `[pptx]`, so every pptx test module skipped itself on every CI
+  run — a green that meant "not run". The lesson worth carrying past this phase is that a test suite
+  and the job that runs it are two different artifacts, and only the second one is evidence. The
+  other half is the negative control: the byte-equality proof is now accompanied by an assertion
+  that the UN-normalized pair genuinely differs (in exactly `date_time`), captured from the writer's
+  own output rather than from a rebuilt copy of it — so the green is attributable to the normalizer
+  and not to two writes landing in one second.
 
 ## Accumulated Context
 
@@ -117,6 +127,9 @@ WHERE-WE-ARE.md):
 - [Phase 2-02]: `core_properties.identifier` serializes as `dc:identifier`, NOT `cp:identifier` — a wording correction to the decision note's field table (W20), recorded in code, with no code consequence. Fix the note's sentence when it is next touched.
 - [Phase 2-02]: The fill primitive INHERITS and never constructs. python-pptx has no bullet API, so paragraph 0 is the formatting carrier and each extra line is a `deepcopy` of it; `text_frame.text =` is banned on an operator's shape (it erases rPr AND pPr) and `TextFrame.fit_text()` is banned outright by name (it reads system-installed font files, making output machine-dependent — T-02-15).
 - [Phase 2-02]: The Draft watermark is ADDED, never toggled off an operator-supplied element. W13 disproved the decision note's *mechanical* objection (removal is deterministic and exactly reversible), but the binding one stands: a toggle would make correct gate behaviour depend on operator template content. Recorded in code so it is not reopened.
+- [Phase 2-03]: The negative control's RAW pair is INTERCEPTED from the writer — a temporary wrapper around `newsletters.pptx_writer.normalize_opc_zip` records the bytes `prs.save(BytesIO)` produced — rather than rebuilt in the fixture. Rebuilding an "identical" presentation would be a second implementation of the writer, drifting from the first exactly as a second normalizer would. The fixture raises if it captures anything other than two payloads, so a refactor cannot silently leave the control measuring nothing.
+- [Phase 2-03]: NO TEST MAY COMPARE A RENDERED DECK TO THE TEMPLATE — not bytes, not `part_digest`, not part order. Opening the committed template and saving it unchanged already yields a different digest (`""` core properties serialize as `<cp:keywords></cp:keywords>` and come back as `<cp:keywords/>`), and part emission order differs between a built package and a reopened one. Both are python-pptx load-path properties, not regressions. **Phase 4's golden deck must come from the writer, never from re-saving the template.**
+- [Phase 2-03]: The `[pptx]` extra gets its OWN CI job (`pptx renderer + adapter (WKLY-01)`), on the `merge-block` precedent: it is a non-AI optional extra, and `bare-install` stays the canonical AI-free, extra-free source of truth (PKG-03), byte-untouched. Phase 4 EXTENDS this job with the golden committed==fresh gate — it is the only job where a pptx test executes rather than skips.
 - [Phase 2-02]: The `Surface` annotation is imported under `TYPE_CHECKING` only, so `pptx_writer.py`'s module level stays stdlib-only and the bare-install claim in its docstring — which two CI guards are written against — remains literally true rather than approximately true.
 
 ### Pending Todos
@@ -126,13 +139,20 @@ None. (B1–B20 fix-batch backlog remains parked in `reviews/2026-07-02-deep-rev
 ### Blockers/Concerns
 
 - [v1.3 Phase 1 — RETIRED 2026-08-29]: The `.pptx` byte-stability risk is closed. Measured on a real 3s-separated double write (`.planning/notes/2026-08-29-pptx-determinism-evidence.json`) and recorded as BYTE-STABLE via a declared post-save OPC-zip normalization, scoped to a fixed (python-pptx, zlib) pair; re-proved every run by `tests/test_pptx_determinism.py` (negative control included).
-- [v1.3 Phase 2 — OPEN]: No CI job installs `[pptx]`, so every pptx test module — including
-  `tests/test_pptx_writer.py`, added by 02-01 — is `s`-skipped in CI today (02-RESEARCH Pitfall 7 /
-  W21). Until plan 02-03 adds the job, Phase 2's green is a LOCAL green. Stated, not assumed.
+- [v1.3 Phase 2 — RETIRED 2026-08-29 by plan 02-03]: W21 (no CI job installed `[pptx]`, so every
+  pptx test module `s`-skipped itself on every run) is closed at the mechanism. The `pptx` job now
+  installs `.[test,pptx]` and runs all five pptx modules; the job's exact command was verified
+  locally at **117 passed, 0 skipped**. `bare-install` is byte-untouched.
 
-- [v1.3 Phase 2 — OPEN]: "A normalized deck opens correctly in real PowerPoint" is still unproven
-  here (no `.pptx` consumer in this environment). It is the recorded `checkpoint:human-verify` for
-  the PR review, owned by plan 02-03 — not a phase gap.
+- [v1.3 Phase 2 — OPEN, PR-REVIEW]: "A normalized deck opens correctly in real PowerPoint" is still
+  unproven here (no `.pptx` consumer in this environment; `libreoffice-core` ships without the
+  Impress filters). Recorded `checkpoint:human-verify` for the PR review under
+  `workflow.human_verify_mode: end-of-phase` — not a phase gap, and not a mid-phase stop.
+
+- [v1.3 Phase 2 — OPEN, PR-REVIEW]: The new `pptx` job's FIRST CI green has not been observed from
+  this environment (no `gh` CLI). Its command is proved locally; the run itself is a PR-review
+  confirmation. Stated, not assumed — the whole point of W21 is that an unobserved job is not
+  evidence.
 
 - [v1.3 Phase 3]: `render.py`'s block dispatch ends in a bare `return ""`. It is UNREACHABLE today (all eleven union members have a branch), but adding four kinds without four branches makes it reachable and silent. The contract is now written in `docs/weekly-spec.md` §The four block kinds: Phase 3 adds four branches AND converts the fall-through into a teaching `raise` naming `block.kind`.
 - [Carried]: `v1.1`/`v1.2` tags exist locally only — the environment's git proxy drops tag pushes; maintainer creates them via the Releases UI.
@@ -153,7 +173,28 @@ mine?" tax. Maintainer-gated because the fix is a repo-wide reformat.
 
 ## Session Continuity
 
-Last session: 2026-08-29 — Phase 2 plan 02-01 executed (the renderer's foundation, no rendering
+Last session: 2026-08-29 — Phase 2 plan 02-03 executed, completing the phase's three plans. The
+determinism battery now proves SC-2 against the WRITER: two renders of one Surface across a real
+3-second gap are byte-identical, the un-normalized pair (captured from inside the writer) differs in
+exactly `date_time` with no part content moving, and `part_digest` matches on the raw pair — the
+assertion Phase 4's committed==fresh gate inherits. A sample `Surface(REPORT, Draft)` renders end to
+end through the COMMITTED synthetic template with all five phase criteria asserted against the
+reopened file, including that the unprefixed `Footer` was left untouched. W21 is closed: the new
+`pptx` CI job installs `.[test,pptx]` and runs all five pptx modules (verified locally: 117 passed,
+0 skipped), while `bare-install` stays byte-untouched. Full suite 595 passed / 64 skipped (baseline
+588/64); `lint-imports` KEPT; determinism `--check` exit 0; zero committed binary changed.
+Stopped at: Completed 02-03-PLAN.md; next: Phase 2 verification, then Phase 3 planning
+Resume file: `.planning/phases/02-renderer/02-03-SUMMARY.md`
+
+Preceding session: 2026-08-29 — Phase 2 plan 02-02 executed (the writer itself): the group-recursive
+binding map with its five teaching refusals, the reuse-and-clone fill primitive that inherits the
+operator's 20pt bold bullets rather than constructing its own, the Draft watermark, the OPC
+core-properties marker and the two public entry points — 19 tests, every deck assertion made by
+reopening the WRITTEN file, and the two hardest properties asserted in their inverted form too.
+Stopped at: Completed 02-02-PLAN.md; next: 02-03-PLAN.md (the proof + the [pptx] CI job)
+Resume file: `.planning/phases/02-renderer/02-02-SUMMARY.md`
+
+Earlier: 2026-08-29 — Phase 2 plan 02-01 executed (the renderer's foundation, no rendering
 yet). The Phase 1 spike's OPC normalizer moved VERBATIM into `src/newsletters/pptx_writer.py`
 (git recorded a rename) and `tests/fixtures/weekly/_determinism.py` was deleted, leaving exactly one
 normalizer in the writer path; all three `sys.path.insert` lines and the stale `__pycache__` went
@@ -169,7 +210,7 @@ Stopped at: Completed 02-01-PLAN.md; next: 02-02-PLAN.md (the writer itself)
 Resume file: `.planning/phases/02-renderer/02-01-SUMMARY.md` + `02-02-PLAN.md` +
 `.planning/notes/2026-08-29-pptx-determinism-decision.md` (binding input, not open questions)
 
-Preceding session: 2026-08-29 — Phase 1 plan 01-03 executed: `docs/weekly-spec.md` written (281
+Earlier: 2026-08-29 — Phase 1 plan 01-03 executed: `docs/weekly-spec.md` written (281
 lines — the eight-key annotated schema, the seven loader rules, the four block kinds field by
 field, the asset-evidence record and its `missing[]` routing), `docs/architecture.md`'s
 pre-existing `diagram`/`glossary` block-list drift fixed in the same edit that added the four new

@@ -13,7 +13,7 @@ contract = named placeholders, fail-loud on missing/unknown names.
 
 ### Renderer
 
-- [ ] **WKLY-01**: A composed weekly `Surface(REPORT)` renders deterministically to `.pptx`
+- [x] **WKLY-01**: A composed weekly `Surface(REPORT)` renders deterministically to `.pptx`
   through an operator-supplied template deck: python-pptx stays behind the `[pptx]` extra
   (writer and loader share it), core spine untouched, bare-install CI green. The determinism
   gate extends to `.pptx` — byte-stable double-render (fixed epoch per `EPOCH_ZERO`, sorted
@@ -78,7 +78,7 @@ contract = named placeholders, fail-loud on missing/unknown names.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WKLY-01 | Phase 2 — Renderer | In progress (02-01 foundation + 02-02 the writer done; SC-1/SC-3/SC-4 proved. Remaining: 02-03 — the determinism proof and the `[pptx]` CI job, without which SC-2 and SC-5's "in CI" are unmet) |
+| WKLY-01 | Phase 2 — Renderer | Complete (02-01 foundation · 02-02 the writer · 02-03 the proof + CI). All five phase SCs implemented and proved by tests that read the WRITTEN file back: SC-1 seven fail-loud/binding tests · SC-2 double render across a real 3s gap with its negative control and `part_digest` · SC-3 marker + watermark, asserted in both directions · SC-4 gate untouched, `semantic.py` byte-unchanged · SC-5 lazy `[pptx]` import + a `pptx` CI job whose exact command runs 117 passed / **0 skipped**. **Two confirmations remain for the PR review, recorded not hidden:** the new job's first observed CI green (no `gh` in the build environment) and the real-PowerPoint open (A8 — no `.pptx` consumer here) |
 | WKLY-02 | Phase 3 — Weekly compose | Pending |
 | WKLY-03 | Phase 3 — Weekly compose | Pending |
 | WKLY-04 | Phase 3 — Weekly compose | Pending |

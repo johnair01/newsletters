@@ -160,9 +160,9 @@ placeholder contract are inputs, not discoveries).
 
 **Plans**: 3 plans (waves 1 -> 2 -> 3, strictly ordered: foundation, then the writer, then the proof in CI)
 
-- [ ] `02-01-PLAN.md` — Foundation: promote the OPC normalizer into `src/newsletters/pptx_writer.py` (verbatim, stdlib-only, bare-importable) and retire the fixture copy (closes IN-03); the two AI-optional boundary guards + the `python-pptx>=1.0.2` floor pin; the in-test deck builders that make the fail-loud contract testable without regenerating the committed template
-- [ ] `02-02-PLAN.md` — The writer: group-recursive binding with five teaching refusals (SC-1), the reuse-and-clone fill primitive that inherits the operator's formatting, the Draft watermark + core-properties marker + the two public entry points, each landed with the tests that read the written file back (SC-3, SC-4)
-- [ ] `02-03-PLAN.md` — The proof in CI: double-render byte equality across a real 3-second gap with its negative control and `part_digest` (SC-2), a sample `Surface(REPORT)` rendered end to end through the committed synthetic template, and the first CI job that installs `[pptx]` so the pptx tests run instead of skipping (SC-5, W21)
+- [x] `02-01-PLAN.md` — Foundation: promote the OPC normalizer into `src/newsletters/pptx_writer.py` (verbatim, stdlib-only, bare-importable) and retire the fixture copy (closes IN-03); the two AI-optional boundary guards + the `python-pptx>=1.0.2` floor pin; the in-test deck builders that make the fail-loud contract testable without regenerating the committed template
+- [x] `02-02-PLAN.md` — The writer: group-recursive binding with five teaching refusals (SC-1), the reuse-and-clone fill primitive that inherits the operator's formatting, the Draft watermark + core-properties marker + the two public entry points, each landed with the tests that read the written file back (SC-3, SC-4)
+- [x] `02-03-PLAN.md` — The proof in CI: double-render byte equality across a real 3-second gap with its negative control and `part_digest` (SC-2), a sample `Surface(REPORT)` rendered end to end through the committed synthetic template, and the first CI job that installs `[pptx]` so the pptx tests run instead of skipping (SC-5, W21)
 
 ### Phase 3: Weekly compose
 

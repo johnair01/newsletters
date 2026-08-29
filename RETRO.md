@@ -4,7 +4,44 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
-## 2026-08-29 (latest) — Writing the writer: the near-misses were all *one-directional* proofs
+## 2026-08-29 (latest) — W21: the gate that was green because it never ran
+
+**Friction observed (v1.3 plan 02-03 — the proof in CI)**
+
+1. **Four test modules had been silently skipping in CI for the whole milestone, and the CI was
+   green the entire time.** No job installed the `[pptx]` extra, so every pptx module hit its
+   `pytest.importorskip` and skipped itself on every push. The signal was there in plain sight — an
+   `s` in the log where a `.` belonged — and nobody was reading for it, because *the check was
+   green*. Two plans' worth of renderer work was defended by a gate that had never executed a single
+   line of it. This is the phase's most RETRO-worthy friction by a distance: it is not a bug in a
+   test, it is a bug in what we accepted as evidence.
+2. **The negative control was one convenience away from being deleted.** With the writer now
+   existing, "two renders are byte-identical" *looks* like proof on its own. It is not: two writes
+   inside one wall-clock second are already byte-identical (DOS timestamps have 2-second
+   granularity), so without the control the assertion is green whenever the machine is fast. The
+   control now carries that sentence inside its own failure message, addressed to whoever next
+   thinks it is redundant.
+3. **Getting the un-normalized pair honestly took more thought than the assertion did.** The obvious
+   route — rebuild an "identical" presentation in the fixture — would have been a second
+   implementation of the writer, and the control would have been measuring *it*, not the writer.
+   Intercepting the bytes on their way into the normalizer keeps the measurement on the real code
+   path; the fixture now raises if it ever captures the wrong number of payloads, so the day the
+   writer stops routing through it we get a red instead of a silently hollow control.
+
+**Rules hardened**
+
+- *A test suite and the job that runs it are two different artifacts, and only the second one is
+  evidence.* Adding a test behind an optional extra without adding (or extending) the CI job that
+  installs it produces a green that means "not run". When a test module can skip itself, the plan
+  that adds it owes an assertion that its command runs with **0 skipped** in the environment that
+  matters.
+- *Read the shape of a green, not just its colour.* `s` where a `.` was expected is a failure
+  report. Where a suite is allowed to skip, the count of skips is part of the result.
+- *When you need a "before" measurement of your own code, intercept it — never re-implement it.* A
+  reconstructed input measures the reconstruction. And make the interception fail loud if it stops
+  intercepting, or the control quietly becomes decoration.
+
+## 2026-08-29 (earlier) — Writing the writer: the near-misses were all *one-directional* proofs
 
 **Friction observed (v1.3 plan 02-02 — the writer)**
 
