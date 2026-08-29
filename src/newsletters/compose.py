@@ -56,7 +56,7 @@ from .site import Ledger, slugify
 from .swimlane import SectionBinding, SwimlaneLoad
 from .templates import REPORT
 
-__all__ = ["compute_delta", "compose_module_report"]
+__all__ = ["addressed", "compute_delta", "compose_module_report"]
 
 # --------------------------------------------------------------------------- #
 # compute_delta — the pure Δ derivation (COMP-02).
@@ -188,8 +188,15 @@ def _dedup_in_order(items: list[str]) -> list[str]:
     return out
 
 
-def _addressed(claim: Claim) -> bool:
-    """True iff the claim is traced AND every trace is content-addressed (the trust gate)."""
+def addressed(claim: Claim) -> bool:
+    """True iff the claim is traced AND every trace is content-addressed (the trust gate).
+
+    PUBLIC because ``weeklyspec.build_weekly_report`` shares it: this is the ONE predicate that
+    decides whether a claim may reach a reviewed block, and two copies of a trust predicate drift
+    exactly as two normalizers do (``pptx_writer``'s "ONE normalizer contract" precedent). It lost
+    its leading underscore for the same reason ``specspan``'s three names did — a name two modules
+    import is not private.
+    """
     return claim.is_traced and all(trace.is_addressed for trace in claim.evidence)
 
 
@@ -211,7 +218,7 @@ def _compose_kpi_item(
     direction: Optional[Literal["up", "down"]] = None
     if len(endpoints) >= 2:
         first, last = endpoints[0], endpoints[-1]
-        if _addressed(first) and _addressed(last):
+        if addressed(first) and addressed(last):
             delta, direction = compute_delta(first.text, last.text)
         if delta is None:
             missing.append(
@@ -271,7 +278,7 @@ def _quote_block(quote: Optional[Claim], owner: Optional[str]) -> Optional[Quote
     A missing/untraced/unaddressed quote yields ``None`` (the caller discloses the gap); quote text
     is NEVER fabricated.
     """
-    if quote is None or not _addressed(quote):
+    if quote is None or not addressed(quote):
         return None
     return QuoteBlock(text=quote.text, attr=owner or _UNASSIGNED_ATTR)
 
@@ -356,7 +363,7 @@ def compose_module_report(
         # Traced-or-missing: SELECT content-addressed claims; route the rest to missing[].
         kept: list[Claim] = []
         for claim in binding.claims:
-            if _addressed(claim):
+            if addressed(claim):
                 kept.append(claim)
             else:
                 missing.append(claim.text)

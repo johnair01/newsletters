@@ -59,22 +59,41 @@ from pydantic import BaseModel, Field
 
 from ._yaml_loader import load_config as _parse_config
 from .adapters._timestamps import EPOCH_ZERO
+from .compose import addressed, compute_delta
 from .semantic import (
     AssetBlock,
     AssetRecord,
+    Block,
     Claim,
+    ClaimsBlock,
     Distillation,
+    KpiItem,
+    KpiStripBlock,
+    NarrativeBlock,
+    NarrativeItem,
+    ProseBlock,
+    Recognition,
+    RecognitionsBlock,
+    Review,
     Source,
+    Surface,
+    TeamBlock,
+    TeamMember,
     Trace,
 )
+from .site import slugify
 from .specspan import GATE, SpanMinter, absent
+from .swimlane import SectionBinding
+from .templates import REPORT
 
 __all__ = [
+    "CONNECTIVE_CONSTANTS",
     "AuthoredAsset",
     "AuthoredMember",
     "AuthoredRecognition",
     "WeeklySpec",
     "WeeklySpecLoad",
+    "build_weekly_report",
     "load_weekly_spec",
 ]
 
@@ -786,4 +805,254 @@ def load_weekly_spec(
     )
     return WeeklySpecLoad(
         source=source, spec=spec, distillation=distillation, assets=placed
+    )
+
+
+# ---------------------------------------------------------------------------- #
+# The composer: a loaded weekly becomes a Draft ``Surface(REPORT)``.
+#
+# THE CONNECTIVE CONSTANTS ARE THE ONLY TEXT THIS MODULE AUTHORS. Every other string on a
+# composed surface is a substring of the author's own file. They are declared here — public, and
+# collected in ``CONNECTIVE_CONSTANTS`` — so the editorialization guard has an allowlist to
+# consult and a composer that starts writing prose has to change a declared constant to do it.
+# Each carries NO numeral and NO fact: they name the record and label its sections, nothing more.
+# ---------------------------------------------------------------------------- #
+LEAD_HEADING = "The week, as authored"
+LEAD_TEXT = (
+    "This weekly was authored by hand and lifted into the reviewed record without "
+    "interpretation: every line below is the author's own, traced to a span of the file they "
+    "wrote, carried in their order and never summarised, merged or reordered. Anything the spec "
+    "leaves blank — and every image whose provenance record was incomplete — is disclosed in the "
+    "honesty panel rather than filled in. Org-specific slots stay in config and are never "
+    "rendered as claims."
+)
+CLAIMS_HEADING = "Bound sections — every claim traced"
+HIGHLIGHTS_HEADING = "What went well"
+LOWLIGHTS_HEADING = "What did not"
+RECOGNITIONS_HEADING = "Recognitions"
+TEAM_HEADING = "The team"
+# The eyebrow fallback, used only when the author named no module. A constant, never a join of
+# the author's values: joining ``week`` and ``module`` would be composer-authored connective text
+# dressed up as identity.
+EYEBROW_FALLBACK = "Report · weekly"
+
+CONNECTIVE_CONSTANTS = frozenset(
+    {
+        LEAD_HEADING,
+        LEAD_TEXT,
+        CLAIMS_HEADING,
+        HIGHLIGHTS_HEADING,
+        LOWLIGHTS_HEADING,
+        RECOGNITIONS_HEADING,
+        TEAM_HEADING,
+        EYEBROW_FALLBACK,
+    }
+)
+
+_NO_BINDINGS = (
+    "no section bindings were supplied — no KPI strip and no claims block on this weekly"
+)
+_NO_KPIS = "section {heading!r} declares no KPIs — strip omitted"
+_UNCOMPUTABLE_DELTA = (
+    "KPI {label!r} declares a movement whose two endpoints are not both content-addressed "
+    "numeric values — no delta derived (never a fabricated 0)"
+)
+_ONE_ENDPOINT = (
+    "KPI {label!r} declares period movement but only one endpoint is usable — no delta derived "
+    "(never a fabricated 0)"
+)
+
+
+class _MintedClaims:
+    """Hand back the claim that was minted FOR a given authored line — once, in file order.
+
+    A weekly may legitimately repeat a line across tones, so the lookup consumes: the first
+    unused claim with the same topic and the identical text wins. Matching on text alone (or
+    reusing one claim twice) would attach a rendered line to a span that belongs to a different
+    occurrence — the span-swap failure, one layer up.
+    """
+
+    def __init__(self, claims: Sequence[Claim]) -> None:
+        self._claims = list(claims)
+        self._used: set[int] = set()
+
+    def take(self, topic: str, text: str) -> Optional[Claim]:
+        for index, claim in enumerate(self._claims):
+            if index in self._used:
+                continue
+            if claim.topics == [topic] and claim.text == text:
+                self._used.add(index)
+                return claim
+        return None
+
+
+def _kpi_item(item: KpiItem, endpoints: Sequence[Claim], missing: list[str]) -> KpiItem:
+    """One display KPI. The Δ comes from ``compose.compute_delta`` — NEVER re-derived here.
+
+    Same policy as ``compose._compose_kpi_item``: two content-addressed numeric endpoints yield a
+    delta; a declared movement that cannot be computed is DISCLOSED, never fabricated as a 0.
+    """
+    delta: Optional[str] = None
+    direction: Optional[str] = None
+    if len(endpoints) >= 2:
+        first, last = endpoints[0], endpoints[-1]
+        if addressed(first) and addressed(last):
+            delta, direction = compute_delta(first.text, last.text)
+        if delta is None:
+            missing.append(_UNCOMPUTABLE_DELTA.format(label=item.label))
+    elif len(endpoints) == 1:
+        missing.append(_ONE_ENDPOINT.format(label=item.label))
+    return KpiItem(label=item.label, value=item.value, delta=delta, dir=direction)
+
+
+def build_weekly_report(
+    load: WeeklySpecLoad,
+    *,
+    author: str,
+    bindings: Sequence[SectionBinding] = (),
+    surface_id: Optional[str] = None,
+) -> Surface:
+    """Assemble a loaded weekly into a **Draft** ``Surface(REPORT)`` at ``EPOCH_ZERO``.
+
+    THE BLOCK ORDER IS FIXED AND ASSERTED BY TEST — it is part of the determinism claim, and a
+    composer free to reorder blocks is a composer forming an opinion about what mattered this
+    week::
+
+        ProseBlock (the declared connective lead)
+        KpiStripBlock*      (one per binding that declares KPIs, in binding order)
+        ClaimsBlock         (every content-addressed binding claim, in binding order)
+        NarrativeBlock      (highlights, in file order)
+        NarrativeBlock      (lowlights, in file order)
+        RecognitionsBlock
+        TeamBlock
+        AssetBlock*         (the PLACED assets, in ``assets:`` file order)
+
+    An empty section produces NO block: a weekly with no lowlights gets no lowlight block, and
+    the absence is already in ``missing[]`` where the reviewer sees it. An empty block would
+    render an empty ``div.block`` and assert nothing.
+
+    FAITHFUL, NOT SUGGESTIVE. Authored lines are carried byte-verbatim, one ``NarrativeItem`` per
+    line, in the author's order, each beside the ``Claim`` minted for that same occurrence. The
+    only text this function authors is the declared connective constants above.
+
+    IDENTITY IS THE AUTHOR'S, NEVER A JOIN. ``title`` is ``week`` and ``eyebrow`` is ``module``,
+    each carried whole; when one is absent the loader has already disclosed it and the fallback
+    is the file stem (title) or a declared constant (eyebrow) — never the other value borrowed.
+
+    THE GATE IS NOT TOUCHED. This function never calls ``approve()``, ``open_pull_request()`` or
+    ``publish()``; it returns ``Draft`` and the recorded human review is the only way out
+    (CLAIMS.md's first hard rule; threat T-03-09, asserted by a source grep in the test suite).
+
+    ``bindings`` is the adapter seam (``swimlane.SectionBinding``): its KPIs become strips and its
+    claims are filtered through the SHARED ``compose.addressed`` trust predicate — a claim that is
+    untraced or whose trace is not content-addressed never reaches a block; its text is disclosed.
+    """
+    spec = load.spec
+    missing: list[str] = list(load.distillation.missing)
+    minted = _MintedClaims(load.distillation.claims)
+
+    # Pitfall 8: ``Surface.model_config`` sets ``validate_assignment=True``. Build the whole list
+    # first and pass it to the constructor; never mutate ``surface.blocks`` afterwards.
+    blocks: list[Block] = [ProseBlock(heading=LEAD_HEADING, text=LEAD_TEXT)]
+
+    strips: list[Block] = []
+    kept_claims: list[Claim] = []
+    for binding in bindings:  # BINDING ORDER — never a set, never a sort
+        if binding.kpi_items:
+            items = [
+                _kpi_item(
+                    kpi,
+                    (
+                        binding.kpi_endpoints[index]
+                        if index < len(binding.kpi_endpoints)
+                        else []
+                    ),
+                    missing,
+                )
+                for index, kpi in enumerate(binding.kpi_items)
+            ]
+            strips.append(KpiStripBlock(heading=binding.heading, items=items))
+        else:
+            missing.append(_NO_KPIS.format(heading=binding.heading))
+        for claim in binding.claims:  # traced-or-missing, via the SHARED predicate
+            if addressed(claim):
+                kept_claims.append(claim)
+            else:
+                missing.append(claim.text)
+        missing.extend(binding.missing)
+    if not bindings:
+        missing.append(_NO_BINDINGS)
+    blocks.extend(strips)
+    if kept_claims:
+        blocks.append(ClaimsBlock(heading=CLAIMS_HEADING, claims=kept_claims))
+
+    for key, tone, heading in (
+        (_HIGHLIGHTS_KEY, "highlight", HIGHLIGHTS_HEADING),
+        (_LOWLIGHTS_KEY, "lowlight", LOWLIGHTS_HEADING),
+    ):
+        lines = getattr(spec, key)
+        if not lines:
+            continue  # the absence is already disclosed; an empty block asserts nothing
+        blocks.append(
+            NarrativeBlock(
+                heading=heading,
+                tone=tone,
+                items=[
+                    NarrativeItem(text=line, claim=minted.take(key, line))
+                    for line in lines
+                ],
+            )
+        )
+
+    if spec.recognitions:
+        blocks.append(
+            RecognitionsBlock(
+                heading=RECOGNITIONS_HEADING,
+                recognitions=[
+                    Recognition(
+                        person=recognition.person,
+                        reason=recognition.reason,
+                        evidence=list(recognition.evidence),
+                    )
+                    for recognition in spec.recognitions
+                ],
+            )
+        )
+
+    placed_keys = {block.asset.key for block in load.assets}
+    if spec.team:
+        blocks.append(
+            TeamBlock(
+                heading=TEAM_HEADING,
+                members=[
+                    TeamMember(
+                        name=member.name,
+                        role=member.role,
+                        lines=list(member.lines),
+                        # A photo key that names no PLACED asset renders as no photo. The
+                        # disclosure was written at load time; guessing an image would be worse
+                        # than showing the reviewer that one is missing.
+                        photo=(
+                            member.photo if member.photo in placed_keys else None
+                        ),
+                    )
+                    for member in spec.team
+                ],
+            )
+        )
+
+    blocks.extend(load.assets)  # already in ``assets:`` file order, already provenance-checked
+
+    stem = Path(load.source.id).stem
+    return Surface(
+        id=surface_id or f"weekly-{slugify(stem).removeprefix('weekly-') or 'spec'}",
+        template=REPORT,
+        title=spec.week or stem.replace("-", " ").title(),
+        eyebrow=spec.module or EYEBROW_FALLBACK,
+        blocks=blocks,
+        traces=[load.source],
+        missing=missing,
+        byline=[author],
+        review=Review(policy=REPORT.review_policy, author=author),
+        created=EPOCH_ZERO,
     )

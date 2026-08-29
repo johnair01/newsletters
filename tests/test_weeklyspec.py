@@ -1,6 +1,6 @@
 """Weekly Spec authoring path — proof suite (ported from ``tests/test_casespec.py``).
 
-Two committed fixtures under ``tests/fixtures/weekly/`` drive the LIVE validator/loader
+Three committed fixtures under ``tests/fixtures/weekly/`` drive the LIVE validator/loader/composer
 (``src/newsletters/weeklyspec.py``) end to end. Assertions are on STRUCTURE and INVARIANTS; where
 a concrete value is needed it is read from the SAME parsed fixture the loader reads, so the test
 tracks the corpus rather than freezing a magic string.
@@ -12,6 +12,9 @@ tracks the corpus rather than freezing a magic string.
   span-swap regression's non-vacuity.
 * ``weekly-sparse.yml`` — only ``week`` + ``module``: every other key must be disclosed in
   ``Distillation.missing[]``, never fabricated.
+* ``weekly-editorial-bait.yml`` — six highlights arranged as a summarizable, an out-of-order and
+  a mergeable pair. It exists to BAIT a composer into "improving" the author's lines; the
+  composer must carry all six separately, in file order, byte-identical.
 
 The invariants proven here (the Case Spec's eight, plus two the weekly earns):
 
@@ -32,6 +35,14 @@ The invariants proven here (the Case Spec's eight, plus two the weekly earns):
 9. **Root containment** — a path outside ``root`` RAISES (a refusal, not a ``missing[]`` entry).
 10. **Determinism + read-only** — two loads are byte-identical, the JSON round-trips, and the
     fixture's mtime and size are unchanged after a load.
+11. **Asset routing** — every row of ``docs/weekly-spec.md`` §"The routing" proved BOTH ways:
+    each refusal carries the spec's exact disclosure string while a well-formed asset in the same
+    document still places; a path escaping the root (directly or through a symlink) RAISES and
+    contributes nothing to ``missing[]``; the image is hashed and never decoded.
+12. **The composer** — a Draft ``Surface(REPORT)`` at ``EPOCH_ZERO`` in a fixed, asserted block
+    order, byte-identical across two composes, that never advances the gate; plus the
+    editorialization guard: every block string is authored or a declared connective constant,
+    with a planted-paraphrase non-vacuity arm.
 """
 
 from __future__ import annotations
@@ -43,15 +54,21 @@ import pytest
 
 import newsletters.weeklyspec
 from newsletters._yaml_loader import load_config
+from newsletters.adapters._timestamps import EPOCH_ZERO
+from newsletters.compose import addressed, compute_delta
 from newsletters.distill.faithfulness import SpanContainmentFaithfulness, _normalize
-from newsletters.semantic import Source
+from newsletters.semantic import Claim, KpiItem, ReviewState, Source, Trace
+from newsletters.swimlane import SectionBinding
+from newsletters.templates import REPORT
 from newsletters.weeklyspec import (
+    CONNECTIVE_CONSTANTS,
     AuthoredAsset,
     AuthoredMember,
     AuthoredRecognition,
     WeeklySpec,
     WeeklySpecLoad,
     _validate,
+    build_weekly_report,
     load_weekly_spec,
 )
 
@@ -59,7 +76,8 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 FIXTURE_DIR = REPO_ROOT / "tests" / "fixtures" / "weekly"
 FULL = "weekly-full.yml"
 SPARSE = "weekly-sparse.yml"
-FIXTURES = [FULL, SPARSE]
+BAIT = "weekly-editorial-bait.yml"
+FIXTURES = [FULL, SPARSE, BAIT]
 AUTHOR = "author-x"
 
 # The eight keys, in schema order. Duplicated here ON PURPOSE: importing the module's own
@@ -1004,3 +1022,283 @@ def test_committed_full_fixture_places_exactly_its_one_complete_asset() -> None:
     ), disclosures
     # The team photo names the one asset that DID place, so it is not disclosed.
     assert "photo key" not in disclosures
+
+
+# --------------------------------------------------------------------------- #
+# 12 — build_weekly_report: fixed order, Draft on arrival, and no editorializing
+# --------------------------------------------------------------------------- #
+
+# The fixed block order, pinned as a list of discriminator values. It is part of the
+# determinism claim: a composer free to reorder blocks is a composer forming an opinion about
+# what matters this week.
+_FULL_BLOCK_ORDER = ["prose", "narrative", "narrative", "recognitions", "team", "asset"]
+
+# Keys that carry STRUCTURE or PROVENANCE rather than display text. The editorialization scan
+# skips them on purpose: `kind`/`tone` are discriminators, `topics` are schema field names, and a
+# trace's ids/hashes/offsets address the record instead of being read from it.
+_STRUCTURAL_KEYS = {
+    "kind",
+    "tone",
+    "topics",
+    "evidence",
+    "source_id",
+    "content_hash",
+    "start",
+    "end",
+    "confidence",
+}
+
+
+def _report(name: str = FULL, **kwargs):
+    return build_weekly_report(_load(name), author=AUTHOR, **kwargs)
+
+
+def _display_strings(block) -> list[str]:
+    """Every string a reader could SEE in one block (structure and provenance excluded)."""
+    out: list[str] = []
+
+    def walk(node) -> None:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key not in _STRUCTURAL_KEYS:
+                    walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+        elif isinstance(node, str) and node:
+            out.append(node)
+
+    walk(block.model_dump(mode="json"))
+    return out
+
+
+def _blocks_of(surface, kind: str) -> list:
+    return [b for b in surface.blocks if b.kind == kind]
+
+
+def _unauthored(surface, transcript: str) -> list[str]:
+    """Every block string the AUTHOR did not write and the composer did not declare.
+
+    Containment is tested through the faithfulness gate's OWN normal form (``_normalize``:
+    case-folded, whitespace-collapsed) rather than a raw ``in``. A YAML block scalar's parsed
+    value is folded — its line breaks and indentation differ from the file — so a raw substring
+    test would flag the author's own multi-line highlight as editorializing while still letting a
+    reformatted paraphrase through. The gate's normal form is the honest comparator: it forgives
+    whitespace and nothing else.
+    """
+    haystack = _normalize(transcript)
+    return [
+        text
+        for block in surface.blocks
+        for text in _display_strings(block)
+        if _normalize(text) not in haystack and text not in CONNECTIVE_CONSTANTS
+    ]
+
+
+def test_weekly_report_is_a_draft_report_surface_at_epoch_zero() -> None:
+    """SC-5's composition half: Draft on arrival, REPORT template, EPOCH_ZERO, author bylined."""
+    surface = _report()
+    assert surface.template is REPORT
+    assert surface.review.state is ReviewState.DRAFT
+    assert not surface.is_published
+    assert surface.created == EPOCH_ZERO
+    assert surface.byline == [AUTHOR] and surface.review.author == AUTHOR
+    assert surface.traces == [_load(FULL).source]
+
+
+def test_weekly_report_block_order_is_fixed() -> None:
+    """The order is asserted, not assumed — and the assets keep their `assets:` file order."""
+    surface = _report()
+    assert [b.kind for b in surface.blocks] == _FULL_BLOCK_ORDER
+    narratives = _blocks_of(surface, "narrative")
+    assert [b.tone for b in narratives] == ["highlight", "lowlight"]
+    assert [b.asset.key for b in _blocks_of(surface, "asset")] == ["bay-cycle-throughput"]
+
+
+def test_weekly_report_omits_empty_blocks_and_the_absence_is_disclosed() -> None:
+    """A weekly with nothing but its two scalars gets the lead and NOTHING else — honestly."""
+    surface = _report(SPARSE)
+    assert [b.kind for b in surface.blocks] == ["prose"], surface.blocks
+    disclosures = "\n".join(surface.missing)
+    for key in ("highlights", "lowlights", "recognitions", "team", "assets"):
+        assert f"field '{key}' is absent or empty" in disclosures, key
+
+
+def test_weekly_report_title_and_eyebrow_are_carried_verbatim_never_joined() -> None:
+    """Identity is the author's two strings, each whole — a join would be authored connective text."""
+    parsed = _parsed(FULL)
+    surface = _report()
+    assert surface.title == parsed["week"]
+    assert surface.eyebrow == parsed["module"]
+
+
+def test_weekly_report_falls_back_without_inventing_when_identity_is_absent(
+    tmp_path: pathlib.Path,
+) -> None:
+    """No week/module: the title comes from the FILE, the eyebrow from a declared constant."""
+    path = tmp_path / "bay-week-nine.yml"
+    path.write_text('highlights:\n  - "One line."\n', encoding="utf-8")
+    surface = build_weekly_report(
+        load_weekly_spec(path, root=tmp_path), author=AUTHOR
+    )
+    assert surface.title == "Bay Week Nine"
+    assert surface.eyebrow in CONNECTIVE_CONSTANTS
+
+
+def test_weekly_report_cannot_publish_without_the_gate() -> None:
+    """publish() without a recorded approval raises, and the state does NOT advance."""
+    surface = _report()
+    with pytest.raises(ValueError, match="No auto-publish"):
+        surface.publish()
+    assert surface.review.state is ReviewState.DRAFT, "a failed publish must not advance"
+
+    # The gate — a recorded approval — is the one legitimate path, proving the refusal above
+    # is the POLICY and not a broken publish.
+    surface.publish(reviewer=AUTHOR)
+    assert surface.is_published and surface.review.reviewer == AUTHOR
+
+
+def test_weekly_composer_has_no_gate_advancing_call() -> None:
+    """T-03-09: the module cannot auto-publish, because it names no gate-advancing method."""
+    code = pathlib.Path(newsletters.weeklyspec.__file__).read_text(encoding="utf-8")
+    for call in (".publish(", ".approve(", ".open_pull_request("):
+        assert call not in code, f"{call!r} appears in weeklyspec.py — the composer returns Draft"
+
+
+@pytest.mark.parametrize("name", FIXTURES)
+def test_two_composes_of_two_loads_are_byte_identical(name: str) -> None:
+    """SC-5: composing the same file twice, through two independent loads, is byte-identical."""
+    first = build_weekly_report(_load(name), author=AUTHOR)
+    second = build_weekly_report(_load(name), author=AUTHOR)
+    assert first.model_dump_json() == second.model_dump_json()
+
+
+def test_unaddressed_binding_claims_never_reach_a_claims_block() -> None:
+    """The shared trust predicate, applied: untraced / un-addressed claims go to missing[]."""
+    load = _load(FULL)
+    good = next(c for c in load.distillation.claims if addressed(c))
+    untraced = Claim(text="planted untraced binding claim")
+    unaddressed = Claim(
+        text="planted un-addressed binding claim",
+        evidence=[Trace(source_id=load.source.id)],  # no content_hash -> not addressed
+    )
+    binding = SectionBinding(
+        heading="Bay throughput", claims=[good, untraced, unaddressed]
+    )
+    surface = build_weekly_report(load, author=AUTHOR, bindings=[binding])
+
+    claims_blocks = _blocks_of(surface, "claims")
+    assert len(claims_blocks) == 1
+    kept = {c.text for c in claims_blocks[0].claims}
+    assert good.text in kept, "non-vacuity: the addressed claim DID reach the block"
+    assert untraced.text not in kept and unaddressed.text not in kept
+    assert untraced.text in surface.missing and unaddressed.text in surface.missing
+    # A binding with no KPIs discloses the omitted strip rather than rendering an empty one.
+    assert "section 'Bay throughput' declares no KPIs — strip omitted" in surface.missing
+    assert not _blocks_of(surface, "kpi")
+
+
+def test_kpi_delta_comes_from_compute_delta_and_is_never_re_derived() -> None:
+    """The composer imports the ONE delta derivation; the strip sits before the claims block."""
+    load = _load(FULL)
+    endpoint_source = Source(
+        id="endpoints", context="test", transcript="9 then 12", timestamp=EPOCH_ZERO
+    )
+    start = Claim(text="9", evidence=[Trace.from_source(endpoint_source, 0, 1)])
+    close = Claim(text="12", evidence=[Trace.from_source(endpoint_source, 7, 9)])
+    binding = SectionBinding(
+        heading="Bay throughput",
+        kpi_items=[KpiItem(label="Bay cycles", value="12")],
+        kpi_endpoints=[[start, close]],
+        claims=[start, close],
+    )
+    surface = build_weekly_report(load, author=AUTHOR, bindings=[binding])
+
+    strips = _blocks_of(surface, "kpi")
+    assert len(strips) == 1 and strips[0].heading == "Bay throughput"
+    item = strips[0].items[0]
+    assert (item.label, item.value) == ("Bay cycles", "12")
+    assert (item.delta, item.dir) == compute_delta(start.text, close.text)
+    kinds = [b.kind for b in surface.blocks]
+    assert kinds.index("kpi") < kinds.index("claims"), "the strip precedes its claims"
+
+
+def test_team_photo_is_none_unless_its_asset_was_placed(
+    tmp_path: pathlib.Path,
+) -> None:
+    """The composed member carries photo=None for an unplaced key — and the key when placed."""
+    surface = _report()
+    members = _blocks_of(surface, "team")[0].members
+    by_name = {m.name: m for m in members}
+    placed = {b.asset.key for b in _blocks_of(surface, "asset")}
+    photos = {m.name: m.photo for m in members}
+    assert any(p in placed for p in photos.values() if p), "non-vacuity: one photo survived"
+    for member in members:
+        assert member.photo is None or member.photo in placed
+        assert member.lines, f"{member.name} lost their authored lines"
+    assert by_name, "the team block must carry members"
+
+
+def test_composer_carries_baited_lines_separately_in_order_byte_identical() -> None:
+    """The bait fixture: nothing summarized, nothing sorted, nothing merged."""
+    parsed = _parsed(BAIT)
+    surface = _report(BAIT)
+    highlights = [b for b in _blocks_of(surface, "narrative") if b.tone == "highlight"]
+    assert len(highlights) == 1, "one block per tone — never one merged narrative"
+    rendered = [item.text for item in highlights[0].items]
+    assert rendered == parsed["highlights"], "lines were reordered, merged or rewritten"
+    assert len(rendered) == 6, "the bait must carry all three pairs"
+    for item in highlights[0].items:
+        assert item.claim is not None and item.claim.text == item.text
+        assert addressed(item.claim), "each carried line stands on its own addressed span"
+
+
+@pytest.mark.parametrize("name", FIXTURES)
+def test_every_block_string_is_authored_or_a_declared_connective_constant(
+    name: str,
+) -> None:
+    """FAITHFUL, NOT SUGGESTIVE, enforced: no text reaches a block that the author did not write.
+
+    The only exceptions are the declared connective constants — the lead and the section labels,
+    each numeral-free and fact-free — which are listed in ``CONNECTIVE_CONSTANTS`` so a composer
+    that starts authoring prose has to change a declared allowlist to do it.
+    """
+    load = _load(name)
+    surface = build_weekly_report(load, author=AUTHOR)
+    for text in _unauthored(surface, load.source.transcript):
+        raise AssertionError(
+            f"block string {text!r} is neither authored in the spec file nor a declared "
+            f"connective constant — the composer editorialized"
+        )
+
+
+def test_editorialization_guard_detects_a_planted_paraphrase() -> None:
+    """NON-VACUITY: plant a paraphrase into a composed surface; the scan above must fire.
+
+    Mirrors ``test_abstraction_guard.py::test_guard_detects_planted_leak`` — a guard whose
+    firing has never been observed is a vibe, not a proof.
+    """
+    load = _load(BAIT)
+    surface = build_weekly_report(load, author=AUTHOR)
+    dumped = surface.model_dump(mode="json")
+    paraphrase = "In short, the rota rewrite was the week's big win."
+    planted = False
+    for block in dumped["blocks"]:
+        if block["kind"] == "narrative":
+            block["items"][0]["text"] = paraphrase
+            planted = True
+            break
+    assert planted, "the fixture must compose at least one narrative block"
+
+    tampered = type(surface).model_validate(dumped)
+    offenders = _unauthored(tampered, load.source.transcript)
+    assert paraphrase in offenders, offenders
+    # ...and the untampered surface is clean, so the guard is discriminating, not indiscriminate.
+    assert _unauthored(surface, load.source.transcript) == []
+
+
+def test_connective_constants_author_no_facts() -> None:
+    """The allowlist's own contract: no numeral, and short enough to be connective only."""
+    assert CONNECTIVE_CONSTANTS, "an empty allowlist would make the guard trivially strict"
+    for text in CONNECTIVE_CONSTANTS:
+        assert not any(ch.isdigit() for ch in text), f"{text!r} carries a numeral"

@@ -149,6 +149,7 @@ _WEEKLYSPEC_FIXTURE_VALUES = frozenset(
         # period labels
         "2374-W35",
         "2374-W36",
+        "2374-W37",
         # module + crew names (the confidentiality-risk class)
         "Shuttlebay Operations",
         "Miles O'Brien",
