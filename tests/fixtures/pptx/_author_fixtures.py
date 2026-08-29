@@ -12,19 +12,45 @@ fork — a title+body slide, a free text box, a table, speaker notes, a chart, a
 empty slide. The docstring of each builder pins the EXPECTED adapter routing (claims vs unextracted);
 `test_pptx_golden.py` asserts those expectations against the LIVE adapter.
 
-BYTE-REPRODUCIBILITY (threat T-06-11). Unlike openpyxl, python-pptx does NOT stamp the save-time
-wall-clock into the OOXML zip — it writes a fixed zip-entry `date_time` and only embeds a timestamp
-when we set `core_properties.created`/`.modified`. We pin those to a FIXED datetime, so a plain
-`prs.save()` is already byte-stable across runs (probed against python-pptx 1.0.2). For the
-SmartArt fixture (which rebuilds the zip after XML injection) we additionally route through
-`_normalize_zip`, which rewrites every entry's `date_time` to a fixed constant and re-deflates in
-entry order — belt-and-braces so the injected-XML path stays byte-stable too. The generator uses no
-`now()` and no `random`, so `sha256(file)` is stable across processes.
+BYTE-REPRODUCIBILITY (threat T-06-11). CORRECTED 2026-08-29 — the original wording of this
+paragraph claimed "python-pptx does NOT stamp the save-time wall-clock into the OOXML zip — it
+writes a fixed zip-entry `date_time`". **That claim is false, and it is superseded here.** A real
+double write 3 seconds apart, measured and committed in
+`.planning/notes/2026-08-29-pptx-determinism-evidence.json`, records `raw_bytes_equal: false` with
+`varying_zip_fields: ["date_time"]`: `_ZipPkgWriter.write()` passes a **str** arcname to
+`zipfile.writestr` (`pptx/opc/serialized.py:234-242`), so stdlib stamps `time.localtime()` on every
+entry. The likely cause of the original claim is a same-second probe — two `prs.save()` calls
+inside one wall-clock second ARE byte-identical (DOS zip timestamps have 2-second granularity), so
+a probe without a delay "confirms" a stability that is not there. What IS true, and is what the
+committed corpus actually rests on: every fixture is finalized through `_finalize` ->
+`_normalize_zip`, which rewrites each entry's `date_time` to a fixed constant and re-deflates in
+entry order. **The fixtures are byte-stable because they route through `_normalize_zip`, not
+because `prs.save()` is stable.** We additionally pin `core_properties.created`/`.modified` to a
+FIXED datetime and recurse into the chart fixture's embedded `.xlsx`; the generator uses no `now()`
+and no `random`, so `sha256(file)` is stable across processes.
 
-NOTE on the DETERMINISM ASSERTION (06-04 Task 2): the load-bearing property ADAPT-06 needs is
-determinism on the PARSED `Source` (identical bytes -> byte-identical `model_dump_json`, L5), NOT
-byte-identical re-saved `.pptx` files. Byte-reproducible fixtures are a nice-to-have for a clean
-`git diff`; the Source-determinism property is the one the golden test asserts.
+ONE NORMALIZER CONTRACT (recorded 2026-08-29). `_normalize_zip` here and `normalize_opc_zip` in
+`tests/fixtures/weekly/_determinism.py` are the SAME contract with two call sites: rewrite every
+entry with a fixed `date_time`, preserve emitted entry order and `external_attr`, never touch part
+bytes. The weekly module is **canonical** (it also pins `create_system=0` and an explicit
+`compress_type`); Phase 2 moves it to `src/newsletters/_pptx_writer.py` behind the `[pptx]` extra,
+and `_author_fixtures._normalize_zip` delegates to it **then, not now**. Delegating now would swap
+this file's `_FIXED_ZIP_DATE_TIME` (2026-01-01) for the canonical DOS epoch (1980-01-01) and
+rebuild all nine golden binaries — a corpus regeneration inside a spec phase, which is exactly the
+stop-the-line bug the Phase 1 plan gates against. Two normalizers would otherwise drift for the
+same reason two epoch sentinels would; the delegation is scheduled, not optional.
+
+NOTE on the DETERMINISM ASSERTION (06-04 Task 2) — **SUPERSEDED for the WRITER side by
+`.planning/notes/2026-08-29-pptx-determinism-decision.md`.** The original reasoning, which remains
+correct for the LOADER side (ADAPT-06) and is kept here rather than deleted: the load-bearing
+property ADAPT-06 needs is determinism on the PARSED `Source` (identical bytes -> byte-identical
+`model_dump_json`, L5), NOT byte-identical re-saved `.pptx` files; byte-reproducible fixtures are a
+nice-to-have for a clean `git diff`, and the Source-determinism property is the one the golden test
+asserts. What changed: the deferred risk A3 ("determinism on re-saved `.pptx` bytes") was the exact
+question Phase 1 was asked to settle, and it is now settled for the writer — BYTE-STABLE via a
+declared post-save zip normalization, scoped to a fixed (python-pptx, zlib) pair, with the
+implementation-independent `part_digest` as the cross-environment assertion. Loader-side scope
+unchanged; writer-side scope now stronger.
 
 THE 1x1 PNG (Pillow-free, gotcha A2). `add_picture` needs valid image bytes but does not require us
 to call Pillow: we embed a constant ~68-byte 1x1 transparent PNG byte literal via `io.BytesIO`, so

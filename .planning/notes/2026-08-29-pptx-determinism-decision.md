@@ -275,6 +275,18 @@ prefix that makes the contract survive contact with a real deck.
   *both* directions. The **mechanism** is reused verbatim (`_yaml_loader.load_config` → `safe_load`
   only, `read_text` normalization, `Trace.from_source`, the `_SpanMinter` forward-only cursor, root
   containment, `config:` bound but never claimed); the *schema* is not.
+- **ONE normalizer contract, two call sites.** `tests/fixtures/weekly/_determinism.normalize_opc_zip`
+  is **canonical**; `tests/fixtures/pptx/_author_fixtures._normalize_zip` (the pre-existing ADAPT-06
+  golden-corpus normalizer) is the same contract — rewrite every entry with a fixed `date_time`,
+  preserve emitted entry order and `external_attr`, never touch part bytes — minus `create_system=0`
+  and the explicit `compress_type`, plus a recursion that pins the chart fixture's embedded `.xlsx`
+  core properties. Phase 2 moves the canonical one to `src/newsletters/_pptx_writer.py` behind the
+  `[pptx]` extra, and `_author_fixtures._normalize_zip` delegates to it **then, not now**:
+  delegating today would swap that file's `2026-01-01` entry constant for the canonical DOS epoch
+  and rebuild all nine golden `.pptx` binaries — a corpus regeneration inside a spec phase. The
+  argument for a single contract is the `EPOCH_ZERO` argument applied to normalizers: a second
+  implementation of "make this deterministic" drifts from the first exactly as a second epoch
+  sentinel would, and the drift is invisible until a gate that trusted both goes red.
 - **Recommend a floor pin `python-pptx>=1.0.2` in Phase 2.** python-pptx makes no documented
   byte-output-stability promise across versions, and the `[pptx]` extra is currently unpinned.
   `tests/test_ai_optional.py::test_pptx_extra_declared` compares `_req_name(r)`, which strips

@@ -1,5 +1,10 @@
 """The `.pptx` determinism spike, as a durable test (ROADMAP Phase-1 criterion 2; de-risks WKLY-01).
 
+THE DECISION THIS MODULE ENFORCES: `.planning/notes/2026-08-29-pptx-determinism-decision.md`
+(BYTE-STABLE via a declared post-save zip normalization, scoped to a fixed (python-pptx, zlib)
+pair; `part_digest` is the implementation-independent committed==fresh assertion). Its measured
+evidence is `.planning/notes/2026-08-29-pptx-determinism-evidence.json`.
+
 A determinism decision without evidence is a vibe, and a determinism decision whose evidence ran
 once in a scratch shell is a vibe with a longer half-life. This module is the spike made
 reproducible: it performs a REAL python-pptx double write, separated by a real 3-second gap, on
