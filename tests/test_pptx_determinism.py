@@ -38,14 +38,16 @@ ONCE (module-scoped fixture) and shares the two payloads across all assertions.
 `_render_bytes` is the Phase 2 writer in miniature — open the template, fill the `NL_`-named shapes,
 pin the marker + gate core properties + `EPOCH_ZERO` timestamps, save to `BytesIO`. It lives in
 `tests/` deliberately and NEVER in `src/`: this phase produces measurement, not production surface
-(ROADMAP criterion 5). The `pptx` import sits behind the standard `pytestmark` skip guard, the only
-sanctioned way for `tests/` to touch the optional extra — that is what keeps the bare-install CI gate
-green.
+(ROADMAP criterion 5). The `pptx` import sits behind `pytest.importorskip`, the only sanctioned way
+for `tests/` to touch the optional extra at module scope — that is what keeps the bare-install CI
+gate green. A `pytestmark` skipif can NOT guard a module-level import: the marker is evaluated per
+collected test item, AFTER pytest has already imported the module, so a bare install would error at
+collection instead of skipping (the sibling pptx tests all use `importorskip` or lazy in-function
+imports for exactly this reason).
 """
 
 from __future__ import annotations
 
-import importlib.util
 import io
 import pathlib
 import sys
@@ -54,12 +56,13 @@ import zipfile
 
 import pytest
 
-pytestmark = pytest.mark.skipif(
-    importlib.util.find_spec("pptx") is None,
-    reason="optional [pptx] extra (python-pptx) not installed",
+# `importorskip` raises Skipped at module level, which pytest converts into a module skip — so a
+# bare install (no [pptx] extra) SKIPS this file instead of erroring at collection. Same pattern
+# as tests/test_pptx_loader.py.
+pptx = pytest.importorskip(
+    "pptx", reason="optional [pptx] extra (python-pptx) not installed"
 )
-
-from pptx import Presentation  # noqa: E402
+Presentation = pptx.Presentation
 
 from newsletters.adapters._timestamps import EPOCH_ZERO  # noqa: E402
 
