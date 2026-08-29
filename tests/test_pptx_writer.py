@@ -46,7 +46,10 @@ from __future__ import annotations
 
 import io
 import pathlib
+import time
+import zipfile
 from datetime import datetime
+from typing import NamedTuple
 
 import pytest
 
@@ -74,6 +77,7 @@ from newsletters import (  # noqa: E402
     ReviewState,
     Surface,
     Trace,
+    pptx_writer,
 )
 from newsletters.adapters._timestamps import EPOCH_ZERO  # noqa: E402
 from newsletters.pptx_writer import (  # noqa: E402
@@ -83,6 +87,8 @@ from newsletters.pptx_writer import (  # noqa: E402
     WATERMARK_NAME,
     WATERMARK_TEXT,
     bind_slots,
+    differing_parts,
+    differing_zipinfo_fields,
     fill_slot,
     normalize_opc_zip,
     part_digest,
@@ -954,4 +960,215 @@ def test_render_surface_pptx_writes_the_same_bytes_it_returns(
         "the bytes on disk differ from the bytes the byte-returning entry point produces for the "
         "same inputs — the two entry points have drifted, or the disk path is doing more than one "
         "write"
+    )
+
+
+# --- SC-2: the determinism battery, with its negative control -----------------------------------
+#
+# THE CONSTRAINT THAT GOVERNS EVERY ASSERTION BELOW: **no test here may compare a rendered deck to
+# the template** — not its bytes, not its `part_digest`, not its part order. Two measured properties
+# of python-pptx's LOAD path make any such comparison a false red:
+#
+#   * opening the committed template and saving it UNCHANGED already yields a different
+#     `part_digest`. The `""`-valued core properties serialize as `<cp:keywords></cp:keywords>` and
+#     come back as `<cp:keywords/>` — semantically identical XML, different bytes.
+#   * part EMISSION order differs between a freshly built package and a reopened one, even when
+#     `_rels/.rels` is byte-identical.
+#
+# Neither is a regression and neither is anything the writer can or should "fix". Every assertion in
+# this battery therefore compares a render to ANOTHER RENDER. The consequence Phase 4 inherits: its
+# golden deck must be produced by THE WRITER, never by re-saving the template.
+
+
+class _Renders(NamedTuple):
+    """One Surface rendered twice across a real time boundary, in both forms.
+
+    The NORMALIZED pair is what the writer returns and what ships. The RAW pair is the writer's own
+    pre-normalization bytes, which only the negative control needs — and which it needs in order to
+    be a control at all.
+    """
+
+    normalized_a: bytes
+    normalized_b: bytes
+    raw_a: bytes
+    raw_b: bytes
+
+
+@pytest.fixture(scope="module")
+def time_separated_renders(tmp_path_factory: pytest.TempPathFactory) -> _Renders:
+    """Two renders of ONE Surface through ONE template, separated by a real 3-second gap.
+
+    **The sleep is load-bearing, not incidental.** DOS timestamps inside a ZIP have 2-SECOND
+    granularity, so two writes landing in a single wall-clock second are ALREADY byte-identical: a
+    tight-loop double render would "prove" a stability that does not exist, and the whole
+    determinism claim would rest on luck. Three seconds guarantees the boundary is crossed. The
+    fixture is MODULE-scoped so the suite sleeps once, not once per assertion.
+
+    HOW THE RAW PAIR IS OBTAINED, and why it is the same code path. `render_surface_pptx_bytes`
+    returns normalized bytes by construction, so the raw pair is intercepted one call earlier: the
+    module-level `normalize_opc_zip` the writer calls is temporarily wrapped, and the wrapper records
+    the payload it was handed — i.e. exactly what `prs.save(BytesIO)` produced inside the writer —
+    before handing it to the real normalizer. The recorded bytes are therefore the writer's own
+    output and are **not** normalized. That matters: a raw pair that had accidentally routed through
+    the normalizer would be byte-equal for the wrong reason, and the negative control below would be
+    vacuously green. Rebuilding an "identical" presentation in the fixture instead would be the other
+    failure mode — a second implementation of the writer, drifting from the first.
+    """
+    directory = tmp_path_factory.mktemp("determinism")
+    template = build_rich_template(directory)
+    surface = _sample_weekly_surface()
+
+    raw: list[bytes] = []
+
+    def _capture_then_normalize(payload: bytes) -> bytes:
+        # `normalize_opc_zip` here is THIS module's import of the real function, bound at import
+        # time, so the patch below cannot make this wrapper recurse into itself.
+        raw.append(payload)
+        return normalize_opc_zip(payload)
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(pptx_writer, "normalize_opc_zip", _capture_then_normalize)
+        normalized_a = render_surface_pptx_bytes(
+            surface, template=template, slots=RICH_SLOTS
+        )
+        time.sleep(3)
+        normalized_b = render_surface_pptx_bytes(
+            surface, template=template, slots=RICH_SLOTS
+        )
+
+    assert len(raw) == 2, (
+        "the writer no longer routes its saved bytes through the module-level `normalize_opc_zip`, "
+        f"so this fixture captured {len(raw)} raw payload(s) instead of 2. Until the capture is "
+        "retargeted at whatever replaced it, the negative control below is not measuring the "
+        "writer's un-normalized output and proves nothing."
+    )
+    return _Renders(normalized_a, normalized_b, raw[0], raw[1])
+
+
+def test_double_render_is_byte_identical(time_separated_renders: _Renders) -> None:
+    """(B) SC-2: two renders of the same Surface, three seconds apart, are byte-identical.
+
+    The failure message diagnoses itself off the RAW pair, because the two lists separate the two
+    possible causes: a differing PART means the deck's content moved (a clock, an unstable part
+    order or an unstable rel id leaked into the writer, and no zip normalization can repair that);
+    a differing zip FIELD beyond `date_time` means the normalizer is pinning too little.
+    """
+    renders = time_separated_renders
+
+    assert renders.normalized_a == renders.normalized_b, (
+        "two renders of the SAME Surface, 3s apart, are NOT byte-identical — the recorded "
+        "determinism definition (byte-stable via post-save zip normalization) does not hold for "
+        "the writer on this python-pptx/zlib pair. Differing parts (un-normalized): "
+        f"{differing_parts(renders.raw_a, renders.raw_b)}. Differing zip fields (un-normalized): "
+        f"{differing_zipinfo_fields(renders.raw_a, renders.raw_b)}."
+    )
+
+
+def test_unnormalized_double_render_is_not_byte_equal(
+    time_separated_renders: _Renders,
+) -> None:
+    """(C) THE NEGATIVE CONTROL — the byte-equality above must be able to FAIL.
+
+    DO NOT DELETE THIS AS "redundant now that the writer exists". It is the assertion most likely to
+    be dropped in a tidy-up, and dropping it silently converts `test_double_render_is_byte_identical`
+    from a determinism proof into a test that is green whenever two writes land in the same second.
+    """
+    renders = time_separated_renders
+
+    assert renders.raw_a != renders.raw_b, (
+        "the negative control has stopped controlling: two UN-normalized renders 3s apart are "
+        "byte-equal. Either both renders landed inside one DOS timestamp tick, or python-pptx "
+        "stopped stamping the clock, or the raw capture accidentally routed through the "
+        "normalizer. Until this inequality holds, the byte equality in "
+        "test_double_render_is_byte_identical is NOT attributable to the normalizer and proves "
+        "nothing."
+    )
+    assert differing_parts(renders.raw_a, renders.raw_b) == [], (
+        "unzipped part CONTENT differs across two renders of identical input — that is a real "
+        "non-determinism in the writer (a clock, an unstable part order, or an unstable rel id), "
+        "not a zip-metadata artefact the normalizer can fix"
+    )
+    assert differing_zipinfo_fields(renders.raw_a, renders.raw_b) == ["date_time"], (
+        "a zip metadata field other than date_time drifted across two renders; the normalizer pins "
+        "date_time, compress_type, create_system and external_attr, so a new offender here means "
+        "the recorded determinism mechanism is incomplete"
+    )
+
+
+def test_part_digest_is_stable_across_time_separated_renders(
+    time_separated_renders: _Renders,
+) -> None:
+    """(A) CONTENT IDENTITY, computed on the UN-normalized bytes.
+
+    Deliberately not normalized first: the point is that content identity holds WITHOUT any zip
+    metadata fix. This is the implementation-INDEPENDENT assertion Phase 4's committed==fresh gate
+    inherits, because DEFLATE output is zlib-implementation-dependent (zlib vs zlib-ng) — a
+    full-file hash there would be green locally and red in CI with byte-identical part content.
+    """
+    renders = time_separated_renders
+
+    assert part_digest(renders.raw_a) == part_digest(renders.raw_b), (
+        "the part-content digest differs across two renders of identical content — the deck's "
+        "CONTENT is non-deterministic, which no zip normalization can repair. This is the "
+        "assertion Phase 4's committed==fresh gate is built on, so a red here disqualifies that "
+        "gate too"
+    )
+
+
+def test_rendered_archive_is_valid_and_normalization_is_idempotent(
+    time_separated_renders: _Renders,
+) -> None:
+    """A rendered deck is a valid archive, OPC-conventional, and a fixed point of the normalizer.
+
+    Idempotence is what lets any later stage (an assembler, a publisher) re-normalize without
+    changing the bytes; without it, a second pass anywhere in the pipeline would silently produce a
+    different artifact than the one that was reviewed.
+    """
+    normalized = time_separated_renders.normalized_a
+
+    assert normalize_opc_zip(normalized) == normalized, (
+        "normalize_opc_zip is not idempotent on the writer's output — normalizing an "
+        "already-normalized package must be a no-op, or a second pass anywhere in the pipeline "
+        "would change the bytes"
+    )
+
+    with zipfile.ZipFile(io.BytesIO(normalized)) as archive:
+        assert (
+            archive.testzip() is None
+        ), "the rendered archive fails its own CRC check — the render produced a corrupt deck"
+        names = archive.namelist()
+    assert names[0] == "[Content_Types].xml", (
+        "[Content_Types].xml is no longer the first entry of a rendered deck; the OPC convention "
+        "expects it there, and preserving the emitted order is supposed to keep it there by "
+        f"construction. Got: {names[0]!r}"
+    )
+
+
+def test_fill_order_does_not_affect_output_bytes(tmp_path: pathlib.Path) -> None:
+    """Fill order is NOT a determinism variable — measured (W18), asserted rather than assumed.
+
+    Text edits are in-place on elements that already exist in the operator's template, so iterating
+    `slots` in any order writes the same XML. This is why the writer iterates `slots.items()`
+    directly instead of sorting: sorting would imply a guarantee that is not needed and would hide
+    the ordering variable that IS real — image ADD order, which Phase 3 pins to Weekly Spec file
+    order.
+    """
+    template = build_rich_template(tmp_path)
+    surface = _sample_weekly_surface()
+    reversed_slots = dict(reversed(list(RICH_SLOTS.items())))
+    assert list(reversed_slots) != list(RICH_SLOTS), (
+        "the reversed mapping iterates in the same order as the original, so this test is not "
+        "varying anything"
+    )
+
+    forward = render_surface_pptx_bytes(surface, template=template, slots=RICH_SLOTS)
+    backward = render_surface_pptx_bytes(
+        surface, template=template, slots=reversed_slots
+    )
+
+    assert forward == backward, (
+        "the order the slots are filled in changed the output bytes. Either the fill stopped "
+        "editing existing elements in place (it is appending or re-creating them), or something "
+        "downstream of the fill has become order-sensitive. Differing parts: "
+        f"{differing_parts(forward, backward)}"
     )
