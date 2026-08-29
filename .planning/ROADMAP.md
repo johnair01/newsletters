@@ -201,7 +201,30 @@ proves composed blocks actually reach a deck).
      it renders through Phase 2's writer to a deck that satisfies the recorded determinism
      definition.
 
-**Plans**: TBD
+**Plans**: 4 plans (waves 1 -> 2 -> 3 -> 4, strictly ordered: the types and the gate that guards
+them, then the load, then the assets and the Surface, then the deck, the values and the CI job that
+makes it all mean something)
+
+- [ ] `03-01-PLAN.md` — Types + dispatch + the gate that guards them: the four block kinds join the
+      union as a PURE INSERTION (zero deleted lines), each gets an HTML branch built from existing
+      `_CSS` classes only, `_block_html`'s `return ""` fall-through becomes a teaching raise, and
+      the review gate's working-tree-only protection is replaced by source-hash pins on the eight
+      gate functions plus a zero-deleted-lines diff against `git merge-base HEAD origin/main`
+      (SC-1, plus SC-3's type-level half)
+- [ ] `03-02-PLAN.md` — The Weekly Spec lift: the span minter promoted to `specspan.py` so exactly
+      one honest-span implementation exists, then `weeklyspec.py`'s strict eight-key schema and
+      `load_weekly_spec` — file-order minting, `config:` bound never claimed, every absence
+      disclosed, two committed fixtures + a tiny PNG (SC-2's mechanism)
+- [ ] `03-03-PLAN.md` — Asset evidence + the composer: all seven routing rows with their exact
+      disclosure strings (a path escape raises, an absence discloses, the two never collapse), and
+      `build_weekly_report` — fixed block order, Draft at `EPOCH_ZERO`, byte-identical
+      double-compose, and the planted-editorialization guard (SC-3, SC-5's composition half)
+- [ ] `03-04-PLAN.md` — The deck, the values, and the job that makes the greens mean something:
+      `weekly_slots` + an end-to-end render through Phase 2's writer (text-only; empty sections
+      disclose on the slide), BI values through the **existing** ADAPT-03 adapter with ADAPT-05
+      clean-diffed, and the `weekly` CI job installing `[excel]` with `0 skipped` asserted
+      (SC-4, SC-5)
+
 **UI hint**: yes — the new block kinds must render into the existing HTML surface under
 `docs/design-system.md` / `docs/surfaces.md` tokens. No new web app work; the `web/` preview is
 out of scope this milestone.
@@ -250,7 +273,7 @@ operator through the loop on their own data, read-only and local.
 |-------|----------------|--------|-----------|
 | 1. Specify + de-risk | 3/3 | Complete    | 2026-08-29 |
 | 2. Renderer | 3/3 | Complete    | 2026-08-29 |
-| 3. Weekly compose | 0/0 | Not started | - |
+| 3. Weekly compose | 0/4 | Planned (4 plans, 4 waves, 11 tasks) | - |
 | 4. Sample corpus + recipe | 0/0 | Not started | - |
 
 Plans are created per phase by `/gsd-plan-phase`; `0/0` means "not yet planned", not "no work".
