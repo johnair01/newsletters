@@ -507,18 +507,21 @@ def fill_slot(text_frame: Any, lines: Union[str, Sequence[str]]) -> None:
     function adds nothing to the module's bare-install surface.
 
     Raises:
-        ValueError: if ``lines`` is empty (an empty slot ships a blank box to a reader), or if
-            paragraph 0 carries no run (nothing to inherit — Pitfall 6, an OBSERVED failure: a text
-            box with no typed characters really does have a paragraph with zero runs).
+        ValueError: if ``lines`` is empty OR every line is blank/whitespace-only (Phase-2 review
+            IN-02: ``[""]`` ships the same visually blank box the empty-list refusal exists to
+            prevent — if the harm is the blank box, the refusal must cover the equivalent input),
+            or if paragraph 0 carries no run (nothing to inherit — Pitfall 6, an OBSERVED failure:
+            a text box with no typed characters really does have a paragraph with zero runs).
     """
     if isinstance(lines, str):
         # One paragraph, not one per character — see the docstring (WR-03).
         lines = [lines]
-    if not lines:
+    if not lines or not any(line.strip() for line in lines):
         raise ValueError(
-            "refusing to fill a slot with no lines — an empty slot ships a blank box to a reader, "
-            "which is the same silent gap the unfilled-slot refusal exists to prevent. Either "
-            "supply at least one line or do not bind content to this slot."
+            "refusing to fill a slot with no lines (or only blank/whitespace lines) — an empty "
+            "slot ships a blank box to a reader, which is the same silent gap the unfilled-slot "
+            "refusal exists to prevent. Either supply at least one line of real content or do "
+            "not bind content to this slot."
         )
 
     p0 = text_frame.paragraphs[0]

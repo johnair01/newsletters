@@ -844,6 +844,26 @@ def test_fill_with_no_lines_raises(tmp_path: pathlib.Path) -> None:
         fill_slot(bound["NL_WEEK_TITLE"].text_frame, [])
 
 
+def test_fill_with_only_blank_lines_raises(tmp_path: pathlib.Path) -> None:
+    """IN-02: `[""]` (and whitespace-only lines) are refused like `[]` — same blank box.
+
+    The empty-list refusal exists because "an empty slot ships a blank box to a reader";
+    reproduced live in the review, `[""]` passed and shipped the identical visually blank box.
+    If the blank box is the harm, the refusal covers the equivalent input — the asymmetry was an
+    accident, not a spacer allowance.
+    """
+    path = build_rich_template(tmp_path)
+    prs = Presentation(str(path))
+    bound = bind_slots(prs, RICH_SLOTS)
+
+    with pytest.raises(ValueError, match="only blank/whitespace"):
+        fill_slot(bound["NL_WEEK_TITLE"].text_frame, [""])
+    with pytest.raises(ValueError, match="only blank/whitespace"):
+        fill_slot(bound["NL_WEEK_TITLE"].text_frame, ["   ", "\t"])
+    # A blank SPACER line among real content is still legitimate — only all-blank is refused.
+    fill_slot(bound["NL_WEEK_TITLE"].text_frame, ["real content", ""])
+
+
 def test_bare_str_fills_one_paragraph_not_one_per_character(
     tmp_path: pathlib.Path,
 ) -> None:
