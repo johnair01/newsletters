@@ -356,8 +356,14 @@ def bind_slots(prs: Any, slots: Mapping[str, Sequence[str]]) -> dict[str, Any]:
     Five refusals, in this order, each a ``ValueError`` in the house three-part teaching voice —
     what was found, why it cannot be resolved silently, what the operator does next:
 
-    1. a **duplicate shape name** (legal in OOXML; copy-paste is how an operator makes one — a
-       last-wins map would silently DROP a slot, the exact failure D-03 exists to prevent);
+    1. a **duplicate `NL_`-prefixed shape name** (legal in OOXML; copy-paste is how an operator
+       makes one — a last-wins map would silently DROP a slot, the exact failure D-03 exists to
+       prevent). SCOPED TO THE RESERVED PREFIX ON PURPOSE (Phase-2 review WR-02, reproduced live):
+       PowerPoint and python-pptx auto-name shapes PER SLIDE ("Title 1", "TextBox 1"), so a
+       deck-wide refusal over ALL shapes rejects every ordinary multi-slide deck with default
+       names. Unprefixed shapes are not renderer slots (only ``NL_*`` names are — the SLOT_PREFIX
+       contract), so a collision between two decorative shapes drops nothing — the map keeps the
+       first-seen shape, deterministically, and the operator's business stays the operator's;
     2. the template already defining **WATERMARK_NAME** (the renderer owns that name and adds the
        watermark itself; leaving it in the template writes two shapes under one name — measured,
        W14, with no error — and defeats this map on the next render);
@@ -380,7 +386,7 @@ def bind_slots(prs: Any, slots: Mapping[str, Sequence[str]]) -> dict[str, Any]:
     by_name: dict[str, Any] = {}
     for slide in prs.slides:
         for shape in _walk(slide.shapes, MSO_SHAPE_TYPE.GROUP):
-            if shape.name in by_name:
+            if shape.name in by_name and shape.name.startswith(SLOT_PREFIX):
                 raise ValueError(
                     f"template has two shapes named {shape.name!r} — the name->shape binding is "
                     "ambiguous. Duplicate shape names are legal in OOXML and copy-pasting a box in "
@@ -388,7 +394,12 @@ def bind_slots(prs: Any, slots: Mapping[str, Sequence[str]]) -> dict[str, Any]:
                     "Rename one in PowerPoint's Selection Pane (Alt+F10). Refusing to guess which "
                     "slot the content belongs in."
                 )
-            by_name[shape.name] = shape
+            # First-seen wins for UNPREFIXED duplicates — deliberate, not an oversight (WR-02):
+            # PowerPoint auto-names shapes per slide ("TextBox 1"), so any real multi-slide deck
+            # carries unprefixed collisions. Unprefixed shapes are not renderer slots (the
+            # SLOT_PREFIX contract), so keeping the first is inconsequential and deterministic;
+            # raising here rejected every ordinary operator deck.
+            by_name.setdefault(shape.name, shape)
 
     if WATERMARK_NAME in by_name:
         raise ValueError(

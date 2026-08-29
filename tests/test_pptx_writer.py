@@ -526,7 +526,8 @@ def test_unprefixed_shape_is_not_a_slot(tmp_path: pathlib.Path) -> None:
     for unprefixed in ("Footer", "Narrative Group"):
         assert unprefixed in bound, (
             f"{unprefixed!r} is not in the binding map — unprefixed shapes must still be BOUND "
-            "(the duplicate-name refusal is computed over all shapes, not just slots)"
+            "(the map is the deck's full recursive inventory; unprefixed shapes are visible in "
+            "it, they are just never demanded, filled, or subject to the duplicate refusal)"
         )
         assert unprefixed not in RICH_SLOTS, (
             f"{unprefixed!r} acquired content, so this test no longer proves that an unprefixed "
@@ -598,6 +599,39 @@ def test_duplicate_shape_name_raises(tmp_path: pathlib.Path) -> None:
     assert "Selection Pane" in str(caught.value), (
         "the refusal no longer tells the operator WHERE to rename the shape (Alt+F10); a teaching "
         f"error that stops at the diagnosis is half an error. Message: {caught.value}"
+    )
+
+
+def test_default_auto_named_multi_slide_deck_is_accepted() -> None:
+    """WR-02's regression test: PowerPoint's per-slide auto-names must not be refused.
+
+    PowerPoint (and python-pptx) auto-name shapes PER SLIDE — "TextBox 1" on slide 1 and
+    "TextBox 1" on slide 2 — so ANY real two-slide operator deck with default names carries an
+    unprefixed duplicate. The Phase-2 review reproduced the old deck-wide refusal rejecting such a
+    deck even with an EMPTY slots mapping. The duplicate refusal is scoped to `NL_`-prefixed names
+    (the ones a last-wins map would actually silently drop); unprefixed decorative duplicates are
+    the operator's business and bind first-seen, deterministically.
+    """
+    prs = Presentation()
+    _scrub(prs)
+    for index in range(2):
+        slide = _blank_slide(prs)
+        box = slide.shapes.add_textbox(
+            Inches(0.5), Inches(0.4), Inches(9.0), Inches(1.0)
+        )
+        box.text_frame.text = f"decorative default-named box on slide {index}"
+
+    names = [shape.name for slide in prs.slides for shape in slide.shapes]
+    assert len(names) == 2 and len(set(names)) == 1, (
+        "python-pptx no longer auto-names shapes per slide, so this deck carries no collision "
+        f"and the test is not testing the WR-02 case at all. Names: {names}"
+    )
+
+    bound = bind_slots(prs, {})  # must NOT raise — this is an ordinary operator deck
+
+    assert names[0] in bound, (
+        "the auto-named shape vanished from the binding map entirely — first-seen binding for "
+        f"unprefixed duplicates has broken. Bound: {sorted(bound)}"
     )
 
 

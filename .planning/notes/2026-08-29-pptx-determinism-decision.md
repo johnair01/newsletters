@@ -107,6 +107,20 @@ recording (`56fa2a61…`). The raw file hashes are per-run wall-clock evidence a
 recording by design. Every other decision in this note is unchanged; this hardening landed before
 Phase 4 builds the committed==fresh gate on the primitive, which is exactly the deadline WR-01 set.
 
+#### Addendum (2026-08-29, Phase-2 code review): the duplicate-shape-name refusal is scoped to `NL_` names
+
+The Phase-2 review (**WR-02**) reproduced live what this note flagged at MEDIUM confidence for the
+human-verify checkpoint ("no real operator deck was available to test against"): PowerPoint and
+python-pptx auto-name shapes **per slide** ("Title 1", "TextBox 1"), so a deck-wide duplicate
+refusal over ALL shapes rejects every ordinary multi-slide deck with default names — even with an
+empty content mapping. The contract is therefore **clarified, not weakened**: *duplicate `NL_`
+names raise* (a last-wins map over slot names silently drops a slot, the exact failure D-03
+forbids); duplicate **unprefixed** names are the operator's business — those shapes are not
+renderer slots, so a collision between two decorative shapes drops nothing. The binding map keeps
+the first-seen shape for unprefixed duplicates, which is deterministic and inconsequential because
+only `NL_*` shapes are the renderer's to fill. The regression test is
+`tests/test_pptx_writer.py::test_default_auto_named_multi_slide_deck_is_accepted`.
+
 ## The three assertions Phases 2 and 4 inherit
 
 | | Assertion | Where it runs | The failure it catches |
