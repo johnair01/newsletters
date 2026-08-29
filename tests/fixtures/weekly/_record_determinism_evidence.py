@@ -38,10 +38,11 @@ import platform
 import sys
 import time
 import zlib
-from datetime import datetime
 
 import pptx
 from pptx import Presentation
+
+from newsletters.adapters._timestamps import EPOCH_ZERO
 
 HERE = pathlib.Path(__file__).parent
 sys.path.insert(0, str(HERE))
@@ -67,8 +68,9 @@ GATE_STATE = "draft"
 # DOS timestamps have 2-SECOND granularity; 3 seconds guarantees the boundary is crossed.
 SECONDS_BETWEEN_WRITES = 3
 
-# EPOCH_ZERO, tz-stripped (dcterms reads back tz-naive). Imported rather than re-minted below.
-_EPOCH_NAIVE = datetime(1970, 1, 1, 0, 0, 0)
+# EPOCH_ZERO, tz-stripped (dcterms reads back tz-naive). DERIVED from the canonical sentinel —
+# one epoch sentinel for the whole repo, never a second (test_pptx_determinism.py states the rule).
+_EPOCH_NAIVE = EPOCH_ZERO.replace(tzinfo=None)
 
 # The fields `--check` re-verifies. Deliberately excludes every raw/normalized sha256: those are
 # zlib-implementation-dependent (see the module docstring) and asserting them would be a bug.
