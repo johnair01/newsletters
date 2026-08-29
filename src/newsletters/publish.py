@@ -1,6 +1,6 @@
 """Assemble the published site tree (PUB-01/PUB-02) — the ONE definition of "the site".
 
-The published GitHub Pages site is the **rendered record**: the three committed corpora
+The published GitHub Pages site is the **rendered record**: the four committed corpora
 composed into a single tree, plus the two pieces of assembly chrome (``.nojekyll`` and the
 base-path-absolute ``404.html``). This module is deliberately a *library function* rather
 than workflow shell: the exact code path that publishes is the one the unit tests, the CI
@@ -28,14 +28,19 @@ import shutil
 from pathlib import Path
 
 # corpus source dir (relative to the repo root) → destination inside the assembled tree.
-# The rev1 sample record fronts the site at the ROOT; the real work record and the synthetic
-# module worked-example sit alongside. The Records strips rendered into each corpus's chrome
-# pages (Phase 1, PUB-03) assume exactly this layout — the assembled-tree link test is the
-# contract that keeps the two in agreement.
+# The rev1 sample record fronts the site at the ROOT; the real work record, the synthetic
+# module worked-example and the synthetic weekly worked-example sit alongside. The Records
+# strips rendered into each corpus's chrome pages (Phase 1, PUB-03) assume exactly this
+# layout — the assembled-tree link test is the contract that keeps the two in agreement.
+#
+# ONLY ``content/*/site`` is copied, and that is load-bearing rather than incidental: the
+# weekly corpus also commits a rendered ``.pptx`` under ``content/weekly/deck/``, and it is
+# unpublishable HERE, by layout, rather than by anyone remembering to exclude it (T-04-08).
 _CORPUS_LAYOUT: tuple[tuple[str, str], ...] = (
     ("content/rev1/site", "."),
     ("content/work/site", "work"),
     ("content/module/site", "module"),
+    ("content/weekly/site", "weekly"),
 )
 
 

@@ -70,6 +70,7 @@ jobs:
           newsletters check --corpus rev1
           newsletters check --corpus work
           newsletters check --corpus module
+          newsletters check --corpus weekly
 
       - name: "Gate 2 — the published-tree guarantees (links/drift/fonts/marker)"
         run: python -m pytest tests/test_publish.py -q

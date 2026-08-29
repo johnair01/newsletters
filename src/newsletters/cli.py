@@ -23,6 +23,12 @@ class CorpusName(str, Enum):
     * ``module`` — the synthetic worked-example corpus (``modulesite.py``): the swim-lane
       config composed + rendered to ``content/module/site`` — running the SAME
       corpus-agnostic merge-block gate as rev1/work.
+    * ``weekly`` — the synthetic WEEKLY worked-example corpus (``weeklysite.py``): the committed
+      Weekly Spec under ``content/weekly`` composed against the ``content/module`` lane config
+      (its bindings source — one fabricated module, one source of truth) and rendered to
+      ``content/weekly/site``. Its ``.pptx`` deck is a CORPUS ARTIFACT, not a served page: it
+      lives under ``content/weekly/deck/`` and ``publish.assemble_site`` copies
+      ``content/*/site`` only, so no deck can reach the published tree (W0-2 / T-04-08).
 
     All corpora run the SAME corpus-agnostic merge-block gate (``review.review_blockers``) — the
     selector routes the BUILDER, never forks the gate (T-11-13).
@@ -31,6 +37,7 @@ class CorpusName(str, Enum):
     rev1 = "rev1"
     work = "work"
     module = "module"
+    weekly = "weekly"
 
 
 # Per-corpus default output dirs for ``build`` (the work corpus keeps its OWN site dir, separate
@@ -39,6 +46,7 @@ _DEFAULT_OUT: dict[CorpusName, str] = {
     CorpusName.rev1: "content/rev1/site",
     CorpusName.work: "content/work/site",
     CorpusName.module: "content/module/site",
+    CorpusName.weekly: "content/weekly/site",
 }
 
 
@@ -60,13 +68,13 @@ def build(
         "--corpus",
         case_sensitive=False,
         help="Which corpus to render: rev1 (the sample, default), work (the real codebase), "
-        "or module (the synthetic worked example).",
+        "module (the synthetic worked example), or weekly (the synthetic weekly record).",
     ),
     out: str | None = typer.Option(
         None,
         "--out",
         help="Output directory for rendered HTML (defaults per corpus: "
-        "content/rev1/site or content/work/site).",
+        "content/{rev1,work,module,weekly}/site).",
     ),
 ) -> None:
     """Render a corpus's surfaces + the Library index to standalone HTML.
@@ -74,7 +82,10 @@ def build(
     ``--corpus rev1`` (default) renders the Rev1 dogfood sample to ``content/rev1/site`` — the
     UNCHANGED legacy behavior. ``--corpus work`` renders the real hand-authored work corpus to
     ``content/work/site`` (the install/dogfood Library, with provenance + lineage on every
-    surface). Lazy-imports only the selected builder so the bare install stays light + AI-free.
+    surface). ``--corpus weekly`` renders the synthetic weekly record to
+    ``content/weekly/site`` — the HTML only: the deck is a separate entry point
+    (``newsletters weekly``), so rendering the site never drags the ``[pptx]`` extra in.
+    Lazy-imports only the selected builder so the bare install stays light + AI-free.
     """
     target = out or _DEFAULT_OUT[corpus]
 
@@ -87,6 +98,11 @@ def build(
         from .modulesite import build_module_site
 
         written = build_module_site(target)
+        index_name = "library.html"
+    elif corpus is CorpusName.weekly:
+        from .weeklysite import build_weekly_site
+
+        written = build_weekly_site(target)
         index_name = "library.html"
     else:
         from .dogfood import build_site
@@ -115,7 +131,7 @@ def assemble(
         "404.html; every other page keeps relative links.",
     ),
 ) -> None:
-    """Assemble the published site tree (PUB-01/02): rev1 at the root + work/ + module/.
+    """Assemble the published tree (PUB-01/02): rev1 at the root + work/ + module/ + weekly/.
 
     Copies the COMMITTED corpora byte-for-byte (what was reviewed is what publishes) and adds
     the assembly chrome (.nojekyll + the base-path-absolute 404.html). This is the ONE
@@ -207,7 +223,7 @@ def check(
         "--corpus",
         case_sensitive=False,
         help="Which corpus to gate: rev1 (the sample, default), work (the real codebase), "
-        "or module (the synthetic worked example).",
+        "module (the synthetic worked example), or weekly (the synthetic weekly record).",
     ),
 ) -> None:
     """Merge-block a corpus (PROV-04): fail nonzero on any unsafe PUBLISHED surface.
@@ -223,9 +239,15 @@ def check(
 
     ``--corpus rev1`` (default) gates the Rev1 dogfood sample (UNCHANGED behavior); ``--corpus
     work`` gates the real work corpus; ``--corpus module`` gates the synthetic worked-example
-    corpus. ANY way the SAME corpus-agnostic ``review_blockers`` is run over the selected corpus —
-    the selector routes the builder, it does NOT fork the gate (T-11-13), so every corpus passes
-    the IDENTICAL trust gate.
+    corpus; ``--corpus weekly`` gates the synthetic weekly record. ANY way the SAME
+    corpus-agnostic ``review_blockers`` is run over the selected corpus — the selector routes the
+    builder, it does NOT fork the gate (T-11-13), so every corpus passes the IDENTICAL trust gate.
+
+    EVERY branch below imports the MODULE OBJECT and resolves the builder off it at CALL time.
+    That is load-bearing, not stylistic: it is what lets a test monkeypatch a builder to return
+    ONE blocked PUBLISHED surface and watch this command FIRE. Binding the function at import
+    time (``from .weeklysite import build_weekly_surfaces``) would make the blocking direction
+    untestable — and a gate that cannot be proven to fire is not a gate (T-04-09).
 
     Draft / In-Review surfaces are exempt — publication is the trust boundary (``review_blockers``
     returns ``[]`` for them). Lazy-imports only the AI-free checker + corpus builder, so the bare
@@ -241,6 +263,10 @@ def check(
         from . import modulesite
 
         surfaces = modulesite.build_module_surfaces()
+    elif corpus is CorpusName.weekly:
+        from . import weeklysite
+
+        surfaces = weeklysite.build_weekly_surfaces()
     else:
         from . import dogfood
 

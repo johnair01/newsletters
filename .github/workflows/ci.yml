@@ -120,6 +120,7 @@ jobs:
           newsletters check --corpus rev1
           newsletters check --corpus work
           newsletters check --corpus module
+          newsletters check --corpus weekly
 
   site-integrity:
     # PUB-01..05 (v1.2): the published-tree guarantees run on EVERY push/PR — assembled-tree
@@ -141,8 +142,14 @@ jobs:
           pip install ".[test,config]"
 
       - name: Run the published-tree guarantees + the site/render guards
+        # `tests/test_weeklysite.py` is here because it is STDLIB-ONLY by construction (04-01):
+        # it never imports python-pptx, so `[test,config]` runs all of it. Do NOT add a
+        # `[pptx]`-gated module to this job — this step has no `0 skipped` assertion, so such a
+        # test would skip forever and read as green (W21, already paid for twice). The weekly
+        # deck's tier-2 gate lives in the `weekly` job below for exactly that reason.
         run: |
           python -m pytest tests/test_publish.py tests/test_render.py tests/test_site.py \
+                           tests/test_weeklysite.py \
                            tests/test_worksurface.py tests/test_modulesite.py -q
 
   pptx:

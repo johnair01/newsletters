@@ -35,6 +35,7 @@ committed ledger and assert it is byte-unchanged rather than trusting that.
 
 from __future__ import annotations
 
+import hashlib
 import html
 import re
 from collections.abc import Iterator
@@ -46,13 +47,13 @@ from _corpus_scan import scan_real_looking
 from pydantic import BaseModel
 from typer.testing import CliRunner
 
-from newsletters import weeklyspec
+from newsletters import weeklysite, weeklyspec
 from newsletters.adapters._timestamps import EPOCH_ZERO
 from newsletters.adapters.email_adapter import EmailAdapter
 from newsletters.cli import app
 from newsletters.compose import NO_KPIS
 from newsletters.pptx_writer import part_digest
-from newsletters.semantic import Claim
+from newsletters.semantic import Claim, ClaimsBlock, Source, Surface, Trace
 from newsletters.site import Ledger, Site
 from newsletters.specspan import absent
 from newsletters.templates import REPORT
@@ -594,3 +595,130 @@ def test_weekly_command_is_registered() -> None:
     assert weekly_help.exit_code == 0, weekly_help.output
     for option in ("--spec", "--lanes", "--template", "--author", "--out"):
         assert option in weekly_help.output, f"{option} missing from `weekly --help`"
+
+
+# --------------------------------------------------------------------------- #
+# Plan 04-02 Task 1 — the `--corpus weekly` selector: `check` proven to FIRE,
+# and `build` routed to the weekly builder.
+#
+# The shape mirrors tests/test_module_cli.py (the module corpus's own pair), and
+# the mirroring is the point: a fourth corpus that reached the CLI without the
+# blocking arm would be a fourth gate nobody had ever seen fire.
+# --------------------------------------------------------------------------- #
+
+CONTENT = REPO_ROOT / "content"
+
+
+def _content_fingerprint() -> dict[str, str]:
+    """A sha256 per committed file under ``content/`` — the git-free "nothing moved" witness.
+
+    The blocking proof below plants a BLOCKED, PUBLISHED surface. That state must exist only
+    inside ``monkeypatch``'s scope and must never touch a committed byte (T-04-10), so the
+    assertion is made executable here rather than left to a reviewer running ``git status``.
+    Hashing (rather than diffing bytes) keeps the check cheap over the corpora's vendored fonts,
+    and a path-keyed map means a file that APPEARED or VANISHED fails too, not just an edit.
+    """
+    return {
+        p.relative_to(REPO_ROOT).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+        for p in sorted(CONTENT.rglob("*"))
+        if p.is_file()
+    }
+
+
+def _blocked_published_weekly_surface() -> Surface:
+    """One PUBLISHED Report with an un-entailed claim — a single deterministic weekly blocker.
+
+    Mirrors ``test_module_cli._blocked_published_module_surface``: an ADDRESSED trace over a
+    transcript that does not contain the claim text. The trace is not stale (its hash matches the
+    source), so ``review_blockers`` reports exactly ONE UNENTAILED blocker — enough to flip the
+    exit code and prove the weekly corpus runs the same unforked gate. Built in memory only; the
+    committed ``content/weekly/`` stays clean and Draft (T-03-07 / T-04-10).
+    """
+    transcript = "the weekly spec the composed record cites"
+    src = Source(id="s-weekly-blocked", transcript=transcript)
+    # Addressed (so it is not STALE), but the span omits the claim text — one UNENTAILED blocker.
+    trace = Trace.from_source(src, 0, len(transcript))
+    claim = Claim(text="the weekly corpus auto-published itself", evidence=[trace])
+    surface = Surface(
+        id="sfc-weekly-blocked",
+        template=REPORT,
+        title="Crafted blocked weekly surface",
+        blocks=[ClaimsBlock(claims=[claim])],
+        traces=[src],
+    )
+    surface.publish(reviewer="reviewer-w")
+    assert surface.is_published
+    return surface
+
+
+def test_check_weekly_clean_exits_zero() -> None:
+    """`newsletters check --corpus weekly` over the CLEAN committed corpus exits 0.
+
+    Read this exit code for exactly what it is worth, which is the WIRING and nothing else. It is
+    DRAFT-VACUOUS by design: ``review_blockers`` returns ``[]`` for any surface that is not
+    Published, publication IS the trust boundary, and this sample ships Draft on purpose — so a
+    corpus of pure nonsense would also exit 0 here. Two other tests carry the actual trust:
+    ``test_check_weekly_blocks_on_planted_blocker`` below proves the gate can FIRE, and
+    ``test_honesty_panel_shows_all_three_planted_absences`` proves this corpus discloses its real
+    gaps to the reviewer. This one only proves the selector reaches the builder.
+    """
+    result = CliRunner().invoke(app, ["check", "--corpus", "weekly"])
+    assert result.exit_code == 0, result.output
+    assert "All published surfaces clean" in result.output
+
+
+def test_check_weekly_blocks_on_planted_blocker(monkeypatch) -> None:
+    """T-04-09: `check --corpus weekly` runs the SAME UNFORKED gate — proven BLOCKING.
+
+    Inject ONE blocked PUBLISHED surface into the builder the command resolves, and assert the
+    gate fires: nonzero exit plus a report naming the offending surface, ``BLOCK`` and ``merge
+    blocked``. This only reaches the command because the ``check`` branch imports the MODULE
+    OBJECT (``from . import weeklysite``) and resolves the attribute at CALL time — binding the
+    function at import time would leave this ``setattr`` patching a name nobody reads, and the
+    test would go green while the gate stayed unproven.
+
+    T-04-10, asserted rather than assumed: the planted Published state lives only inside
+    ``monkeypatch``'s scope, so every committed byte under ``content/`` is unchanged afterwards.
+    """
+    before = _content_fingerprint()
+
+    monkeypatch.setattr(
+        weeklysite,
+        "build_weekly_surfaces",
+        lambda *a, **k: [_blocked_published_weekly_surface()],
+    )
+
+    blocked = CliRunner().invoke(app, ["check", "--corpus", "weekly"])
+    assert blocked.exit_code != 0, blocked.output
+    assert "sfc-weekly-blocked" in blocked.output
+    assert "BLOCK" in blocked.output
+    assert "merge blocked" in blocked.output
+
+    assert _content_fingerprint() == before, (
+        "the blocking proof changed a committed file under content/ — a planted blocker must "
+        "be a TEST fixture, never a dirty corpus (T-04-10)"
+    )
+
+
+def test_build_weekly_smoke(tmp_path: Path) -> None:
+    """`newsletters build --corpus weekly` renders the weekly corpus to a chosen out dir.
+
+    Routes to ``weeklysite.build_weekly_site`` — the report page + the Library — and NOT to the
+    deck: the deck is a separate entry point (``newsletters weekly``) precisely so this command
+    never needs the ``[pptx]`` extra. The committed corpus is fingerprinted across the build
+    because ``build_weekly_site`` re-saves the FIXED committed ledger even for a ``tmp_path``
+    build; idempotence is the property that makes that harmless, so it is asserted, not assumed.
+    """
+    before = _content_fingerprint()
+    out = tmp_path / "weeklysite"
+
+    result = CliRunner().invoke(app, ["build", "--corpus", "weekly", "--out", str(out)])
+
+    assert result.exit_code == 0, result.output
+    assert (out / _report_page_name()).exists()
+    assert (out / "library.html").exists()
+    assert not sorted(out.rglob("*.pptx")), "a deck reached the rendered site/ tree"
+    assert _content_fingerprint() == before, (
+        "a tmp_path weekly build moved a committed file under content/ — the ledger re-save "
+        "must be idempotent"
+    )
