@@ -26,9 +26,11 @@ carry the whole system:
 > is ratified into the `SurfaceTemplate` presets (`templates.py`) + `ReviewPolicy` — a separate
 > core task. Recorded here so code and spec don't drift silently (per `CLAUDE.md`).
 
-> **Note (2026-08-29) — four block kinds are specified before they are implemented.** The v1.3
-> weekly adds `narrative`, `recognitions`, `team` and `asset` to the discriminated `Block` union,
-> taking it from eleven members to fifteen. Their fields, their discriminator values, the
+> **Note (2026-08-29) — four block kinds ship in the union.** The v1.3 weekly adds `narrative`,
+> `recognitions`, `team` and `asset` to the discriminated `Block` union, which now carries
+> **fifteen** members — a count pinned by
+> `tests/test_weekly_blocks.py::test_block_union_has_fifteen_members`, so this sentence and the
+> code cannot drift apart silently. Their fields, their discriminator values, the
 > asset-evidence record with its exact `missing[]` routing, and the design-system classes each one
 > reuses are written in **[`docs/weekly-spec.md`](weekly-spec.md)** — the document a reader can
 > hand-author a valid Weekly Spec from alone. The weekly itself is a `Surface(REPORT)`: the `.pptx`

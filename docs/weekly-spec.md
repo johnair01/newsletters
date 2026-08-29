@@ -201,15 +201,18 @@ exist at all.
 ### Their place in the union
 
 The four join `Block = Annotated[Union[...], Field(discriminator="kind")]` in `semantic.py`,
-taking the member count from **eleven to fifteen**. The discriminator values are `"narrative"`,
+which now carries **fifteen** members — the count pinned by
+`tests/test_weekly_blocks.py::test_block_union_has_fifteen_members`, so the number in this
+sentence is a test, not a claim. The discriminator values are `"narrative"`,
 `"recognitions"`, `"team"` and `"asset"` — each declared as the member's `kind` `Literal`, so
 round-tripping a `Surface` through JSON resolves the right model without guessing.
 
 ### The dispatch contract: every kind renders, or the dispatch fails loud
 
-`render.py`'s `_block_html` is an `isinstance` chain that ends in a bare `return ""`. Today every
-one of the eleven union members has a branch, so that fall-through is **unreachable** — this is
-not a live defect. Adding four kinds without four branches is exactly what makes it reachable, and
+`render.py`'s `_block_html` is an `isinstance` chain that used to end in a bare `return ""`.
+Before this phase every one of the union's members had a branch, so that fall-through was
+**unreachable** — it was not a live defect. Adding four kinds without four branches is exactly
+what would have made it reachable, and
 it would fail in the worst available way: a block that was authored, traced and reviewed would
 render as the empty string, with no error anywhere. A surface silently missing its lowlights is
 the precise failure this product exists to prevent.

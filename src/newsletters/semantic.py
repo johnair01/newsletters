@@ -355,6 +355,83 @@ class FanoutLink(BaseModel):
     href: Optional[str] = None
 
 
+class NarrativeItem(BaseModel):
+    """One authored highlight/lowlight line, plus the traced ``Claim`` carrying that same text.
+
+    ``text`` is what the author typed, byte-verbatim — the composer never summarises, reorders
+    or merges lines (``docs/weekly-spec.md`` rule 3). ``claim`` is that identical text minted as
+    a traced ``Claim``, so the rendered line and its evidence cannot drift apart. It is
+    ``Optional`` because a line may be carried before (or without) a mintable span; an untraced
+    line is disclosed, never dressed up as sourced.
+    """
+
+    text: str
+    claim: Optional[Claim] = None
+
+
+class Recognition(BaseModel):
+    """Credit for one person, in the author's words — carried with or without a source.
+
+    ``evidence`` deliberately defaults to EMPTY and may legitimately stay empty
+    (``docs/weekly-spec.md`` rule 6): when no ``source:`` was authored, the author's own word is
+    the evidence, traced to a real span of the spec file, and the absent external evidence is
+    disclosed in ``Surface.missing[]``. Both halves matter — dropping the recognition would erase
+    credit, and publishing it as if sourced would be a lie. This is the deliberate CONTRAST to
+    ``AssetBlock.evidence`` (``min_length=1``): a recognition without a source is still credit
+    owed; an asset without a trace is a picture nobody vouched for.
+    """
+
+    person: str
+    reason: str
+    evidence: list[Trace] = Field(default_factory=list)
+
+
+class TeamMember(BaseModel):
+    """One member of the module this week: their name, role, authored lines and photo KEY.
+
+    ``photo`` holds an ``assets:`` mapping key, never a file path, so a team photo goes through
+    the same provenance routing as every other placed image instead of around it. A key that
+    names no placed asset is a ``missing[]`` disclosure: the member and their lines are carried,
+    the photo is not (``docs/weekly-spec.md`` §"The routing").
+    """
+
+    name: str
+    role: str = ""
+    lines: list[str] = Field(default_factory=list)
+    photo: Optional[str] = None
+
+
+class AssetRecord(BaseModel):
+    """A content-addressed file plus its provenance. A missing minimum ⇒ ``missing[]``, not a slide.
+
+    Why the RECORD is the evidence and not the image: ``Source.transcript`` is a ``str`` and
+    ``Source.content_hash()`` hashes that string, so an image can never itself be a ``Source``.
+    Instead the record text is the source, and the image's identity lives inside it as the
+    ``sha256`` hex string — a literal substring of the record, so it traces verbatim like any
+    other field via ``Trace.from_source`` and the span-containment gate keeps its teeth over the
+    provenance claims.
+
+    ``folder`` / ``date`` / ``event`` are the provenance minimum (decision D-02). ``link`` is
+    REQUIRED iff ``stands_in_for == "values"`` — a screenshot standing in for numbers must point
+    at the report those numbers came from. ``stands_in_for`` is AUTHOR-DECLARED and never
+    inferred from a filename, a folder or the image: inferring it would be the composer forming
+    an opinion about content, which faithful-not-suggestive forbids. Those two conditional rules
+    are the loader's to enforce (they depend on values, not shape); the shape below is what the
+    type can carry.
+    """
+
+    key: str
+    file: str
+    sha256: str
+    folder: str
+    date: str
+    event: str
+    link: Optional[str] = None
+    stands_in_for: Optional[Literal["values"]] = None
+    caption: Optional[str] = None
+    alt: Optional[str] = None
+
+
 class ProseBlock(BaseModel):
     kind: Literal["prose"] = "prose"
     heading: Optional[str] = None
@@ -446,6 +523,67 @@ class GlossaryBlock(BaseModel):
     terms: list[GlossaryTerm] = Field(default_factory=list)
 
 
+class NarrativeBlock(BaseModel):
+    """Authored highlights / lowlights — the author's voice, never summarized.
+
+    One block per tone, so a weekly's highlights and its lowlights are separately addressable
+    (and a weekly with NO lowlights discloses that absence rather than hiding it behind a merged
+    block). The composer carries ``NarrativeItem.text`` byte-verbatim: emphasis and narrative are
+    the human's job (``docs/weekly-spec.md`` rule 3).
+    """
+
+    kind: Literal["narrative"] = "narrative"
+    heading: Optional[str] = None
+    tone: Literal["highlight", "lowlight"] = "highlight"
+    items: list[NarrativeItem] = Field(default_factory=list)
+
+
+class RecognitionsBlock(BaseModel):
+    """Credit where it is owed — one entry per person, sourced or not.
+
+    See ``Recognition``: an entry with empty ``evidence`` is legal by design and its absent
+    source is disclosed, because dropping the recognition would erase the credit.
+    """
+
+    kind: Literal["recognitions"] = "recognitions"
+    heading: Optional[str] = "Recognitions"
+    recognitions: list[Recognition] = Field(default_factory=list)
+
+
+class TeamBlock(BaseModel):
+    """Who the module is, this week."""
+
+    kind: Literal["team"] = "team"
+    heading: Optional[str] = "The team"
+    members: list[TeamMember] = Field(default_factory=list)
+
+
+class AssetBlock(BaseModel):
+    """One placed asset. It is here ONLY because its provenance record was complete.
+
+    Faithfulness enforced *by the type*, the same move ``GlossaryTerm.definition: Claim`` makes:
+
+    - ``asset`` is REQUIRED with no default. There is no ``AssetBlock`` without an
+      ``AssetRecord``, and no ``AssetRecord`` without its provenance minimums — so "an asset
+      without provenance reached a ``Surface``" is *unrepresentable* rather than merely policed
+      by a check somebody can forget to call.
+    - ``evidence`` carries ``min_length=1``. An ``AssetBlock`` with zero traces fails Pydantic
+      validation at construction, so a code path that tries to place a picture nobody vouched for
+      gets a teaching ``ValidationError`` naming the empty field, never a traceless block on a
+      surface. The loader satisfies the minimum by minting the trace into the asset record at
+      placement time.
+
+    This is the type-level half of decision **D-02**. Note the deliberate contrast with
+    ``Recognition.evidence``, which may legitimately be empty (``docs/weekly-spec.md`` rule 6).
+    """
+
+    kind: Literal["asset"] = "asset"
+    heading: Optional[str] = None
+    asset: AssetRecord
+    caption: Optional[str] = None
+    evidence: list[Trace] = Field(min_length=1)
+
+
 Block = Annotated[
     Union[
         ProseBlock,
@@ -459,6 +597,10 @@ Block = Annotated[
         RationaleBlock,
         DiagramBlock,
         GlossaryBlock,
+        NarrativeBlock,
+        RecognitionsBlock,
+        TeamBlock,
+        AssetBlock,
     ],
     Field(discriminator="kind"),
 ]
