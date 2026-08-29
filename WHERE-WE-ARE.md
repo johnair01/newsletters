@@ -7,7 +7,49 @@
 
 ## Where we are right now
 
-**2026-08-29 (newest) — v1.3 PHASE 3, PLAN 02: YOU CAN NOW HAND-WRITE A WEEKLY AND HAVE THE
+**2026-08-29 (newest) — v1.3 PHASE 3, PLAN 03: A PICTURE NOW HAS TO EARN ITS PLACE, AND THE
+COMPOSER IS NOT ALLOWED TO IMPROVE YOUR WRITING (plan 03-03 of 4, branch
+`claude/new-session-gw8tik`).** Last plan let you hand-write a weekly and be believed word for
+word. This one closes the two things that were still promises: the images, and the composing.
+
+- **An image gets onto a page only if its paperwork survives four questions.** Is the file
+  actually inside this project? Does it say which folder, which date and which event it came
+  from? If it's a screenshot standing in for numbers, does it link to the report those numbers
+  came from? And — checked *now*, not when you wrote it down — does the file on disk still hash
+  to the fingerprint your record claims? Fail any of them and the image is not placed; the
+  reviewer is told exactly which question it failed, in the spec's own words. Pass them all and
+  it goes on the page carrying the fingerprint line from your own file as its evidence.
+- **A path that points outside the project doesn't get "disclosed". It gets refused.** That
+  distinction sounds pedantic until you break it on purpose, which we did: with the containment
+  check removed, the loader didn't error — it happily *placed a file from outside the project*
+  onto the surface, with full provenance and nothing in the honesty panel. Routing it to
+  "missing" instead of raising would have made that same read look honest. It raises. A symlink
+  that points outside is caught the same way, because we resolve the link *before* we ask where
+  it lives.
+- **We never open the image.** We hash its bytes and nothing else — no image library is reachable
+  from this code, and a test greps for one. A malicious or booby-trapped picture is just bytes to
+  a hash.
+- **The composer is now forbidden, in code, from writing anything you didn't.** Every single
+  string that reaches the page is either something you typed or one of eight declared, listed,
+  numeral-free connective phrases (the lead paragraph and the section labels). There is a test
+  that walks the finished page and holds every string to that rule — and to prove the test isn't
+  decorative, we made the composer merge your six highlight lines into one, and watched four
+  tests go red. There's a fixture in the repo whose only job is to *tempt* a composer into
+  improving your writing: two lines begging to be summarised, two out of chronological order,
+  two begging to be joined. All six must come out separately, in your order, byte for byte.
+- **Nothing publishes.** The composed weekly arrives as a Draft and the module contains no call
+  that could advance the gate at all — asserted by grepping the source, not by hoping. Compose
+  the same file twice and you get byte-identical output.
+
+The one thing we got *wrong* first, and it's worth keeping: the "did the author write this?"
+check started as a plain substring test, and it accused the author's own multi-line highlight —
+because YAML re-folds long lines, so your text isn't a literal substring of your file. A test
+caught it, not a hunch. It now compares the way the faithfulness gate itself compares: forgiving
+whitespace and nothing else.
+
+Still to come in this phase: the deck itself, and a CI job that actually runs these 72 tests.
+
+**2026-08-29 (earlier) — v1.3 PHASE 3, PLAN 02: YOU CAN NOW HAND-WRITE A WEEKLY AND HAVE THE
 RECORD BELIEVE YOU — WORD FOR WORD, LINE BY LINE (plan 03-02 of 4, branch
 `claude/new-session-gw8tik`).** Last plan gave the weekly somewhere to *go*; this one gives it a
 way to *arrive*. Write a YAML file — your week, your module, your highlights and lowlights in your

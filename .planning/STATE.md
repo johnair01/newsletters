@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 03-02-PLAN.md; next: 03-03-PLAN.md (asset placement + the weekly Surface)"
-last_updated: "2026-08-29T07:45:00Z"
-last_activity: 2026-08-29 — Phase 3 plan 03-02 executed (span minter promoted; the Weekly Spec schema + loader)
+stopped_at: "Completed 03-03-PLAN.md; next: 03-04-PLAN.md (the weekly deck + the CI job)"
+last_updated: "2026-08-29T08:05:00Z"
+last_activity: 2026-08-29 — Phase 3 plan 03-03 executed (asset routing, all seven rows; `build_weekly_report`)
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 10
-  completed_plans: 8
-  percent: 80
+  completed_plans: 9
+  percent: 90
 ---
 
 # Project State
@@ -25,16 +25,16 @@ See: .planning/PROJECT.md (updated 2026-08-29)
 
 ## Current Position
 
-Phase: Phase 3: Weekly compose (WKLY-02..04) — executing (2 of 4 plans complete)
-Plan: 03-02 complete; next 03-03 (asset placement + `build_weekly_report`)
-Status: Ready to execute 03-03
-Last activity: 2026-08-29 — Phase 3 plan 03-02 executed (span minter promoted to `specspan.py`; the Weekly Spec eight-key schema + `load_weekly_spec`)
+Phase: Phase 3: Weekly compose (WKLY-02..04) — executing (3 of 4 plans complete)
+Plan: 03-03 complete; next 03-04 (the weekly deck + the CI job)
+Status: Ready to execute 03-04
+Last activity: 2026-08-29 — Phase 3 plan 03-03 executed (asset placement with all seven routing rows; `build_weekly_report`)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- v1.3: 8 plans complete (roadmap defined 2026-08-29; 4 phases). Phase 1 executed in 3 waves, ~48min total; Phase 2 executed in 3 waves, ~31min total.
+- v1.3: 9 plans complete (roadmap defined 2026-08-29; 4 phases). Phase 1 executed in 3 waves, ~48min total; Phase 2 executed in 3 waves, ~31min total.
 - v1.2: 2 plans across 2 phases (closed 2026-08-29, archived).
 - v1.1: 12 plans across 4 phases (closed 2026-07-02, archived). v1.0: Phases 1–14 (archived).
 
@@ -44,7 +44,7 @@ Last activity: 2026-08-29 — Phase 3 plan 03-02 executed (span minter promoted 
 |-------|-------|--------|
 | 1. Specify + de-risk | 3/3 | Plans complete — awaiting phase verification |
 | 2. Renderer (WKLY-01) | 3/3 | Plans complete — awaiting phase verification (SC-1..SC-5 proved locally; the `pptx` job's first CI green and the real-PowerPoint open are PR-review items) |
-| 3. Weekly compose (WKLY-02/03/04) | 2/4 | Executing — 03-01 landed the four block kinds, their render branches and the replacement gate freeze; 03-02 landed the promoted `SpanMinter` and the Weekly Spec load half |
+| 3. Weekly compose (WKLY-02/03/04) | 3/4 | Executing — 03-01 landed the four block kinds, their render branches and the replacement gate freeze; 03-02 landed the promoted `SpanMinter` and the Weekly Spec load half; 03-03 closed WKLY-03 (asset routing) and the composition half of WKLY-02 (`build_weekly_report`) |
 | 4. Sample corpus + recipe (WKLY-05/06) | 0/0 (unplanned) | Not started |
 
 **Per-plan execution:**
@@ -59,6 +59,7 @@ Last activity: 2026-08-29 — Phase 3 plan 03-02 executed (span minter promoted 
 | Phase 2 P03 | 12min | 3 tasks | 2 files |
 | Phase 3 P01 | 11min | 3 tasks | 8 files |
 | Phase 3 P02 | 42min | 3 tasks | 8 files |
+| Phase 3 P03 | 22min | 2 tasks | 5 files |
 
 **Recent Trend:**
 
@@ -138,6 +139,12 @@ WHERE-WE-ARE.md):
 - [Phase 3-01]: `AssetBlock` renders TEXT ONLY (`figure.diagram` + `.dh` + `<figcaption>`, no `<img>`), pinned by a `"<img" not in html` assertion. Relative-path resolution for the published tree is unsolved and no success criterion asks for it; `DiagramBlock`'s unescaped `{b.svg}` is the renderer's sole raw interpolation and is explicitly NOT a precedent.
 - [Phase 3-01]: ZERO bytes of `render._CSS` moved, enforced by a sha256 pin whose message states that regenerating `content/rev1/site` and `content/work` is a separate DECLARED task with its own reviewed diff — never a side effect of adding a block kind.
 
+- [Phase 3-03]: `compose._addressed` is PROMOTED to the public `compose.addressed` and IMPORTED by the weekly composer, never copied — it is the trust predicate deciding whether a claim may reach a reviewed block, and two copies of a trust predicate drift exactly as two normalizers do. `tests/test_compose.py` passed UNMODIFIED across the rename.
+- [Phase 3-03]: An asset path escaping the root RAISES and a mutation proved WHY the distinction is not pedantry: with the containment check deleted the loader did not error — it PLACED a file from outside the project root onto the Surface, fully vouched for, with no disclosure anywhere. A `missing[]` route would have made that same read look honest.
+- [Phase 3-03]: The editorialization guard compares block strings to the transcript through the faithfulness gate's OWN `_normalize` (case-folded, whitespace-collapsed), not a raw `in`. A YAML block scalar's parsed value is folded, so a raw substring test flags the author's own multi-line highlight while still letting a reformatted paraphrase through. Found by a RED, not by reasoning.
+- [Phase 3-03]: `CONNECTIVE_CONSTANTS` holds the lead AND the section labels (eight strings, all numeral-free). `RecognitionsBlock`/`TeamBlock` carry composer text by MODEL DEFAULT, so a lead-only allowlist would have hidden those defaults from the guard rather than removing them.
+- [Phase 3-03]: `stands_in_for` is CLOSED to `'values'` at validation. `AssetRecord` types it `Literal["values"]`, so an unknown kind carried to placement would raise a Pydantic error naming a TYPE instead of naming the author's typo — the one place in the module where a typo would not teach.
+- [Phase 3-03]: `weekly-editorial-bait.yml` is COMMITTED, not authored into `tmp_path`: "do not summarize, sort or merge these six lines" is a contract 03-04 and every later composer must keep passing, and a tmp_path fixture dies with the test that wrote it.
 ### Pending Todos
 
 None. (B1–B20 fix-batch backlog remains parked in `reviews/2026-07-02-deep-review/07-tests-as-promises.md`, maintainer-gated.)
@@ -163,6 +170,11 @@ None. (B1–B20 fix-batch backlog remains parked in `reviews/2026-07-02-deep-rev
 - [v1.3 Phase 3 — RETIRED 2026-08-29 by plan 03-01]: `render.py`'s bare `return ""` block-dispatch fall-through is gone. All fifteen union members have a branch (proved by a `typing.get_args`-driven coverage test, not a hand-written list) and the fall-through is now a teaching `ValueError` naming the unhandled `block.kind`. It stays unreachable by construction — `Surface.blocks` is a discriminated `list[Block]` — and a comment in `_block_html` records that keeping it unreachable is the point.
 
 - [v1.3 Phase 3 — OPEN, CI]: `tests/test_semantic_gate_frozen.py` Half B and `test_compose.py`'s byte-freeze both need the full history. The CI job that runs them MUST set `fetch-depth: 0` on its checkout, or both FAIL by design (the `milestone_base_ref` fixture names the fix in its own message). Not yet wired — the weekly CI job is plan 03-03/03-04's. Stated, not assumed: the test and the job that runs it are two different artifacts (W21).
+- [v1.3 Phase 3 — OPEN, CI]: `tests/test_weeklyspec.py` is in **no CI job**. It is now **72 tests**
+  (the whole Weekly Spec load + placement + compose proof, including every routing row and the
+  editorialization guard) and `ci.yml`'s pytest invocations do not name it — green because not run,
+  the exact W21 failure, already paid for once. A job must name it; plan 03-04 owns the weekly CI job.
+
 - [Carried]: `v1.1`/`v1.2` tags exist locally only — the environment's git proxy drops tag pushes; maintainer creates them via the Releases UI.
 - [Carried]: ledgers (`content/*/ids.json`) are append-only — any diff on regenerate is a stop-the-line bug.
 
@@ -181,7 +193,30 @@ mine?" tax. Maintainer-gated because the fix is a repo-wide reformat.
 
 ## Session Continuity
 
-Last session: 2026-08-29 — Phase 3 plan 03-02 executed. `_SpanMinter` and `_absent` were
+Last session: 2026-08-29 — Phase 3 plan 03-03 executed. An image now reaches a `Surface`
+ONLY as a root-contained, provenance-complete file that still hashes to what its record says:
+`load_weekly_spec` places assets at load time (the hash check needs the filesystem), checking
+containment FIRST — `resolve()` follows symlinks, then `relative_to(root)` — so a traversal never
+reaches `read_bytes()`, then the three provenance minimums in field order, then the deep link
+required iff `stands_in_for: values`, then existence and a placement-time sha256 over the file
+BYTES. All seven routing rows carry `docs/weekly-spec.md`'s EXACT disclosure strings and are
+proved both ways: 13 parametrized cases, each refusal paired with a well-formed asset in the same
+document that still places. `build_weekly_report` then assembles a Draft `Surface(REPORT)` at
+`EPOCH_ZERO` in a fixed asserted block order, byte-identical across two composes, with zero
+gate-advancing calls in the module. Two mutation observations are recorded verbatim in
+`03-03-SUMMARY.md`: deleting the containment check did not merely fail to refuse — it SILENTLY
+PLACED an out-of-root file with full provenance and no disclosure; and a composer mutated to merge
+the author's highlight lines turned four tests red, including the planted-paraphrase arm's
+"the untampered surface is clean" half. The one wrong first implementation this plan shipped was
+caught by a test, not by reasoning: the editorialization guard's raw substring check flagged
+`weekly-full.yml`'s own BLOCK SCALAR, because YAML folds it — it now compares through the
+faithfulness gate's own `_normalize`. Suite: 699 passed / 64 skipped (baseline 661/64, +38 tests,
+zero regressions); `lint-imports` 2 kept; the eight gate pins still green; `newsletters check`
+clean on all three corpora. WKLY-02 and WKLY-03 are now COMPLETE.
+Stopped at: Completed 03-03-PLAN.md; next: 03-04-PLAN.md (the weekly deck + the CI job)
+Resume file: `.planning/phases/03-weekly-compose/03-03-SUMMARY.md`
+
+Previously: 2026-08-29 — Phase 3 plan 03-02 executed. `_SpanMinter` and `_absent` were
 PROMOTED verbatim out of `casespec.py` into `src/newsletters/specspan.py` as `SpanMinter`,
 `absent` and `GATE` (131 deletions vs 7 insertions — a move, not a rewrite), so exactly ONE
 honest-span implementation exists and both spec loaders import it; `tests/test_casespec.py`

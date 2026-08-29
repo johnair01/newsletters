@@ -273,7 +273,7 @@ operator through the loop on their own data, read-only and local.
 |-------|----------------|--------|-----------|
 | 1. Specify + de-risk | 3/3 | Complete    | 2026-08-29 |
 | 2. Renderer | 3/3 | Complete    | 2026-08-29 |
-| 3. Weekly compose | 2/4 | Executing (plans 03-01, 03-02 complete; 2 plans remain) | - |
+| 3. Weekly compose | 3/4 | Executing (plans 03-01, 03-02, 03-03 complete; 1 plan remains) | - |
 | 4. Sample corpus + recipe | 0/0 | Not started | - |
 
 Plans are created per phase by `/gsd-plan-phase`; `0/0` means "not yet planned", not "no work".

@@ -4,7 +4,52 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
-## 2026-08-29 (latest) — W23: the mutation that mutated nothing, and the revert that ate my work
+## 2026-08-29 (latest) — W24: the tool that half-wrote the state file, and the guard that accused the author
+
+**Friction observed (v1.3 plan 03-03 — asset placement + the weekly composer)**
+
+1. **A state-handler failed AND mutated.** `gsd-tools query state.advance-plan` exited with
+   `{"error": "Cannot parse Current Plan or Total Plans in Phase from STATE.md"}` — and had already
+   written to `STATE.md` before erroring: it *regressed* `stopped_at` to the previous plan's value,
+   set `percent: 50` (the true value is 90), and bumped `completed_plans`. An error message that
+   reads like "I did nothing" while the file on disk has changed is the worst shape a failure can
+   take. Caught only because `git diff` was run on the file afterwards rather than trusting the
+   exit. This is W23's rule ("verify a mutation actually applied") pointed the other way: **verify
+   that a *failed* mutation did not apply either.**
+2. **A guard that was obviously right accused the author.** The editorialization guard — "every
+   string on the page is either something the author wrote or a declared connective constant" —
+   was first implemented as a plain substring test against the file text. It failed on
+   `weekly-full.yml`'s own **block scalar**: YAML folds a multi-line value, so the author's text is
+   not a literal substring of the author's file. The tempting fix (allowlist the line) would have
+   punched a hole in the guard. The honest fix was to compare through the *faithfulness gate's own*
+   normal form, which forgives whitespace and nothing else. Found by running it, not by reasoning
+   about it.
+3. **A plan-acceptance grep can be satisfied by a docstring.** `grep -c 'PIL\|Pillow\|imghdr'` must
+   print 0 — and it went red on a *comment* explaining that the module never uses them. The
+   criterion was right (a grep cannot read intent) and the prose had to be rewritten to describe
+   the rule without naming the tokens. Worth remembering when writing "no X appears in this file"
+   criteria: the file cannot then discuss X.
+4. **A mutation's own safety assertion fired on a false positive.** The `_addressed` → `addressed`
+   rename script asserted `"_addressed" not in new` — which is true only if you forget that
+   `Trace.is_addressed` legitimately contains that substring. The script stopped the write, which
+   is the right failure, but the assertion needed to be a word-boundary regex with the known-good
+   name excluded.
+
+**Rules hardened**
+
+- *After any GSD state-handler call — success **or** failure — `git diff` the file it owns before
+  trusting the outcome.* A non-zero exit is not evidence that nothing was written. (Extends W23's
+  "verify a mutation applied" to its mirror image.)
+- *A "this token appears nowhere in the file" criterion binds the file's prose too.* Explain the
+  rule without naming the token, or the guard fails on its own documentation.
+- *A guard's first RED is data about the guard, not only about the code.* When a new guard fires on
+  known-good input, fix the comparator to the one the codebase already trusts (here: the
+  faithfulness gate's `_normalize`) rather than allowlisting the input.
+
+**Carried unchanged:** DEF-15 (isort/black profile) charged its tax again. W23's backup-copy revert
+discipline was followed for both mutations in this plan and cost nothing.
+
+## 2026-08-29 (earlier) — W23: the mutation that mutated nothing, and the revert that ate my work
 
 **Friction observed (v1.3 plan 03-02 — the Weekly Spec load half)**
 

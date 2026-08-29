@@ -25,7 +25,7 @@ contract = named placeholders, fail-loud on missing/unknown names.
 
 ### Composition
 
-- [ ] **WKLY-02**: A weekly composes from new block kinds — `NarrativeBlock` (authored
+- [x] **WKLY-02**: A weekly composes from new block kinds — `NarrativeBlock` (authored
   highlights/lowlights), `RecognitionsBlock`, `TeamBlock` (name, role, short lines, photo ref),
   `AssetBlock` — alongside the existing per-lane KPI strip + claims. Authored material arrives
   as a **Weekly Spec** YAML on the Case Spec mechanism: file text is the evidence, narrative
@@ -34,7 +34,7 @@ contract = named placeholders, fail-loud on missing/unknown names.
 
 ### Evidence
 
-- [ ] **WKLY-03**: An asset (photo, screenshot) is a content-addressed file with required
+- [x] **WKLY-03**: An asset (photo, screenshot) is a content-addressed file with required
   provenance — minimum: folder + date + event label; optional deep link. It enters a Surface
   only via an `AssetBlock` tracing to that record. An asset without provenance routes to
   `missing[]` — shown to the reviewer, never placed silently.
@@ -79,8 +79,8 @@ contract = named placeholders, fail-loud on missing/unknown names.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | WKLY-01 | Phase 2 — Renderer | Complete (02-01 foundation · 02-02 the writer · 02-03 the proof + CI). All five phase SCs implemented and proved by tests that read the WRITTEN file back: SC-1 seven fail-loud/binding tests · SC-2 double render across a real 3s gap with its negative control and `part_digest` · SC-3 marker + watermark, asserted in both directions · SC-4 gate untouched, `semantic.py` byte-unchanged · SC-5 lazy `[pptx]` import + a `pptx` CI job whose exact command runs 117 passed / **0 skipped**. **Two confirmations remain for the PR review, recorded not hidden:** the new job's first observed CI green (no `gh` in the build environment) and the real-PowerPoint open (A8 — no `.pptx` consumer here) |
-| WKLY-02 | Phase 3 — Weekly compose | **In progress** (03-01 · 03-02). 03-01: the four block kinds exist, round-trip by discriminator and each render to HTML from pre-existing design-system classes; `_block_html` can no longer swallow one. 03-02: the Weekly Spec YAML **load** path is met — `newsletters.weeklyspec.load_weekly_spec` lifts an authored file into a content-addressed `Source` with narrative carried byte-verbatim as gate-entailed claims at real spans of that file (a value duplicated across sections traces to its own line, proved by a mutation-tested line-number regression), `config:` bound-never-claimed, and every absence disclosed in `missing[]` in schema order including "no lowlights". **Not yet met:** the COMPOSE half — `build_weekly_report`, the fixed block order, and the KPI-strip/claims assembly that puts those blocks on a Draft `Surface(REPORT)`. That is plan 03-03's |
-| WKLY-03 | Phase 3 — Weekly compose | **In progress** (03-01). The TYPE-LEVEL half is landed: `AssetRecord` carries the provenance minimums, and `AssetBlock.asset` (required, no default) + `evidence` (`min_length=1`) make a provenance-less placement unrepresentable rather than policed. **Not yet met:** the loader-side routing — the four `missing[]` conditions, the placement-time content-address check, and the root-containment refusal |
+| WKLY-02 | Phase 3 — Weekly compose | **Complete** (03-01 the block kinds · 03-02 the load half · 03-03 the composer). `build_weekly_report` assembles the four new kinds alongside the per-binding KPI strip + claims into a Draft `Surface(REPORT)` at `EPOCH_ZERO`, in a fixed asserted block order, byte-identical across two composes, with no gate-advancing call in the module. Authored narrative is carried byte-verbatim beside its own minted claim; `config:` is bound and never claimed; absences are disclosed rather than rendered as empty blocks. "It never editorializes" is ENFORCED: every block string is authored (compared through the faithfulness gate's own normal form) or one of eight declared connective constants, with the guard's firing observed on a planted paraphrase AND on a genuinely merging composer |
+| WKLY-03 | Phase 3 — Weekly compose | **Complete** (03-01 the type-level half · 03-03 the routing). `AssetRecord`/`AssetBlock` make a provenance-less placement unrepresentable, and `load_weekly_spec` now routes every row of `docs/weekly-spec.md` §"The routing": the three provenance minimums in field order, the deep link required iff `stands_in_for: values`, the placement-time sha256 re-check (including the substitution case), the two `team[].photo` reference rows — each with the spec's exact disclosure string — and a root escape (direct or via symlink) that RAISES and contributes nothing to `missing[]`. The image is hashed, never decoded. 13 parametrized routing cases, every refusal paired with a well-formed asset that still places; the containment mutation was observed RED (and observed silently placing an out-of-root file) |
 | WKLY-04 | Phase 3 — Weekly compose | Pending |
 | WKLY-05 | Phase 4 — Sample corpus + recipe | Pending |
 | WKLY-06 | Phase 4 — Sample corpus + recipe | Pending |
