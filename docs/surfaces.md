@@ -292,12 +292,14 @@ full visual spec and `web/README.md` for the implementation.
 
 ### Cross-corpus Records strip (PUB-03, v1.2)
 
-The published site composes **three corpora** (rev1 at the root, `/work/`, `/module/` — see
-`architecture.md` §"The published record"), and the package's "no surface a dead-end" rule
+The published site composes **four corpora** (rev1 at the root, `/work/`, `/module/`, `/weekly/`
+— see `architecture.md` §"The published record"), and the package's "no surface a dead-end" rule
 applies *between* them too. The device is a **Records strip**: a single mono utility row
 (`Records on this site · <a>…</a>`) rendered by `render.py::_records_strip` on **chrome pages
 only** — the rev1 Home + each corpus's Library — never on per-surface pages (a reader inside a
-report is inside one record; the cross-record jump belongs at the record's front door). It sits
+report is inside one record; the cross-record jump belongs at the record's front door). Each
+chrome page names its **three neighbours**, so the strip's link set is: *The Rev1 record*, *The
+work record*, *The module record* and *The weekly record* (v1.3). It sits
 after the main content, before the footer; DM Mono 11px, existing tokens, `--radius: 0`.
 
 Each *builder* declares its neighbors with hrefs **relative to the assembled published tree**

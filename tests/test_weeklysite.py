@@ -818,6 +818,65 @@ def test_recipe_commands_match_the_shipped_cli() -> None:
     )
 
 
+def _prose_of(path: Path) -> str:
+    """The document's PROSE: fenced code blocks and HTML comments removed, whitespace collapsed.
+
+    Two reasons, both learned rather than assumed. (a) A document that legitimately QUOTES the
+    wording this guard forbids — a code sample, a commented-out line — must not be able to
+    self-invalidate the guard; strip that noise first, and if a document ever needs to quote the
+    old wording in prose, scope the assertion to the section instead of loosening it. (b) These
+    files are hard-wrapped, so ``three committed corpora`` spans a line break in the source: the
+    phrase only exists after whitespace is collapsed, and a raw ``in`` check would pass on a
+    document that still says it.
+    """
+    text = path.read_text(encoding="utf-8")
+    text = re.sub(r"```.*?```", " ", text, flags=re.DOTALL)
+    text = re.sub(r"<!--.*?-->", " ", text, flags=re.DOTALL)
+    return re.sub(r"\s+", " ", text)
+
+
+# Per document: what must now be NAMED, and the exact wording this plan removed. Keeping the
+# stale phrases here (rather than in a summary's one-off grep) is the point of the test — the
+# NEXT corpus cannot make these four documents stale silently.
+_FOUR_CORPORA_DOCS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
+    "docs/architecture.md": (
+        ("content/weekly/site", "four committed corpora", "weekly"),
+        ("three committed corpora", "three corpora", "{rev1|work}"),
+    ),
+    "docs/surfaces.md": (
+        ("four corpora", "/weekly/", "The weekly record"),
+        ("three corpora",),
+    ),
+    "CLAUDE.md": (
+        ("content/{rev1,work,module,weekly}/",),
+        ("content/{rev1,work,module}/", "three corpora"),
+    ),
+    "content/README.md": (
+        ("content/weekly", "weekly/", "four committed corpora"),
+        ("Empty until then", "three corpora"),
+    ),
+}
+
+
+def test_docs_describe_four_corpora() -> None:
+    """No spec still describes three corpora or a two-value `--corpus` selector (T-04-18).
+
+    A stale spec understates what publishes, and CLAUDE.md's own rule is that a spec the code
+    outgrew gets fixed in the change that made it stale. Encoding that as a TEST rather than as a
+    one-off grep in a plan summary is what makes it hold for the corpus AFTER this one: the fifth
+    corpus will turn these four documents red the moment it lands.
+    """
+    for rel, (must_name, must_not_say) in _FOUR_CORPORA_DOCS.items():
+        prose = _prose_of(REPO_ROOT / rel)
+        for phrase in must_name:
+            assert phrase in prose, f"{rel} stopped naming {phrase!r} (the weekly)"
+        for phrase in must_not_say:
+            assert phrase not in prose, (
+                f"{rel} still says {phrase!r} — the repo ships FOUR committed corpora "
+                "(rev1, work, module, weekly)"
+            )
+
+
 def test_recipe_carries_the_load_bearing_anchors() -> None:
     """The recipe's TRUST claims survive an edit (T-04-14) — not its prose style.
 

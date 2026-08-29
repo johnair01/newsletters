@@ -2,8 +2,10 @@
 #
 # WHAT PUBLISHES: the rendered record — the committed corpora assembled by
 # `newsletters assemble` (publish.assemble_site): content/rev1/site at the ROOT,
-# content/work/site at /work/, content/module/site at /module/, plus .nojekyll and the
-# base-path-absolute 404.html. The web/ Next.js app additionally deploys UNDER the
+# content/work/site at /work/, content/module/site at /module/, content/weekly/site at
+# /weekly/, plus .nojekyll and the base-path-absolute 404.html. assemble copies
+# content/*/site ONLY — so content/weekly/deck/*.pptx cannot reach the published tree
+# (structural, not disciplinary: T-04-08). The web/ Next.js app additionally deploys UNDER the
 # record at /web/ as a labeled DESIGN PREVIEW (round-2 amendment to DEF-13: the root
 # URL still belongs to the corpus record; the preview carries placeholder data and
 # lives at the subpath until it consumes real corpus data).

@@ -8,6 +8,12 @@ is one *rendering* of that record. The weekly reuses `Surface(REPORT)`: the deck
 **format**, not a new semantic kind, so `src/newsletters/semantic.py`'s `kind` enum is untouched
 by this work (decision **D-01**).
 
+**Authoring one is half the story.** This document is the *authoring contract* — the schema, the
+loader's rules, the block kinds. The operator's end-to-end recipe (prepare the template, point the
+read-only adapters at your data, compose, render, review) lives in
+[`docs/weekly.md`](weekly.md), and it links back here rather than restating any of the schema
+below.
+
 The Weekly Spec is a **sibling** of the [Case Spec](case-spec.md) — not an extension of its
 schema. The *mechanism* is reused verbatim (`safe_load` only, newline-normalized file text as the
 evidence, `Trace.from_source` spans, root containment, `config:` bound but never claimed); the
