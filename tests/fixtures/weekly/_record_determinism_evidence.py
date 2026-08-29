@@ -258,8 +258,19 @@ def check() -> int:
 
 
 def main() -> int:
-    if "--check" in sys.argv[1:]:
+    # Fail LOUD on anything that is not exactly no-args or --check. Falling through to record()
+    # on an unrecognized argument (--chek, check, --verify) would destructively overwrite the
+    # committed evidence during an attempted VERIFICATION — the wrong failure mode for a script
+    # whose entire purpose is defeating fabricated/repudiable evidence (T-01-03).
+    args = sys.argv[1:]
+    if args == ["--check"]:
         return check()
+    if args:
+        print(
+            f"unknown argument(s) {args!r}; usage: _record_determinism_evidence.py [--check]. "
+            "Refusing to fall through to record(), which would overwrite the committed evidence."
+        )
+        return 2
     record()
     return 0
 
