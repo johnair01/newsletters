@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: milestone
 status: verifying
-stopped_at: "Completed 04-03-PLAN.md — Phase 4 complete; next: phase verification, then the"
+stopped_at: "v1.3 BUILD COMPLETE + AUDIT PASSED. PR #25 open to main (https://github.com/johnair01/newsletters/pull/25) — the human gate. Milestone completion/cleanup deliberately NOT run; happens after the EiC review. Session watching PR CI (pptx/weekly jobs first green)."
 last_updated: "2026-08-29T10:41:18.203Z"
 last_activity: 2026-08-29
 progress:
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-29)
 
 Phase: — (all 4 phases complete, verified)
 Plan: — (13 of 13 complete)
-Status: ALL PHASES COMPLETE. Final gates green over four corpora (871 passed/0 skipped · lint-imports 2 kept · check ×4 OK · corpora clean · determinism --check OK). Next: milestone audit, then STOP before completion — the EiC's PR review is the human gate (kickoff Step 3/4). Human items deferred to PR: real-PowerPoint open · first CI green of pptx/weekly jobs · weekly-spec/recipe cold reads · contentStatus tri-state · deck images (round two).
+Status: DONE-CONDITION MET — PR #25 open from claude/new-session-gw8tik to main, left for the EiC's review. Audit passed; ADAPT-04 round-trip green; open items listed in the PR body.
 Last activity: 2026-08-29 — Phase 4 closed; running milestone audit
 
 
