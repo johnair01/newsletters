@@ -102,9 +102,53 @@ def test_assemble_refuses_foreign_out_dir(tmp_path: pathlib.Path) -> None:
     with pytest.raises(FileExistsError):
         assemble_site(precious, repo_root=REPO_ROOT)
     assert (precious / "keep.txt").read_text() == "not yours"
-    # …but a PREVIOUS assembly (recognized by its .nojekyll marker) reassembles cleanly.
+    # …but a PREVIOUS assembly (both markers: .nojekyll + the generated-by marker in its
+    # index.html) reassembles cleanly.
     out = _assemble(tmp_path)
     assemble_site(out, base_path=_BASE_PATH, repo_root=REPO_ROOT)
+
+
+def test_assemble_refuses_the_near_miss_pages_checkout(tmp_path: pathlib.Path) -> None:
+    """WR-05: ``.nojekyll`` ALONE no longer licenses ``rmtree`` — it is Pages furniture.
+
+    The data-loss path this pins: essentially every static GitHub Pages checkout carries a
+    ``.nojekyll``, so the old single-marker guard treated ANY such tree — somebody else's
+    gh-pages checkout, one mistyped ``--out`` away — as "a previous assembly of ours" and
+    destroyed it. Ownership now takes BOTH markers; the near-misses (foreign index beside a
+    ``.nojekyll``; a ``.nojekyll`` with no index at all) are refused with the tree intact, and
+    ``force=True`` is the one explicit way through.
+    """
+    foreign_index = "<html>somebody else's site</html>"
+    checkout = tmp_path / "gh-pages"
+    checkout.mkdir()
+    (checkout / ".nojekyll").write_bytes(b"")
+    (checkout / "index.html").write_text(foreign_index)
+    with pytest.raises(FileExistsError, match="ownership proof"):
+        assemble_site(checkout, repo_root=REPO_ROOT)
+    assert (checkout / "index.html").read_text() == foreign_index, "the guard clobbered anyway"
+
+    marker_no_index = tmp_path / "marker-no-index"
+    marker_no_index.mkdir()
+    (marker_no_index / ".nojekyll").write_bytes(b"")
+    (marker_no_index / "data.txt").write_text("keep me")
+    with pytest.raises(FileExistsError):
+        assemble_site(marker_no_index, repo_root=REPO_ROOT)
+    assert (marker_no_index / "data.txt").read_text() == "keep me"
+
+    # force=True is the explicit human override for exactly this refusal…
+    assemble_site(checkout, repo_root=REPO_ROOT, force=True)
+    assert _MARKER in (checkout / "index.html").read_text(encoding="utf-8")
+    # …and the tree it just built proves ownership, so a re-assembly needs no force.
+    assemble_site(checkout, repo_root=REPO_ROOT)
+
+
+def test_assemble_refuses_a_file_at_out(tmp_path: pathlib.Path) -> None:
+    """WR-05: a FILE at ``out`` is a clean teaching refusal, not a bare NotADirectoryError."""
+    out = tmp_path / "out"
+    out.write_text("a file, not a dir")
+    with pytest.raises(FileExistsError, match="FILE, not a directory"):
+        assemble_site(out, repo_root=REPO_ROOT)
+    assert out.read_text() == "a file, not a dir"
 
 
 # --------------------------------------------------------------------------- #

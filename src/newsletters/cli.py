@@ -154,6 +154,13 @@ def assemble(
         help="URL prefix the tree is served under (GitHub project pages). Embedded ONLY in "
         "404.html; every other page keeps relative links.",
     ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Replace a non-empty --out even when it does not prove it is a previous assembly "
+        "of this tool. Destructive; the default guard requires BOTH assembly markers "
+        "(.nojekyll AND the generated-by marker in index.html) before clobbering.",
+    ),
 ) -> None:
     """Assemble the published tree (PUB-01/02): rev1 at the root + work/ + module/ + weekly/.
 
@@ -164,7 +171,7 @@ def assemble(
     """
     from .publish import assemble_site
 
-    written = assemble_site(out, base_path=base_path)
+    written = assemble_site(out, base_path=base_path, force=force)
     for p in written:
         typer.echo(f"  {p}")
     typer.echo(f"\nassembled {len(written)} files -> {out}")
