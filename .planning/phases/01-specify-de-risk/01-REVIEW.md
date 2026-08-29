@@ -16,7 +16,12 @@ findings:
   warning: 7
   info: 4
   total: 12
-status: issues_found
+status: fixed
+fixed_at: 2026-08-29
+fixes:
+  fixed: [CR-01, WR-01, WR-02, WR-03, WR-04, WR-05, WR-06, WR-07, IN-01, IN-02]
+  skipped: [IN-03, IN-04]
+gates_after_fixes: "567 passed / 64 skipped (baseline 565/64 + 2 new tests); lint-imports 2 kept, 0 broken"
 ---
 
 # Phase 1: Code Review Report
@@ -24,7 +29,11 @@ status: issues_found
 **Reviewed:** 2026-08-29T04:06:26Z
 **Depth:** standard
 **Files Reviewed:** 7
-**Status:** issues_found
+**Status:** fixed — all Critical + Warning findings fixed 2026-08-29 (one atomic commit per
+finding, hashes on each finding below); IN-01/IN-02 applied as trivial zero-risk fixes;
+IN-03/IN-04 deliberately deferred to their scheduled Phase-2 consolidation. Gates re-run after
+the fixes: full suite 567 passed / 64 skipped (baseline 565/64 plus the two new tests),
+`lint-imports` 2 kept / 0 broken, evidence `--check` exit 0.
 
 ## Summary
 
@@ -90,6 +99,11 @@ already uses it.) Alternatively move `from pptx import Presentation` inside `_re
 and `test_normalized_archive_is_valid_and_reopens_with_marker_intact`, matching the golden
 test's lazy-import convention.
 
+**Resolution: FIXED in `6150b4d`.** `pytest.importorskip("pptx")` replaces the `pytestmark` +
+module-level import; the docstring no longer claims the pytestmark pattern is the guard. Proven
+by blocking `pptx` via `sys.modules` and running the file: `1 skipped in 0.02s`, no collection
+error (previously `Interrupted: 1 error during collection`).
+
 ## Warnings
 
 ### WR-01: `normalize_opc_zip` silently rewrites part bytes, and `part_digest` collides, on duplicate-member-name archives
@@ -120,6 +134,12 @@ with zipfile.ZipFile(io.BytesIO(raw)) as zin:
 Apply the same duplicate check (or per-`ZipInfo` reads) in `part_digest` and
 `differing_parts`, and add a duplicate-name regression test.
 
+**Resolution: FIXED in `9fb17d1`.** `_reject_duplicate_member_names` raises `ValueError` naming
+the duplicated members before any by-name read, in all FOUR functions (including
+`differing_zipinfo_fields`, whose by-name pairing was also last-wins); module docstring records
+the refusal contract. Regression test `test_duplicate_member_names_are_refused_loudly` builds a
+shadowed archive and asserts the raise in every function.
+
 ### WR-02: The promised fail-loud scrub guard for the template's core properties does not exist
 
 **File:** `tests/fixtures/weekly/_author_template.py:27-28` (and `tests/test_pptx_determinism.py`)
@@ -145,6 +165,11 @@ assert normalize_opc_zip(TEMPLATE.read_bytes()) == TEMPLATE.read_bytes()  # comm
 (The last line also turns `_author_template.py`'s "anyone can run" idempotence claim,
 line 34, into an enforced one.)
 
+**Resolution: FIXED in `d3c95a2`.** New test `test_committed_template_is_scrubbed_and_normalized`
+asserts against the COMMITTED template: no `Steve Canny` / `python-pptx` bytes in
+`docProps/core.xml`, scrubbed `author` / `last_modified_by`, and
+`normalize_opc_zip(committed) == committed` (the enforced idempotence claim).
+
 ### WR-03: `_EPOCH_NAIVE` is a hand-minted second epoch sentinel under a comment claiming it is imported
 
 **File:** `tests/fixtures/weekly/_record_determinism_evidence.py:70-71`
@@ -160,6 +185,11 @@ the evidence recorder from the durable test.
 from newsletters.adapters._timestamps import EPOCH_ZERO
 _EPOCH_NAIVE = EPOCH_ZERO.replace(tzinfo=None)  # dcterms reads back tz-naive
 ```
+
+**Resolution: FIXED in `11a0bad`.** Exactly the suggested fix; the `datetime` import is gone and
+the comment now says "DERIVED from the canonical sentinel". Verified live: `_EPOCH_NAIVE ==
+datetime(1970, 1, 1)`, tz-naive, and the evidence `--check` still exits 0 through a full
+re-measurement.
 
 ### WR-04: A mistyped flag silently overwrites the committed evidence artifact
 
@@ -183,6 +213,10 @@ def main() -> int:
     return 0
 ```
 
+**Resolution: FIXED in `f232712`.** Exactly the suggested shape (usage message expanded to say
+WHY the fall-through is refused). Proven: `--chek` exits 2 with the committed evidence JSON
+untouched; `--check` still re-verifies all 6 implementation-independent fields, exit 0.
+
 ### WR-05: `_normalize_zip`'s docstring re-asserts the exact claim the module header marks as false
 
 **File:** `tests/fixtures/pptx/_author_fixtures.py:135`
@@ -201,6 +235,10 @@ Additionally: (1) the SmartArt fixture rebuilds the archive after XML injection;
 chart fixture embeds a nested `.xlsx` whose openpyxl core.xml carries a wall-clock — pinned
 via `_normalize_embedded_xlsx`."
 
+**Resolution: FIXED in `40af81e`.** The function docstring now states the corrected finding (the
+`time.localtime()` stamp, measured 2026-08-29), names the rewrite as load-bearing for ALL nine
+fixtures, and keeps the SmartArt-rebuild and embedded-`.xlsx` pins as the genuine additions.
+
 ### WR-06: `AssetBlock.evidence` "≥1 by construction" contradicts the spec's own type-level-enforcement doctrine
 
 **File:** `docs/weekly-spec.md:181` (AssetBlock definition)
@@ -215,6 +253,10 @@ surface.
 **Fix:** specify `evidence: list[Trace] = Field(min_length=1)` (Pydantic v2 enforces this at
 validation), or state explicitly in the spec *why* this invariant is deliberately left to
 construction while `asset` is not.
+
+**Resolution: FIXED in `3b47cf7`.** The spec now specifies `Field(min_length=1)` plus a
+paragraph making the D-02 "unrepresentable" doctrine explicit for `evidence`, and contrasting it
+with `Recognition.evidence`, which stays legitimately emptiable under rule 6.
 
 ### WR-07: The "no discretion left to the implementer" routing table leaves two paths unrouted
 
@@ -236,6 +278,11 @@ grammar: dangling `photo:` key → member carried, photo not rendered, disclosed
 `source:` → recognition carried with `evidence=[]` exactly as if `source` were absent, plus
 a disclosure naming the unresolvable id — never a fabricated trace).
 
+**Resolution: FIXED in `8c0fd12`.** Both recommended rows added to the routing table with named
+disclosure strings, plus a paragraph recording why each outcome was chosen over its defensible
+alternatives (teaching error / silent drop / minted empty trace), so the discretion is closed in
+writing, not just in the table.
+
 ## Info
 
 ### IN-01: `recorded` date is hardcoded, so any future re-record writes a stale date
@@ -250,6 +297,9 @@ is for fixtures.)
 **Fix:** either `datetime.now(timezone.utc).date().isoformat()` or a `NOTES["recorded"]`
 entry explaining the pin.
 
+**Resolution: FIXED in `d39de4f`.** `date.today().isoformat()` with a comment marking it as the
+file's one deliberate wall-clock (`--check` never compares it). The committed JSON is unchanged.
+
 ### IN-02: `_author_fixtures` zip helpers leak handles and do not pin `create_system`
 
 **File:** `tests/fixtures/pptx/_author_fixtures.py:141, 160`
@@ -262,6 +312,11 @@ Phase 2; noting here so the review record carries it too.
 **Fix:** resolved by the scheduled Phase-2 delegation to `normalize_opc_zip`; until then,
 wrap `zin` in `with`.
 
+**Resolution: FIXED (interim half) in `cb8cf19`.** Both read handles now use `with`-blocks; no
+bytes change, no fixture regeneration. The `create_system` pin is deliberately NOT applied — it
+lands with the scheduled Phase-2 delegation, since applying it during a regeneration would
+rebuild all nine golden binaries inside a spec phase.
+
 ### IN-03: `sys.path.insert` of the fixture dir mutates process-global state for the whole pytest session
 
 **File:** `tests/test_pptx_determinism.py:69` (also `_author_template.py:55`, `_record_determinism_evidence.py:47`)
@@ -272,6 +327,10 @@ order). Fine in the standalone scripts; in the shared test process it is a laten
 **Fix:** when Phase 2 promotes the normalizer to `src/newsletters/_pptx_writer.py` this
 disappears; until then, `importlib.util.spec_from_file_location("weekly_determinism", ...)`
 avoids the path mutation.
+
+**Resolution: SKIPPED (deferred).** Not trivial/zero-risk inside the fix pass — a three-file
+import-mechanism refactor for a latent (not live) collision. Disappears with the scheduled
+Phase-2 promotion of the normalizer to `src/newsletters/_pptx_writer.py`.
 
 ### IN-04: A third fixed-instant convention (`_FIXED = 2026-01-01`) alongside `EPOCH_ZERO`
 
@@ -284,6 +343,10 @@ normalizer consolidation should fold in — worth a line in that plan.
 **Fix:** consolidate on `EPOCH_ZERO`-derived values when `_author_fixtures` delegates to the
 canonical normalizer (already the scheduled moment for the `_FIXED_ZIP_DATE_TIME` → DOS
 epoch swap and corpus regeneration).
+
+**Resolution: SKIPPED (deferred).** Changing `_FIXED` now would regenerate `template.pptx`
+inside the fix pass; the consolidation is already scheduled for the Phase-2 normalizer
+delegation, which is the recorded moment for the corpus regeneration.
 
 ---
 
