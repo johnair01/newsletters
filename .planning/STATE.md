@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 02-03-PLAN.md; next: Phase 2 verification, then Phase 3 planning"
-last_updated: "2026-08-29T06:47:08.180Z"
-last_activity: 2026-08-29 — Phase 2 closed; advancing to Phase 3 (weekly compose)
+stopped_at: "Completed 03-01-PLAN.md; next: 03-02-PLAN.md (the weeklyspec.py loader/composer)"
+last_updated: "2026-08-29T06:58:10Z"
+last_activity: 2026-08-29 — Phase 3 plan 03-01 executed (block kinds + render branches + the real gate freeze)
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
-  percent: 50
+  total_plans: 10
+  completed_plans: 7
+  percent: 58
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-29)
 
 **Core value:** Make work legible and trustworthy — every published claim traces to evidence; nothing publishes without a human. The deterministic, auditable trust layer is what makes legibility believable; AI is an optional accelerator, never an authority.
-**Current focus:** Phase 2 — Renderer (WKLY-01)
+**Current focus:** Phase 3 — Weekly compose (WKLY-02/03/04)
 
 ## Current Position
 
-Phase: Phase 3: Weekly compose (WKLY-02..04) — not started (ready to plan)
-Plan: —
-Status: Ready to execute
-Last activity: 2026-08-29 — Phase 2 closed; advancing to Phase 3 (weekly compose)
+Phase: Phase 3: Weekly compose (WKLY-02..04) — executing (1 of 4 plans complete)
+Plan: 03-01 complete; next 03-02 (the `weeklyspec.py` loader/composer)
+Status: Ready to execute 03-02
+Last activity: 2026-08-29 — Phase 3 plan 03-01 executed (block kinds + render branches + the real gate freeze)
 
 ## Performance Metrics
 
@@ -44,7 +44,7 @@ Last activity: 2026-08-29 — Phase 2 closed; advancing to Phase 3 (weekly compo
 |-------|-------|--------|
 | 1. Specify + de-risk | 3/3 | Plans complete — awaiting phase verification |
 | 2. Renderer (WKLY-01) | 3/3 | Plans complete — awaiting phase verification (SC-1..SC-5 proved locally; the `pptx` job's first CI green and the real-PowerPoint open are PR-review items) |
-| 3. Weekly compose (WKLY-02/03/04) | 0/0 (unplanned) | Not started |
+| 3. Weekly compose (WKLY-02/03/04) | 1/4 | Executing — 03-01 landed the four block kinds, their render branches and the replacement gate freeze |
 | 4. Sample corpus + recipe (WKLY-05/06) | 0/0 (unplanned) | Not started |
 
 **Per-plan execution:**
@@ -57,6 +57,7 @@ Last activity: 2026-08-29 — Phase 2 closed; advancing to Phase 3 (weekly compo
 | Phase 2 P01 | 12min | 3 tasks | 8 files |
 | Phase 2 P02 | 7min | 3 tasks | 2 files |
 | Phase 2 P03 | 12min | 3 tasks | 2 files |
+| Phase 3 P01 | 11min | 3 tasks | 8 files |
 
 **Recent Trend:**
 
@@ -131,6 +132,10 @@ WHERE-WE-ARE.md):
 - [Phase 2-03]: NO TEST MAY COMPARE A RENDERED DECK TO THE TEMPLATE — not bytes, not `part_digest`, not part order. Opening the committed template and saving it unchanged already yields a different digest (`""` core properties serialize as `<cp:keywords></cp:keywords>` and come back as `<cp:keywords/>`), and part emission order differs between a built package and a reopened one. Both are python-pptx load-path properties, not regressions. **Phase 4's golden deck must come from the writer, never from re-saving the template.**
 - [Phase 2-03]: The `[pptx]` extra gets its OWN CI job (`pptx renderer + adapter (WKLY-01)`), on the `merge-block` precedent: it is a non-AI optional extra, and `bare-install` stays the canonical AI-free, extra-free source of truth (PKG-03), byte-untouched. Phase 4 EXTENDS this job with the golden committed==fresh gate — it is the only job where a pptx test executes rather than skips.
 - [Phase 2-02]: The `Surface` annotation is imported under `TYPE_CHECKING` only, so `pptx_writer.py`'s module level stays stdlib-only and the bare-install claim in its docstring — which two CI guards are written against — remains literally true rather than approximately true.
+- [Phase 3-01]: The milestone base ref (`git merge-base HEAD origin/main`) is resolved ONCE, in `tests/conftest.py::milestone_base_ref`, and consumed by both diff-shape gates. Two copies of a base ref drift exactly as two copies of a normalizer do (the Phase 2-01 "ONE normalizer" precedent). The fixture FAILS rather than skips when the ref cannot be resolved, and names `fetch-depth: 0` as the fix — a gate that is green because it never ran is the W21 failure, already paid for once.
+- [Phase 3-01]: `semantic.py`'s blanket byte-freeze is RETIRED and replaced, in the same phase that makes it obsolete, by (a) sha256 pins over `inspect.getsource` of the eight functions that ARE the review gate, with a non-vacuity arm proving the digest discriminates, and (b) a zero-deleted-lines diff against the milestone base. The old guard shelled `git diff HEAD`, which compares the WORKING TREE to the last commit — red on an uncommitted edit, green the instant it was committed, never capable of failing in CI's clean checkout. The four other protected files stay under the blanket freeze, now rebased onto the milestone ref and non-vacuous for the first time.
+- [Phase 3-01]: `AssetBlock` renders TEXT ONLY (`figure.diagram` + `.dh` + `<figcaption>`, no `<img>`), pinned by a `"<img" not in html` assertion. Relative-path resolution for the published tree is unsolved and no success criterion asks for it; `DiagramBlock`'s unescaped `{b.svg}` is the renderer's sole raw interpolation and is explicitly NOT a precedent.
+- [Phase 3-01]: ZERO bytes of `render._CSS` moved, enforced by a sha256 pin whose message states that regenerating `content/rev1/site` and `content/work` is a separate DECLARED task with its own reviewed diff — never a side effect of adding a block kind.
 
 ### Pending Todos
 
@@ -154,7 +159,9 @@ None. (B1–B20 fix-batch backlog remains parked in `reviews/2026-07-02-deep-rev
   confirmation. Stated, not assumed — the whole point of W21 is that an unobserved job is not
   evidence.
 
-- [v1.3 Phase 3]: `render.py`'s block dispatch ends in a bare `return ""`. It is UNREACHABLE today (all eleven union members have a branch), but adding four kinds without four branches makes it reachable and silent. The contract is now written in `docs/weekly-spec.md` §The four block kinds: Phase 3 adds four branches AND converts the fall-through into a teaching `raise` naming `block.kind`.
+- [v1.3 Phase 3 — RETIRED 2026-08-29 by plan 03-01]: `render.py`'s bare `return ""` block-dispatch fall-through is gone. All fifteen union members have a branch (proved by a `typing.get_args`-driven coverage test, not a hand-written list) and the fall-through is now a teaching `ValueError` naming the unhandled `block.kind`. It stays unreachable by construction — `Surface.blocks` is a discriminated `list[Block]` — and a comment in `_block_html` records that keeping it unreachable is the point.
+
+- [v1.3 Phase 3 — OPEN, CI]: `tests/test_semantic_gate_frozen.py` Half B and `test_compose.py`'s byte-freeze both need the full history. The CI job that runs them MUST set `fetch-depth: 0` on its checkout, or both FAIL by design (the `milestone_base_ref` fixture names the fix in its own message). Not yet wired — the weekly CI job is plan 03-03/03-04's. Stated, not assumed: the test and the job that runs it are two different artifacts (W21).
 - [Carried]: `v1.1`/`v1.2` tags exist locally only — the environment's git proxy drops tag pushes; maintainer creates them via the Releases UI.
 - [Carried]: ledgers (`content/*/ids.json`) are append-only — any diff on regenerate is a stop-the-line bug.
 
@@ -173,7 +180,28 @@ mine?" tax. Maintainer-gated because the fix is a repo-wide reformat.
 
 ## Session Continuity
 
-Last session: 2026-08-29 — Phase 2 plan 02-03 executed, completing the phase's three plans. The
+Last session: 2026-08-29 — Phase 3 plan 03-01 executed. The four weekly block kinds joined the
+typed `Block` union as a **zero-deletion insertion** (verified: `git diff <merge-base> --
+src/newsletters/semantic.py | grep '^-'` counts 0), taking it to fifteen members, with D-02
+encoded in the TYPE — `AssetBlock.asset` required and `evidence` `min_length=1`, so a
+provenance-less asset placement is unrepresentable rather than policed, asserted in both refusal
+directions AND with a constructing non-vacuity arm. Each kind got an HTML branch built only from
+classes `_CSS` already defines (zero new CSS; both committed corpora still equal a fresh render),
+and `_block_html`'s silent `return ""` became a teaching `ValueError` naming the unhandled kind,
+with a `get_args`-driven coverage test so a future member added without a branch fails there. The
+`semantic.py` byte-freeze — which shelled `git diff HEAD` and had therefore never been capable of
+failing in CI — was replaced by source-hash pins over the eight gate functions plus a
+zero-deleted-lines diff against the milestone base, and **proved capable of failing once**: a
+blank line planted inside `Surface.publish` turned the pin RED (539d5296… → a8650c12…), and
+`git checkout -- src/newsletters/semantic.py` returned it to 11 passed. Full suite 626 passed /
+64 skipped (baseline 601/64, +25 tests, zero regressions); `lint-imports` KEPT; `content/` diff
+empty. The lesson worth carrying: the mutation was caught by the source-hash half ONLY — the
+zero-deletion half stayed green, because inserting a line deletes nothing. Two halves, two
+failure modes; neither alone is the protection.
+Stopped at: Completed 03-01-PLAN.md; next: 03-02-PLAN.md (the `weeklyspec.py` loader/composer)
+Resume file: `.planning/phases/03-weekly-compose/03-01-SUMMARY.md`
+
+Preceding session: 2026-08-29 — Phase 2 plan 02-03 executed, completing the phase's three plans. The
 determinism battery now proves SC-2 against the WRITER: two renders of one Surface across a real
 3-second gap are byte-identical, the un-normalized pair (captured from inside the writer) differs in
 exactly `date_time` with no part content moving, and `part_digest` matches on the raw pair — the
@@ -186,7 +214,7 @@ reopened file, including that the unprefixed `Footer` was left untouched. W21 is
 Stopped at: Completed 02-03-PLAN.md; next: Phase 2 verification, then Phase 3 planning
 Resume file: `.planning/phases/02-renderer/02-03-SUMMARY.md`
 
-Preceding session: 2026-08-29 — Phase 2 plan 02-02 executed (the writer itself): the group-recursive
+Earlier: 2026-08-29 — Phase 2 plan 02-02 executed (the writer itself): the group-recursive
 binding map with its five teaching refusals, the reuse-and-clone fill primitive that inherits the
 operator's 20pt bold bullets rather than constructing its own, the Draft watermark, the OPC
 core-properties marker and the two public entry points — 19 tests, every deck assertion made by

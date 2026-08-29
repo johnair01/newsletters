@@ -7,7 +7,41 @@
 
 ## Where we are right now
 
-**2026-08-29 (newest) — v1.3 PHASE 2 IS BUILT: THE PROOF NOW RUNS WHERE IT COUNTS
+**2026-08-29 (newest) — v1.3 PHASE 3 HAS STARTED: THE WEEKLY'S FOUR BLOCK KINDS ARE REAL, AND WE
+FOUND ANOTHER GUARD THAT COULD NEVER HAVE FAILED (plan 03-01 of 4, branch
+`claude/new-session-gw8tik`).** The weekly deck now has somewhere to *go*: highlights/lowlights,
+recognitions, the team, and a placed asset are four real types in the record, they survive a JSON
+round-trip, and each one draws on screen. Three things are worth understanding, because they are
+the reasoning and not the output:
+
+- **"An asset without provenance can't reach a surface" is now a fact about the type, not a rule
+  somebody has to remember.** We could have written a checking function — and then hoped every
+  future code path called it. Instead an `AssetBlock` simply *cannot be built* without its
+  provenance record and at least one trace: the attempt fails at construction with an error naming
+  the empty field. This is the same move the glossary already makes in this codebase. The tests
+  assert both refusals **and** that a well-formed one still builds — a model that rejected
+  everything would pass the refusals and prove nothing.
+- **A block can no longer vanish.** The renderer's block dispatch used to end in "if I don't
+  recognise this, return an empty string". That was harmless while every kind had a branch, and it
+  would have become the worst possible bug the moment one didn't: a lowlight that was written,
+  traced and *reviewed* would render as nothing at all, with no error anywhere. A surface silently
+  missing its lowlights is the precise failure this product exists to prevent. It now refuses,
+  loudly, and names the kind it doesn't know — and a test walks every kind in the union, so adding
+  a fifth without a branch fails immediately instead of quietly.
+- **And the uncomfortable one, again.** The thing that was supposed to protect the review gate —
+  the code that decides whether anything can ever be published — compared our *unsaved edits* to
+  the last save. So it went red while you were typing and green the moment you committed, which
+  means in CI, where nothing is ever unsaved, **it had never been capable of failing.** Two
+  milestones of "the gate is protected" rested on it. The replacement fingerprints the eight
+  functions that *are* the gate and checks that nothing was ever deleted from that file, and we
+  proved it works by breaking it on purpose once (a single blank line inside the publish function
+  turned it red) and putting it back. Worth noticing: only *one* of the two halves caught that —
+  which is why there are two.
+
+Zero new CSS was added, deliberately, so the published site is byte-for-byte what it was. The
+weekly's YAML path — the actual authoring experience — is the next plan.
+
+**2026-08-29 (earlier) — v1.3 PHASE 2 IS BUILT: THE PROOF NOW RUNS WHERE IT COUNTS
 (plan 02-03 of 3 — the phase's last, branch `claude/new-session-gw8tik`).** Two things were still
 unproven after the writer existed, and both are now closed:
 

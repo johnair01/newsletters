@@ -79,8 +79,8 @@ contract = named placeholders, fail-loud on missing/unknown names.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | WKLY-01 | Phase 2 — Renderer | Complete (02-01 foundation · 02-02 the writer · 02-03 the proof + CI). All five phase SCs implemented and proved by tests that read the WRITTEN file back: SC-1 seven fail-loud/binding tests · SC-2 double render across a real 3s gap with its negative control and `part_digest` · SC-3 marker + watermark, asserted in both directions · SC-4 gate untouched, `semantic.py` byte-unchanged · SC-5 lazy `[pptx]` import + a `pptx` CI job whose exact command runs 117 passed / **0 skipped**. **Two confirmations remain for the PR review, recorded not hidden:** the new job's first observed CI green (no `gh` in the build environment) and the real-PowerPoint open (A8 — no `.pptx` consumer here) |
-| WKLY-02 | Phase 3 — Weekly compose | Pending |
-| WKLY-03 | Phase 3 — Weekly compose | Pending |
+| WKLY-02 | Phase 3 — Weekly compose | **In progress** (03-01). The four block kinds exist, round-trip by discriminator and each render to HTML from pre-existing design-system classes; `_block_html` can no longer swallow one. **Not yet met:** the Weekly Spec YAML path — the loader, byte-verbatim narrative with real-span traces, `config:` bound-never-claimed, absences → `missing[]`, and the KPI-strip/claims composition. That is plan 03-02's |
+| WKLY-03 | Phase 3 — Weekly compose | **In progress** (03-01). The TYPE-LEVEL half is landed: `AssetRecord` carries the provenance minimums, and `AssetBlock.asset` (required, no default) + `evidence` (`min_length=1`) make a provenance-less placement unrepresentable rather than policed. **Not yet met:** the loader-side routing — the four `missing[]` conditions, the placement-time content-address check, and the root-containment refusal |
 | WKLY-04 | Phase 3 — Weekly compose | Pending |
 | WKLY-05 | Phase 4 — Sample corpus + recipe | Pending |
 | WKLY-06 | Phase 4 — Sample corpus + recipe | Pending |

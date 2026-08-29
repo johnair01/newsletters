@@ -4,7 +4,57 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
-## 2026-08-29 (latest) — W21: the gate that was green because it never ran
+## 2026-08-29 (latest) — W22: the *other* gate that was green because it never ran
+
+**Friction observed (v1.3 plan 03-01 — the weekly block kinds)**
+
+1. **W21's shape repeated, in the most load-bearing file we have.** One plan after learning that a
+   test and the job that runs it are different artifacts, we found a guard protecting
+   `src/newsletters/semantic.py` — the review gate, the "no auto-publish, ever" hard rule — that
+   shelled `git diff HEAD`. That compares the *working tree* to the last commit. It went red on an
+   uncommitted edit and green the instant that edit was committed, so in CI's clean checkout it had
+   never been able to fail, on any run, since it was written. Two milestones of "the gate is
+   byte-frozen" rested on it. The failure mode is identical to W21 and the surface is different: a
+   green that means "not run" versus a green that means "nothing to look at". Both are a check
+   whose *precondition* silently made it a no-op, and neither was visible from the colour.
+2. **We only caught it because the phase was forced to edit the file the guard protected.** If this
+   phase had not legitimately needed to extend `semantic.py`, nobody would have looked at that
+   assertion at all. That is uncomfortable: the vacuity was found by accident, not by audit.
+3. **A guard is not evidence until you have watched it fail.** The replacement was written, went
+   green immediately, and *felt* done. It wasn't — a fingerprint function that returned a constant
+   would also have been green. Deliberately breaking it (a blank line inside `Surface.publish`)
+   turned it red and turned the green into evidence. Notable: the mutation was caught by only one of
+   the two halves — inserting a line deletes nothing, so the "nothing was removed" half stayed green
+   throughout. Two halves, two failure modes, and neither alone was the protection we thought we had.
+4. **Two acceptance criteria in the plan were mutually unsatisfiable as literally written** (a file
+   had to contain `merge-base` and must not contain the literal `"HEAD"` — impossible when
+   `merge-base HEAD origin/main` is the command). Resolving it by moving the base ref into one
+   shared fixture produced a better design than either criterion described. But it cost a real
+   detour, and the near-miss is worth naming: the cheap way out is to satisfy the grep and leave the
+   duplication.
+5. **DEF-15 charged its tax again.** `black --check` fails on both production files this plan
+   touched — and failed on them *before* the plan touched them, which took a scratch checkout of the
+   base revision to establish. Every plan touching these files pays "is this failure mine?" until
+   the repo-wide reformat happens.
+
+**Rules hardened**
+
+- *A guard whose precondition can silently make it a no-op is not a guard.* Before trusting one, ask
+  what state it is comparing against and whether that state can ever differ in the environment that
+  runs it. `git diff HEAD` in CI is the canonical example: there is never anything uncommitted.
+- *Never `HEAD` as a diff base for a freeze — always the milestone base* (`git merge-base HEAD
+  origin/main`), resolved in **one** place (`tests/conftest.py::milestone_base_ref`). Two copies of
+  a base ref drift exactly as two copies of a normalizer do (Phase 2's "ONE normalizer" rule,
+  generalised).
+- *A gate that cannot resolve its precondition FAILS — it never skips* — and its message names the
+  fix (here: `fetch-depth: 0`). A skip is how W21 happened; a skip is a no-op wearing green.
+- *Ship a guard with the mutation that proves it can fail, and record the observed red and green.*
+  An unproven guard is a vibe. Where a guard has independent halves, note which half caught the
+  mutation — if it is always the same one, the other half is unproven.
+- *A refusal test is only as good as its constructing arm.* Assert that the invalid case fails
+  **and** that the valid case still builds; otherwise a model that rejects everything is "correct".
+
+## 2026-08-29 — W21: the gate that was green because it never ran
 
 **Friction observed (v1.3 plan 02-03 — the proof in CI)**
 
