@@ -178,7 +178,7 @@ class AssetBlock(BaseModel):
     heading: Optional[str] = None
     asset: AssetRecord                                     # REQUIRED — see the invariant below
     caption: Optional[str] = None
-    evidence: list[Trace] = Field(default_factory=list)    # ≥1 by construction
+    evidence: list[Trace] = Field(min_length=1)            # ≥1 enforced by the TYPE, not convention
 ```
 
 **The invariant: `asset` is required, not optional.** There is no `AssetBlock` without an
@@ -187,6 +187,16 @@ provenance reached a `Surface`" is **unrepresentable** rather than merely police
 somebody can forget to call. This is the same move `GlossaryTerm.definition: Claim` already makes
 in this codebase (faithfulness enforced *by the type*, not by a reviewer's diligence), and it is
 the type-level half of decision **D-02**.
+
+**The same move covers `evidence`.** `Field(min_length=1)` makes an `AssetBlock` with zero traces
+fail Pydantic validation at construction — an asset the record does not vouch for is
+*unrepresentable*, not merely unconventional. The loader satisfies the minimum by minting the ≥1
+`Trace` into the asset record at placement time (last routing row below); a code path that tries
+to place an asset without doing so gets a teaching `ValidationError` naming the empty field, never
+a traceless block on a surface. Note the contrast with `Recognition.evidence`, which **may** be
+empty by design (rule 6): a recognition without a source is still credit owed and is carried with
+its absence disclosed, while an asset without a trace is a picture nobody vouched for and must not
+exist at all.
 
 ### Their place in the union
 
