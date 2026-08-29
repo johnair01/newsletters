@@ -4,7 +4,60 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
-## 2026-08-29 (latest) — W25: the nine test modules nobody was running, and the vacuous-diff family closed
+## 2026-08-29 (latest) — W26: the seventeenth integration site, and the state tool's third strike
+
+**Friction observed (v1.3 plan 04-02 — wiring the fourth corpus in, and proving the deck)**
+
+1. **The state tool corrupted `STATE.md` for the THIRD time, and a second verb turned out to share
+   the bug.** `state.advance-plan` produced the identical failure W24 and W25 recorded — same
+   `{"error": "Cannot parse Current Plan or Total Plans in Phase"}`, same six-insertion mutation
+   written *anyway*, truncating `stopped_at` mid-sentence and injecting blank lines **into** a
+   markdown paragraph (which silently splits prose into fragments a later reader will not know were
+   one sentence). New this time: `requirements.mark-complete` shares the blank-line-injection bug —
+   it flipped the checkbox correctly, added a stray blank line to the Deferred list, and did **not**
+   update the traceability table its own contract says it updates.
+   `roadmap.update-plan-progress` was clean and correct.
+   Three occurrences is a tool bug, not bad luck. The rule stops being "diff after every call" and
+   becomes a routing rule.
+2. **The plan enumerated sixteen integration sites and there were seventeen.** The missing one was
+   `test_render.py`'s dead-link guard, which pins cross-corpus hrefs to an allow-list —
+   `href.startswith(("work/", "module/", "../"))` — a three-corpus tuple that a fourth corpus
+   necessarily fails. Worth logging as a **success**, not just a miss: it failed loud, immediately,
+   in the same command as the change, because a previous session had written the guard as an
+   explicit allow-list rather than a permissive skip. An allow-list that must be widened is a guard
+   that tells you it exists; a `continue` would have published a dead link.
+3. **A plan's own MEASURED number had gone stale between planning and execution.** The plan states
+   `grep -rl '<section class="nl-records"' content/` returns 4 — measured before plan 04-01
+   committed the weekly's own Library, which also carries the strip. It returns 5. The regen scope
+   (four files change) was still right, so nothing broke; but "MEASURED, not estimated" has a
+   shelf life, and the thing that expires it is *our own previous plan*.
+
+**Rules hardened**
+
+- *Hand-edit `.planning/STATE.md`; never delegate it to `state.*` verbs.* Run the other GSD state
+  verbs, but **diff every one of them before committing** — including the ones that report success.
+  (Supersedes W24/W25's "diff after any call" with a concrete routing rule, now that we know which
+  file is the casualty and that success envelopes do not mean clean writes.)
+- *Write cross-cutting guards as explicit allow-lists, not permissive skips.* When a guard cannot
+  verify something locally, make it assert the known-good SHAPE and fail on anything else. The cost
+  is one line per legitimate extension; the payoff is that adding an integration point announces
+  every place that needs to know about it.
+- *A measured number in a plan carries the date and the tree it was measured on.* Re-measure before
+  relying on one written in an earlier plan of the same phase — our own commits are the most likely
+  thing to have invalidated it.
+
+**Still open**
+
+- The compass narrative for Phase 4 is deliberately **not** written yet: this phase's convention
+  (set by 04-01, matching Phase 3's) puts the `WHERE-WE-ARE.md` entry at the phase's last plan, so
+  **04-03 must carry entries for 04-01, 04-02 and 04-03 together**. Flagged here so it cannot be
+  forgotten — an unwritten compass entry is the stale-compass bug on a delay.
+- Unchanged from Phases 2 and 3, and still PR-review items: nobody has watched the `pptx` or
+  `weekly` CI jobs go green (no `gh` here), and nobody has opened a deck in real PowerPoint. The
+  `weekly` job's exact command was run locally at 189 passed / 0 skipped — the strongest local
+  evidence available, and still not the same thing as a run.
+
+## 2026-08-29 (earlier) — W25: the nine test modules nobody was running, and the vacuous-diff family closed
 
 **Friction observed (v1.3 plan 03-04 — the weekly deck, values-via-export, and the CI job)**
 

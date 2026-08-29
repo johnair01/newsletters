@@ -199,9 +199,14 @@ The planted blocker exists only inside `monkeypatch`'s scope. The test asserts t
 - **Not fixed**, because updating that sentence means rewriting a line, and the plan's acceptance criterion — `deploy-pages.yml`'s diff is exactly one added line and zero deletions — is the thing that makes T-04-12 (tampering with the publish channel) reviewable at a glance. Trading a provably-inert one-line diff for a comment refresh is a bad trade in the one file where the diff *is* the evidence.
 - **Surfaced, not silent** (CLAUDE.md: never let code and docs drift silently). This is a one-line follow-up for the PR review or plan 04-03, whichever the Editor-in-Chief prefers.
 
+**4. [CLAUDE.md DoD] `RETRO.md` updated outside the plan's declared file list**
+- The plan does not list `RETRO.md`, but CLAUDE.md's definition of done requires new friction logged there, and its review-and-harden rule names an unhardened recurring friction as a bug in itself. The GSD state tool corrupted `STATE.md` for the **third** time this milestone, and a **second** verb (`requirements.mark-complete`) turned out to share the blank-line-injection bug — both new information, both at risk of being lost.
+- Added `W26`, which hardens the rule from "diff after any state call" into a routing rule (hand-edit `STATE.md`; run the other verbs but diff each one), and records the seventeenth-integration-site lesson as a guard-design pattern worth repeating.
+- **`WHERE-WE-ARE.md` was deliberately NOT updated:** this phase's convention, set by 04-01 and matching Phase 3, puts the compass narrative at the phase's LAST plan. **04-03 must carry entries for 04-01, 04-02 and 04-03 together** — flagged in `W26`'s "Still open" so it cannot be forgotten.
+
 ---
 
-**Total deviations:** 1 auto-fixed (blocking) + 2 recorded-only.
+**Total deviations:** 1 auto-fixed (blocking) + 1 CLAUDE.md-driven + 2 recorded-only.
 **Impact on plan:** No scope creep, no architectural change, no package install. Every plan acceptance criterion is met or is met with the measured correction recorded above.
 
 ## Issues Encountered
