@@ -42,11 +42,16 @@ The contract (mirrors ``casespec.py``):
   ``Distillation.missing[]`` — including *"no lowlights were authored"*, precisely the absence a
   weekly is tempted to hide (rule 4). Never fabricated, never silently dropped.
 
-Load and placement are two different jobs, and this module is the LOAD half.
+* AN ASSET IS PLACED ONLY BY ITS RECORD. An image reaches a ``Surface`` as an ``AssetBlock`` only
+  when its authored record cleared folder + date + event, carried a deep link if it stands in for
+  values, stayed inside the project root and still hashes to the ``sha256`` the record names. The
+  image is HASHED, never decoded. Every other outcome is a named disclosure — except a path
+  escaping the root, which is a REFUSAL and raises (``docs/weekly-spec.md`` §"The routing").
 """
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 from typing import Any, Optional, Sequence, Union
 
@@ -54,7 +59,14 @@ from pydantic import BaseModel, Field
 
 from ._yaml_loader import load_config as _parse_config
 from .adapters._timestamps import EPOCH_ZERO
-from .semantic import Claim, Distillation, Source, Trace
+from .semantic import (
+    AssetBlock,
+    AssetRecord,
+    Claim,
+    Distillation,
+    Source,
+    Trace,
+)
 from .specspan import GATE, SpanMinter, absent
 
 __all__ = [
@@ -106,9 +118,12 @@ _ASSET_FIELDS = (
     "caption",
     "alt",
 )
-# The provenance minimum (decision D-02). Placement is plan 03-03's; the names live here because
-# they are part of the schema this validator polices.
+# The provenance minimum (decision D-02) — checked at placement in THIS field order, so the
+# field a disclosure names is deterministic rather than dependent on dict iteration.
 _PROVENANCE_MINIMUMS = ("folder", "date", "event")
+# The ONE declared ``stands_in_for`` kind (``semantic.AssetRecord`` types it as
+# ``Literal["values"]``). Author-declared, never inferred from a filename, a folder or the image.
+_VALUES_STAND_IN = "values"
 
 _SPEC_DOC = "docs/weekly-spec.md"
 _QUOTE_FIX = "quote the value so YAML cannot type-coerce it"
@@ -122,6 +137,42 @@ _QUOTE_FIX = "quote the value so YAML cannot type-coerce it"
 _UNRESOLVABLE_SOURCE = (
     "recognition for {person!r}: source {source!r} does not resolve to a known Source "
     "— carried, with the unresolvable id disclosed"
+)
+
+# ---------------------------------------------------------------------------- #
+# The asset routing table (``docs/weekly-spec.md`` §"The routing"), verbatim.
+#
+# Four of its seven rows are disclosures and live here as constants so the wording the reviewer
+# reads has exactly one source. The fifth row (the happy one) mints an ``AssetBlock``; the sixth
+# is the ``team[].photo`` reference below; the seventh (an unresolvable recognition ``source:``)
+# is ``_UNRESOLVABLE_SOURCE`` above. The escape row is NOT here: it is a refusal, and a refusal
+# is raised, never disclosed.
+# ---------------------------------------------------------------------------- #
+_ASSET_PROVENANCE_ABSENT = (
+    "asset {key!r}: provenance field {field!r} is absent — the minimum is folder + date "
+    "+ event label; disclosed, never placed"
+)
+_ASSET_NEEDS_DEEP_LINK = (
+    "asset {key!r}: a screenshot standing in for values requires a deep link to the "
+    "report; disclosed, never placed"
+)
+_ASSET_CONTENT_ADDRESS = (
+    "asset {key!r}: file {file!r} does not match its recorded content address — refusing "
+    "to place a file that is not the one the record describes"
+)
+_PHOTO_NAMES_NO_PLACED_ASSET = (
+    "team member {name!r}: photo key {key!r} names no placed asset — the member is "
+    "carried, the photo is not"
+)
+# The ESCAPE row. A path that leaves the project root is refused in the teaching voice and
+# contributes NOTHING to ``missing[]``: ``missing[]`` is for content that is absent, never for a
+# request the loader will not serve (``docs/weekly-spec.md`` rule 7; threat T-03-02). Collapsing
+# the two would let a future implementer "disclose" a path traversal.
+_ASSET_ESCAPES_ROOT = (
+    "asset {key!r}: file {file!r} resolves to {resolved!r}, which is OUTSIDE the project root "
+    "{root!r} — REFUSING to read it. This is a refusal, not an absence: it is never routed to "
+    "missing[], because missing[] is for content that is absent, never for a request the loader "
+    "will not serve. Move the file inside the project, or fix the path."
 )
 
 
@@ -212,6 +263,12 @@ class WeeklySpecLoad(BaseModel):
     source: Source
     spec: WeeklySpec
     distillation: Distillation
+    # The PLACED assets, in ``assets:`` file order — and only the placed ones. Placement happens
+    # at LOAD time, not at compose time, because the content-address check needs the filesystem
+    # and the composer must never read a file: an ``AssetBlock`` here is a file that was root
+    # contained, provenance-complete and still hashing to what its record says. Every other
+    # authored asset is a named disclosure in ``distillation.missing`` (see :func:`_place_assets`).
+    assets: list[AssetBlock] = Field(default_factory=list)
 
 
 def _require_str(value: object, where: str) -> None:
@@ -340,6 +397,17 @@ def _validate(parsed: object) -> dict[str, Any]:
             _require_known_fields(record, _ASSET_FIELDS, where)
             for field, value in record.items():
                 _require_str(value, f"{where}.{field}")
+            # ``stands_in_for`` is author-declared AND CLOSED. ``semantic.AssetRecord`` types it
+            # as ``Literal["values"]``, so an unknown kind carried this far would surface at
+            # PLACEMENT as a Pydantic ValidationError that names a type instead of the typo.
+            # It earns the same teaching refusal every other typo gets, in the same place.
+            stands_in_for = record.get("stands_in_for")
+            if stands_in_for and stands_in_for != _VALUES_STAND_IN:
+                raise ValueError(
+                    f"{where}.stands_in_for must be {_VALUES_STAND_IN!r} — the one declared "
+                    f"kind — or absent; got {stands_in_for!r}. It is AUTHOR-DECLARED and never "
+                    f"inferred from a filename, a folder or the image itself. See {_SPEC_DOC}."
+                )
 
     config = parsed.get(_CONFIG_KEY)
     if config is not None and not isinstance(config, dict):
@@ -380,6 +448,149 @@ def _resolve_recognition_evidence(
                 _UNRESOLVABLE_SOURCE.format(
                     person=recognition.person, source=recognition.source
                 )
+            )
+
+
+def _record_evidence(record_claims: list[Claim]) -> list[Trace]:
+    """The traces an ``AssetBlock`` stands on: the record's OWN provenance spans.
+
+    The record is the evidence, never the image (``docs/weekly-spec.md`` §"Assets"): the
+    ``sha256`` hex is a literal substring of the spec file, so the claim already minted for it is
+    the natural trace — the block's evidence IS the provenance claim. Any other already-minted
+    record claim is the fallback, so a record whose hash line could not be pinned still stands on
+    a real span rather than on nothing.
+
+    If this returns ``[]`` the caller passes it to ``AssetBlock`` anyway and Pydantic refuses the
+    construction (``evidence`` carries ``min_length=1``). That is the TYPE doing its job — the
+    D-02 guarantee that a picture nobody vouched for is unrepresentable — and it is deliberately
+    not worked around here.
+    """
+    sha_topic = f"{_ASSETS_KEY}.sha256"
+    for claim in record_claims:
+        if claim.topics == [sha_topic]:
+            return list(claim.evidence)
+    return list(record_claims[0].evidence) if record_claims else []
+
+
+def _place_assets(
+    assets: list[AuthoredAsset],
+    record_claims: dict[str, list[Claim]],
+    root_path: Path,
+    missing: list[str],
+) -> list[AssetBlock]:
+    """Route every authored asset: place it, disclose it, or REFUSE it. Document order.
+
+    Placement happens at LOAD time because the content-address check needs the filesystem — the
+    load/place seam is here, and this is the only function in the module that reads a file other
+    than the spec itself.
+
+    The order of the checks is the routing table's order and is load-bearing:
+
+    1. **Containment first**, before any read: ``resolve()`` (which follows symlinks, so an
+       in-root link pointing outside is caught by the same test) then ``relative_to(root)``. An
+       escape RAISES — ``../../etc/passwd`` never reaches ``read_bytes()`` and never becomes a
+       ``missing[]`` note (threats T-03-02 / T-03-03).
+    2. The three provenance minimums **in field order**, so the field a disclosure names is
+       deterministic. The FIRST absent one is named and the asset is dropped.
+    3. The deep link, required iff the author declared ``stands_in_for: values``.
+    4. Existence, then the content address: ``hashlib.sha256`` over the file BYTES, compared
+       case-insensitively to the recorded hex. The image is HASHED, never DECODED: no imaging or
+       image-sniffing library is imported or reached from here (threat T-03-10 — a decompression
+       bomb is just bytes to a hash), and a test greps this module's source to keep it that way.
+       ``read_bytes`` is guarded for ``OSError`` (a dangling path merely returns ``False`` from
+       ``is_file()``, but a permission error would otherwise escape as a crash) and routes to the
+       same content-address disclosure.
+
+    The hash is re-checked at PLACEMENT, never trusted from authoring time: that is the whole
+    substitution case (a record describing image A while image B sits on disk, threat T-03-05).
+    """
+    placed: list[AssetBlock] = []
+    for asset in assets:
+        candidate = Path(asset.file)
+        absolute = candidate if candidate.is_absolute() else (root_path / candidate)
+        resolved = absolute.resolve()  # follows symlinks BEFORE the containment test
+        try:
+            resolved.relative_to(root_path)
+        except ValueError as exc:  # a REFUSAL — never a missing[] disclosure
+            raise ValueError(
+                _ASSET_ESCAPES_ROOT.format(
+                    key=asset.key,
+                    file=asset.file,
+                    resolved=str(resolved),
+                    root=str(root_path),
+                )
+            ) from exc
+
+        gap = next(
+            (
+                field
+                for field in _PROVENANCE_MINIMUMS
+                if not getattr(asset, field).strip()
+            ),
+            None,
+        )
+        if gap is not None:
+            missing.append(_ASSET_PROVENANCE_ABSENT.format(key=asset.key, field=gap))
+            continue
+
+        if asset.stands_in_for.strip() == _VALUES_STAND_IN and not asset.link.strip():
+            missing.append(_ASSET_NEEDS_DEEP_LINK.format(key=asset.key))
+            continue
+
+        try:
+            digest = (
+                hashlib.sha256(resolved.read_bytes()).hexdigest()
+                if resolved.is_file()
+                else None
+            )
+        except OSError:  # unreadable is indistinguishable from unvouched-for: do not place
+            digest = None
+        if digest is None or digest.lower() != asset.sha256.strip().lower():
+            missing.append(
+                _ASSET_CONTENT_ADDRESS.format(key=asset.key, file=asset.file)
+            )
+            continue
+
+        record = AssetRecord(
+            key=asset.key,
+            file=asset.file,
+            sha256=asset.sha256,
+            folder=asset.folder,
+            date=asset.date,
+            event=asset.event,
+            link=asset.link or None,
+            stands_in_for=asset.stands_in_for or None,
+            caption=asset.caption or None,
+            alt=asset.alt or None,
+        )
+        placed.append(
+            AssetBlock(
+                heading=asset.alt or None,
+                asset=record,
+                caption=asset.caption or None,
+                evidence=_record_evidence(record_claims.get(asset.key, [])),
+            )
+        )
+    return placed
+
+
+def _resolve_team_photos(
+    members: list[AuthoredMember], placed_keys: set[str], missing: list[str]
+) -> None:
+    """Second pass: a ``photo:`` key that names no PLACED asset is disclosed, never guessed.
+
+    Runs after routing, because "was this asset placed?" is only answerable once every asset has
+    been routed — and it never re-enters the span minter (file order stays intact by
+    construction). The member and their lines are carried in every case: unlike a mistyped
+    top-level key, nothing authored is at risk of being dropped, and inventing or guessing an
+    image would be worse than disclosing its absence. The authored key stays on the spec
+    verbatim; it is the COMPOSER that renders ``photo=None`` for an unplaced key.
+    """
+    for member in members:
+        key = member.photo.strip()
+        if key and key not in placed_keys:
+            missing.append(
+                _PHOTO_NAMES_NO_PLACED_ASSET.format(name=member.name, key=key)
             )
 
 
@@ -444,9 +655,12 @@ def load_weekly_spec(
     addition to the spec file's own. An id that resolves to none of them is disclosed by name and
     never becomes a ``Trace``.
 
-    THIS FUNCTION DOES NO PLACEMENT. It touches no file but the spec itself: no asset is hashed,
-    no image is opened, no ``AssetBlock`` is minted. The ``assets:`` records are carried verbatim
-    as ``AuthoredAsset``s and their provenance routing is plan 03-03's — the load/place seam.
+    PLACEMENT HAPPENS HERE, and it is the ONE place this module reads a file other than the spec
+    (:func:`_place_assets`). Each ``assets:`` entry is root-contained, provenance-checked,
+    deep-link-checked and re-hashed against its recorded content address; a survivor becomes an
+    ``AssetBlock`` on ``WeeklySpecLoad.assets`` and every other outcome is a named disclosure —
+    except a path escaping ``root``, which RAISES. The image is hashed, never decoded. The
+    composer (:func:`build_weekly_report`) therefore touches no filesystem at all.
     """
     root_path = (root or Path.cwd()).resolve()
     candidate = Path(path)
@@ -466,6 +680,7 @@ def load_weekly_spec(
     minter = SpanMinter(source)
     claims: list[Claim] = []
     missing: list[str] = []
+    record_claims: dict[str, list[Claim]] = {}
 
     def _route(
         key: str, value: Optional[str], topic: str, *, list_item: bool = False
@@ -532,17 +747,24 @@ def load_weekly_spec(
                 # is routed — including the `sha256` hex, which is a literal substring of the
                 # file and therefore traces verbatim like any other field.
                 fields = {}
+                minted_before = len(claims)
                 for field, field_value in record.items():
                     kept = _route(field, field_value, f"{key}.{field}")
                     fields[field] = kept if kept is not None else ""
+                # Remember THIS record's own claims (by position, so a value duplicated across
+                # two records still belongs to the record that minted it) — placement needs one
+                # of them as the block's evidence.
+                record_claims[asset_key] = claims[minted_before:]
                 assets.append(AuthoredAsset(key=asset_key, **fields))
             spec_kwargs[key] = assets
 
     spec = WeeklySpec(**spec_kwargs)
 
-    # SECOND PASS over already-minted data — references only, never the minter.
+    # SECOND PASS over already-minted data — references and placement, never the minter.
     known_ids = {source.id} | {known.id for known in known_sources}
     _resolve_recognition_evidence(spec.recognitions, known_ids, missing)
+    placed = _place_assets(spec.assets, record_claims, root_path, missing)
+    _resolve_team_photos(spec.team, {block.asset.key for block in placed}, missing)
     missing.extend(_disclose_gaps(spec))
 
     # Enforced by construction: every emitted claim satisfies the LIVE gate.
@@ -562,4 +784,6 @@ def load_weekly_spec(
         missing=missing,
         traces=[source],
     )
-    return WeeklySpecLoad(source=source, spec=spec, distillation=distillation)
+    return WeeklySpecLoad(
+        source=source, spec=spec, distillation=distillation, assets=placed
+    )

@@ -36,10 +36,12 @@ The invariants proven here (the Case Spec's eight, plus two the weekly earns):
 
 from __future__ import annotations
 
+import hashlib
 import pathlib
 
 import pytest
 
+import newsletters.weeklyspec
 from newsletters._yaml_loader import load_config
 from newsletters.distill.faithfulness import SpanContainmentFaithfulness, _normalize
 from newsletters.semantic import Source
@@ -656,3 +658,349 @@ def test_the_loader_writes_nothing(name: str) -> None:
     _load(name)
     after = path.stat()
     assert (after.st_mtime_ns, after.st_size) == (before.st_mtime_ns, before.st_size)
+
+
+# --------------------------------------------------------------------------- #
+# 11 — asset routing: every row of docs/weekly-spec.md §"The routing", both ways
+#
+# The four expected strings below are copied BYTE-FOR-BYTE from the spec's routing table and
+# are deliberately NOT imported from ``weeklyspec`` — importing the module's own constants
+# would compare each string to itself and assert nothing about the contract.
+# --------------------------------------------------------------------------- #
+
+_PROVENANCE_DISCLOSURE = (
+    "asset {key!r}: provenance field {field!r} is absent — the minimum is folder + date "
+    "+ event label; disclosed, never placed"
+)
+_DEEP_LINK_DISCLOSURE = (
+    "asset {key!r}: a screenshot standing in for values requires a deep link to the "
+    "report; disclosed, never placed"
+)
+_CONTENT_ADDRESS_DISCLOSURE = (
+    "asset {key!r}: file {file!r} does not match its recorded content address — refusing "
+    "to place a file that is not the one the record describes"
+)
+_PHOTO_DISCLOSURE = (
+    "team member {name!r}: photo key {key!r} names no placed asset — the member is "
+    "carried, the photo is not"
+)
+
+# The committed 1×1 PNG's real bytes, and a DIFFERENT file built from them. The pair drives the
+# substitution row: a record describing A while B sits on disk.
+_IMAGE_A = (FIXTURE_DIR / "assets" / "bay-cycle-throughput.png").read_bytes()
+_SHA_A = hashlib.sha256(_IMAGE_A).hexdigest()
+_IMAGE_B = _IMAGE_A + b"\n# a wholly different file"
+_SHA_B = hashlib.sha256(_IMAGE_B).hexdigest()
+
+# The complete record every case starts from (field order = the schema's).
+_BASE_RECORD = {
+    "file": "assets/shot.png",
+    "sha256": _SHA_A,
+    "folder": "Review pack",
+    "date": "2374-08-24",
+    "event": "Friday review",
+}
+# A second, always-well-formed asset. Its job is NON-VACUITY: every refusal case below also
+# asserts that THIS one places, so no assertion can pass on a loader that places nothing.
+_CLEAN_KEY = "clean-shot"
+_CLEAN_RECORD = {
+    "file": "assets/clean.png",
+    "sha256": _SHA_A,
+    "folder": "Review pack",
+    "date": "2374-08-24",
+    "event": "Friday review",
+}
+
+
+def _assets_yaml(records: dict) -> str:
+    """Author an ``assets:`` subtree (mapping key → record) in the given order."""
+    lines = ["assets:"]
+    for key, record in records.items():
+        lines.append(f"  {key}:")
+        for field, value in record.items():
+            lines.append(f'    {field}: "{value}"')
+    return "\n".join(lines) + "\n"
+
+
+def _write_weekly(
+    root: pathlib.Path, records: dict, *, team: str = "", files: dict = None
+) -> pathlib.Path:
+    """Author one weekly + its asset files under ``root``; return the spec path."""
+    (root / "assets").mkdir(parents=True, exist_ok=True)
+    for name, payload in (files if files is not None else {}).items():
+        (root / name).write_bytes(payload)
+    path = root / "weekly.yml"
+    path.write_text(
+        'week: "W1"\nmodule: "M"\nhighlights:\n  - "One authored line."\n'
+        + team
+        + _assets_yaml(records),
+        encoding="utf-8",
+    )
+    return path
+
+
+def _asset_keys(load: WeeklySpecLoad) -> list[str]:
+    return [block.asset.key for block in load.assets]
+
+
+# Each case: (id, the mutation applied to _BASE_RECORD, the files on disk, the expected
+# disclosure). "shot" is the asset under test; _CLEAN_KEY is always well-formed.
+_ROUTING_CASES = [
+    (
+        "provenance-folder-absent",
+        {"drop": "folder"},
+        {"assets/shot.png": _IMAGE_A},
+        _PROVENANCE_DISCLOSURE.format(key="shot", field="folder"),
+    ),
+    (
+        "provenance-date-absent",
+        {"drop": "date"},
+        {"assets/shot.png": _IMAGE_A},
+        _PROVENANCE_DISCLOSURE.format(key="shot", field="date"),
+    ),
+    (
+        "provenance-event-absent",
+        {"drop": "event"},
+        {"assets/shot.png": _IMAGE_A},
+        _PROVENANCE_DISCLOSURE.format(key="shot", field="event"),
+    ),
+    (
+        "values-screenshot-without-deep-link",
+        {"set": {"stands_in_for": "values"}},
+        {"assets/shot.png": _IMAGE_A},
+        _DEEP_LINK_DISCLOSURE.format(key="shot"),
+    ),
+    (
+        "file-absent-on-disk",
+        {"set": {"file": "assets/gone.png"}},
+        {"assets/shot.png": _IMAGE_A},
+        _CONTENT_ADDRESS_DISCLOSURE.format(key="shot", file="assets/gone.png"),
+    ),
+    (
+        "content-substituted-record-describes-A-B-on-disk",
+        {"set": {}},  # record keeps A's hash; B's bytes are written to A's path
+        {"assets/shot.png": _IMAGE_B},
+        _CONTENT_ADDRESS_DISCLOSURE.format(key="shot", file="assets/shot.png"),
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "case_id,mutation,files,expected",
+    _ROUTING_CASES,
+    ids=[case[0] for case in _ROUTING_CASES],
+)
+def test_asset_routing_refuses_and_discloses_exactly(
+    tmp_path: pathlib.Path, case_id: str, mutation: dict, files: dict, expected: str
+) -> None:
+    """One row of the routing table: no ``AssetBlock``, and the spec's EXACT disclosure.
+
+    Both ways, in one test: the malformed asset is refused with the spec's wording, and the
+    well-formed one alongside it still places. Without the second half every assertion here
+    would pass on a loader that places nothing at all.
+    """
+    record = dict(_BASE_RECORD)
+    if "drop" in mutation:
+        record.pop(mutation["drop"])
+    record.update(mutation.get("set", {}))
+    on_disk = dict(files)
+    on_disk["assets/clean.png"] = _IMAGE_A
+
+    path = _write_weekly(
+        tmp_path, {"shot": record, _CLEAN_KEY: _CLEAN_RECORD}, files=on_disk
+    )
+    load = load_weekly_spec(path, root=tmp_path)
+
+    assert "shot" not in _asset_keys(load), f"{case_id}: a refused asset was placed"
+    assert expected in load.distillation.missing, (
+        f"{case_id}: the spec's exact disclosure is absent.\n"
+        f"expected: {expected!r}\ngot: {load.distillation.missing!r}"
+    )
+    # NON-VACUITY: the well-formed asset in the same document DID place.
+    assert _CLEAN_KEY in _asset_keys(load), f"{case_id}: nothing placed — proof is vacuous"
+
+
+def test_asset_routing_places_a_clean_record_with_its_provenance_and_a_trace(
+    tmp_path: pathlib.Path,
+) -> None:
+    """The happy row: exactly one ``AssetBlock``, a populated record, and ≥1 trace INTO it."""
+    record = dict(_BASE_RECORD)
+    record["link"] = "https://example.invalid/report/1"
+    record["stands_in_for"] = "values"  # the link is present, so the row is satisfied
+    record["caption"] = "A caption the author wrote."
+    path = _write_weekly(tmp_path, {"shot": record}, files={"assets/shot.png": _IMAGE_A})
+    load = load_weekly_spec(path, root=tmp_path)
+
+    assert _asset_keys(load) == ["shot"]
+    block = load.assets[0]
+    assert block.kind == "asset"
+    assert block.asset.file == record["file"]
+    assert block.asset.sha256 == _SHA_A
+    assert (block.asset.folder, block.asset.date, block.asset.event) == (
+        record["folder"],
+        record["date"],
+        record["event"],
+    )
+    assert block.asset.link == record["link"]
+    assert block.asset.stands_in_for == "values"
+    assert block.caption == record["caption"]
+
+    # The evidence is a real, content-addressed span of the RECORD itself — the provenance
+    # claim is the asset's evidence (the record is the evidence, never the image).
+    assert len(block.evidence) >= 1
+    for trace in block.evidence:
+        assert trace.is_addressed, "an asset trace must be content-addressed"
+        assert trace.source_id == load.source.id
+        sliced = load.source.transcript[trace.start : trace.end]
+        assert _SHA_A in sliced, "the trace must address the record's own sha256 span"
+
+    # No routing disclosure fired for a clean asset.
+    for note in load.distillation.missing:
+        assert "asset 'shot'" not in note, note
+
+
+@pytest.mark.parametrize(
+    "photo,places,disclosed",
+    [
+        ("no-such-key", False, True),  # names no assets: entry at all
+        ("shot", False, True),  # names an asset that was NOT placed
+        (_CLEAN_KEY, True, False),  # names a PLACED asset — survives (non-vacuity)
+    ],
+    ids=["photo-names-nothing", "photo-names-an-unplaced-asset", "photo-names-a-placed-asset"],
+)
+def test_asset_routing_resolves_team_photo_against_placed_assets(
+    tmp_path: pathlib.Path, photo: str, places: bool, disclosed: bool
+) -> None:
+    """The two reference rows, plus the surviving case that keeps them non-vacuous."""
+    name = "Crewman Nog"
+    team = f'team:\n  - name: "{name}"\n    role: "Bay Systems"\n    photo: "{photo}"\n'
+    broken = dict(_BASE_RECORD)
+    broken.pop("folder")  # "shot" is authored but NEVER placed
+    path = _write_weekly(
+        tmp_path,
+        {"shot": broken, _CLEAN_KEY: _CLEAN_RECORD},
+        team=team,
+        files={"assets/shot.png": _IMAGE_A, "assets/clean.png": _IMAGE_A},
+    )
+    load = load_weekly_spec(path, root=tmp_path)
+
+    # The member is CARRIED in every row — only the photo is at stake.
+    assert [m.name for m in load.spec.team] == [name]
+    assert load.spec.team[0].photo == photo, "the spec carries what the author wrote"
+
+    note = _PHOTO_DISCLOSURE.format(name=name, key=photo)
+    if disclosed:
+        assert note in load.distillation.missing, load.distillation.missing
+    else:
+        assert note not in load.distillation.missing
+    assert (photo in _asset_keys(load)) is places
+
+
+def test_asset_routing_root_escape_raises_and_never_reaches_missing(
+    tmp_path: pathlib.Path,
+) -> None:
+    """A path escaping the root is a REFUSAL, not an absence — and never a `missing[]` note."""
+    root = tmp_path / "proj"
+    root.mkdir()
+    (tmp_path / "outside.png").write_bytes(_IMAGE_A)
+    record = dict(_BASE_RECORD)
+    record["file"] = "../outside.png"
+    path = _write_weekly(root, {"shot": record}, files={})
+
+    with pytest.raises(ValueError) as excinfo:
+        load_weekly_spec(path, root=root)
+
+    message = str(excinfo.value)
+    assert "shot" in message, "the refusal must name the asset key"
+    assert "../outside.png" in message, "the refusal must name the offending path"
+    # It is a refusal, in the refusal's own words — never one of the missing[] disclosures.
+    assert "disclosed, never placed" not in message
+    assert "does not match its recorded content address" not in message
+
+    # CONSTRUCTING ARM: the identical record loads once the root legitimately contains the
+    # file — so the raise above is the containment check, not a broken placement path.
+    inside = _write_weekly(
+        root,
+        {"shot": {**_BASE_RECORD, "file": "assets/shot.png"}},
+        files={"assets/shot.png": _IMAGE_A},
+    )
+    load = load_weekly_spec(inside, root=root)
+    assert _asset_keys(load) == ["shot"]
+
+
+def test_asset_routing_refuses_a_symlink_resolving_outside_the_root(
+    tmp_path: pathlib.Path,
+) -> None:
+    """The non-obvious half: ``Path.resolve()`` follows symlinks BEFORE the containment test.
+
+    An in-root symlink whose target is outside the root is refused exactly like a literal
+    ``../`` escape — a containment check that tested the authored string would miss this.
+    """
+    root = tmp_path / "proj"
+    (root / "assets").mkdir(parents=True)
+    target = tmp_path / "outside.png"
+    target.write_bytes(_IMAGE_A)
+    (root / "assets" / "link.png").symlink_to(target)
+
+    record = dict(_BASE_RECORD)
+    record["file"] = "assets/link.png"
+    path = _write_weekly(root, {"shot": record}, files={})
+
+    with pytest.raises(ValueError) as excinfo:
+        load_weekly_spec(path, root=root)
+    message = str(excinfo.value)
+    assert "shot" in message and "assets/link.png" in message
+    assert str(target) in message, "the refusal names the RESOLVED target, not just the link"
+
+
+def test_asset_routing_hashes_the_image_and_never_decodes_it(
+    tmp_path: pathlib.Path,
+) -> None:
+    """T-03-10: the loader hashes bytes. No image library is reachable, and no byte is written."""
+    source = (
+        pathlib.Path(newsletters.weeklyspec.__file__).read_text(encoding="utf-8").splitlines()
+    )
+    code = "\n".join(line for line in source if not line.lstrip().startswith("#"))
+    for token in ("PIL", "Pillow", "imghdr"):
+        assert token not in code, f"{token!r} appears in weeklyspec.py — the image is HASHED only"
+    assert "hashlib.sha256" in code, "the content address must come from hashlib.sha256"
+
+    # And the file itself is untouched by a load that hashes it.
+    path = _write_weekly(tmp_path, {"shot": dict(_BASE_RECORD)}, files={"assets/shot.png": _IMAGE_A})
+    image = tmp_path / "assets" / "shot.png"
+    before = image.stat()
+    load = load_weekly_spec(path, root=tmp_path)
+    after = image.stat()
+    assert _asset_keys(load) == ["shot"], "non-vacuity: the load actually read the image"
+    assert (after.st_mtime_ns, after.st_size) == (before.st_mtime_ns, before.st_size)
+
+
+def test_unknown_stands_in_for_value_fails_loud(tmp_path: pathlib.Path) -> None:
+    """``stands_in_for`` is author-declared AND closed: an unknown kind is a teaching refusal.
+
+    ``AssetRecord.stands_in_for`` is ``Literal["values"] | None``; carrying an unknown string
+    that far would surface as a Pydantic ``ValidationError`` at placement instead of naming the
+    typo, so the schema refuses it where every other typo is refused.
+    """
+    record = dict(_BASE_RECORD)
+    record["stands_in_for"] = "trends"
+    path = _write_weekly(tmp_path, {"shot": record}, files={"assets/shot.png": _IMAGE_A})
+    with pytest.raises(ValueError) as excinfo:
+        load_weekly_spec(path, root=tmp_path)
+    message = str(excinfo.value)
+    assert "stands_in_for" in message and "'trends'" in message and "'values'" in message
+
+
+def test_committed_full_fixture_places_exactly_its_one_complete_asset() -> None:
+    """The committed corpus routes all three of its assets, and exactly one survives."""
+    load = _load(FULL)
+    assert _asset_keys(load) == ["bay-cycle-throughput"]
+    disclosures = "\n".join(load.distillation.missing)
+    assert (
+        _DEEP_LINK_DISCLOSURE.format(key="crew-rota-board") in disclosures
+    ), disclosures
+    assert (
+        _PROVENANCE_DISCLOSURE.format(key="crew-manifest-scan", field="folder") in disclosures
+    ), disclosures
+    # The team photo names the one asset that DID place, so it is not disclosed.
+    assert "photo key" not in disclosures
