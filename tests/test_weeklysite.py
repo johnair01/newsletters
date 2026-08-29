@@ -38,6 +38,7 @@ from __future__ import annotations
 import hashlib
 import html
 import re
+import shlex
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -722,3 +723,123 @@ def test_build_weekly_smoke(tmp_path: Path) -> None:
         "a tmp_path weekly build moved a committed file under content/ — the ledger re-save "
         "must be idempotent"
     )
+
+
+# --------------------------------------------------------------------------- #
+# Plan 04-03 Task 1 — the two doc-contract tests over `docs/weekly.md`.
+#
+# WKLY-06's recipe teaches a human where to point tools at private material and
+# which commands to run. Two things can rot it: the CLI can rename a flag under
+# it (T-04-15), and an edit can quietly remove a trust statement (T-04-14). Each
+# gets a test, and each test carries a NON-VACUITY arm — a doc-contract test that
+# silently matches nothing passes forever and protects nothing.
+# --------------------------------------------------------------------------- #
+
+RECIPE = REPO_ROOT / "docs" / "weekly.md"
+
+# Every long option token, as it appears in a Typer/Click `--help` body.
+_OPTION_RE = re.compile(r"--[A-Za-z][A-Za-z0-9-]*")
+
+
+def _fenced_command_lines(text: str) -> list[str]:
+    """Every fenced ``newsletters …`` line in the recipe, backslash-continuations joined.
+
+    Only lines INSIDE a ``` fence count: prose that mentions a command in backticks is not a
+    command an operator pastes, and holding prose to the CLI's option spelling would make the
+    test a style police instead of a contract.
+    """
+    lines: list[str] = []
+    buffer: str | None = None
+    in_fence = False
+    for raw in text.splitlines():
+        stripped = raw.strip()
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            buffer = None  # a fence must not swallow the next block
+            continue
+        if not in_fence:
+            continue
+        if buffer is None and not stripped.startswith("newsletters "):
+            continue
+        continued = stripped.endswith("\\")
+        piece = stripped[:-1].strip() if continued else stripped
+        buffer = piece if buffer is None else f"{buffer} {piece}"
+        if not continued:
+            lines.append(buffer)
+            buffer = None
+    return lines
+
+
+def test_recipe_commands_match_the_shipped_cli() -> None:
+    """Every fenced `newsletters …` line in docs/weekly.md runs on the LIVE Typer app (T-04-15).
+
+    The expected command/option set is DRIVEN FROM THE APP — each line's command is invoked with
+    ``--help`` and each ``--option`` it uses must appear in that command's own help body — never
+    from a hand-written list here. So a renamed flag turns this suite RED instead of leaving the
+    recipe teaching a wrong command with confidence.
+
+    Two non-vacuity arms, because a regex that matches nothing would otherwise pass forever: a
+    floor on how many command lines were found, and a proof that the check discriminates (an
+    invented command and an invented option must both fail it).
+    """
+    runner = CliRunner()
+    commands = _fenced_command_lines(RECIPE.read_text(encoding="utf-8"))
+
+    assert len(commands) >= 4, (
+        f"only {len(commands)} fenced `newsletters …` line(s) found in {RECIPE.name} — the "
+        "recipe documents at least four, so either the doc lost its commands or this parser "
+        "stopped matching them (a doc-contract test that matches nothing protects nothing)"
+    )
+
+    for line in commands:
+        tokens = shlex.split(line)
+        assert tokens[0] == "newsletters", line
+        name = tokens[1]
+
+        help_result = runner.invoke(app, [name, "--help"])
+        assert help_result.exit_code == 0, (
+            f"docs/weekly.md documents `newsletters {name}`, which the shipped app does not "
+            f"expose:\n{help_result.output}"
+        )
+        exposed = set(_OPTION_RE.findall(help_result.output))
+        for token in tokens[2:]:
+            if not token.startswith("--"):
+                continue
+            option = token.split("=", 1)[0]
+            assert option in exposed, (
+                f"docs/weekly.md passes {option} to `newsletters {name}`, which does not expose "
+                f"it. Exposed: {sorted(exposed)}"
+            )
+
+    # Non-vacuity: the same two checks must FAIL for something the app does not have.
+    assert runner.invoke(app, ["weeklyy", "--help"]).exit_code != 0
+    assert "--nonesuch" not in set(
+        _OPTION_RE.findall(runner.invoke(app, ["weekly", "--help"]).output)
+    )
+
+
+def test_recipe_carries_the_load_bearing_anchors() -> None:
+    """The recipe's TRUST claims survive an edit (T-04-14) — not its prose style.
+
+    This is a presence guard over the statements that make the recipe safe to follow: that the
+    ingest is read-only and stays local, that nothing auto-publishes and the gate is named, the
+    measured `word_wrap` overflow warning, the link to the ONE home of the authoring contract,
+    the worked example, and the honest scope statement about what cannot read your numbers. Prose
+    may be rewritten freely around these; deleting one of them is what turns this red.
+    """
+    text = RECIPE.read_text(encoding="utf-8")
+    anchors = {
+        "read-only": "read-only",
+        "stays local": "on your machine",
+        "no network call": "makes no network call",
+        "nothing is committed": "commits nothing",
+        "the review gate, named": "Draft › In Review › Published",
+        "no command publishes": "publishes anything",
+        "the measured autofit warning": "word_wrap",
+        "the authoring contract's ONE home": "weekly-spec.md",
+        "the worked example": "content/weekly",
+        "no CSV reader": "no CSV reader",
+        "no BI value reader": "no Power BI value reader",
+    }
+    for what, phrase in anchors.items():
+        assert phrase in text, f"docs/weekly.md lost its {what} anchor ({phrase!r})"
