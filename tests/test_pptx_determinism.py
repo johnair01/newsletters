@@ -252,3 +252,39 @@ def test_weekly_fixture_corpus_is_exactly_the_committed_template() -> None:
     on_disk = sorted(p.name for p in FIXTURE_DIR.glob("*.pptx"))
     assert on_disk == ["template.pptx"], on_disk
     assert TEMPLATE.is_file()
+
+
+def _duplicate_member_archive() -> bytes:
+    """A hand-crafted archive shadowing one name — ``evil.xml`` twice, different content.
+
+    ``ZipFile.read("evil.xml")`` resolves to the LAST entry, so a by-name pass over this archive
+    reads ``SECOND-CONTENT`` twice: the first entry's bytes are silently rewritten and two archives
+    whose FIRST entries differ share a digest. The normalizer contract refuses it instead.
+    """
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zout:
+        zout.writestr("evil.xml", b"FIRST-CONTENT")
+        zout.writestr("keep.xml", b"KEPT")
+        zout.writestr("evil.xml", b"SECOND-CONTENT")
+    return buf.getvalue()
+
+
+def test_duplicate_member_names_are_refused_loudly() -> None:
+    """The duplicate-name raise (T-01-06): shadowed archives must never be normalized or digested.
+
+    Without the refusal, `normalize_opc_zip` rewrote the shadowed entry's part bytes — violating
+    its "part BYTES are never touched" contract — and `part_digest` returned identical digests for
+    two archives with different first-entry content, a collision in the exact assertion the
+    Phase-4 committed==fresh trust gate relies on (proven in the Phase 1 review, WR-01).
+    """
+    shadowed = _duplicate_member_archive()
+    clean = TEMPLATE.read_bytes()  # a real, duplicate-free package
+
+    with pytest.raises(ValueError, match="duplicate member names.*evil.xml"):
+        normalize_opc_zip(shadowed)
+    with pytest.raises(ValueError, match="duplicate member names.*evil.xml"):
+        part_digest(shadowed)
+    with pytest.raises(ValueError, match="duplicate member names.*evil.xml"):
+        differing_parts(clean, shadowed)
+    with pytest.raises(ValueError, match="duplicate member names.*evil.xml"):
+        differing_zipinfo_fields(shadowed, clean)

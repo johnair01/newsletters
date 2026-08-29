@@ -40,6 +40,16 @@ A malicious ``../../etc/passwd`` member in an operator-supplied template is carr
 opaque *name string* and cannot reach disk through this function. Phase 2 inherits that property by
 reusing this module rather than rediscovering it.
 
+DUPLICATE MEMBER NAMES ARE REFUSED, LOUDLY. The ZIP format permits multiple entries under one name,
+and ``ZipFile.read(name)`` resolves to the LAST one — so a by-name pass over a shadowed archive
+would silently rewrite part bytes (violating the contract above) and two archives with different
+first-entry content would share a `part_digest` (a collision in the Phase-4 trust assertion).
+Duplicate-name shadowing is a classic archive-smuggling trick precisely because different consumers
+pick different entries. python-pptx never emits duplicates, so the only way one arrives is a
+hand-crafted or malicious archive — every function here raises ``ValueError`` naming the duplicated
+members rather than picking a winner. This mirrors the template contract's duplicate-SHAPE-name
+raise: refuse the ambiguity, never resolve it silently.
+
 Stdlib only (``hashlib``, ``io``, ``zipfile``) — this module must NOT import `pptx`, so it stays
 importable on a bare install and needs no skip guard. `tests/test_pptx_determinism.py` carries the
 `pptx` import behind the standard `pytestmark` skip.
@@ -74,13 +84,34 @@ _COMPARED_FIELDS = (
 )
 
 
+def _reject_duplicate_member_names(archive: zipfile.ZipFile) -> None:
+    """Raise ``ValueError`` if the archive shadows any member name (see the module docstring).
+
+    Every by-name read below is only unambiguous because this ran first: ``ZipFile.read(name)``
+    silently resolves a duplicated name to its LAST entry, which would rewrite part bytes in
+    `normalize_opc_zip` and collide `part_digest` — the two contracts this module exists to keep.
+    """
+    names = [info.filename for info in archive.infolist()]
+    duplicated = sorted({name for name in names if names.count(name) > 1})
+    if duplicated:
+        raise ValueError(
+            f"duplicate member names in archive: {duplicated!r} — ZIP permits shadowed "
+            "entries and ZipFile.read(name) silently picks the last one, so a by-name pass "
+            "would rewrite part bytes and collide part_digest. Refusing to touch this "
+            "archive; if it is an operator-supplied template, rebuild it without duplicate "
+            "entries."
+        )
+
+
 def normalize_opc_zip(raw: bytes) -> bytes:
     """Rewrite an OPC package with FIXED zip metadata. Part BYTES are untouched.
 
     Fully in memory: no member name ever reaches the filesystem (see the module docstring's
     zip-slip note). Idempotent — ``normalize_opc_zip(normalize_opc_zip(x)) == normalize_opc_zip(x)``.
+    Raises ``ValueError`` on duplicate member names rather than silently keeping the last entry.
     """
     with zipfile.ZipFile(io.BytesIO(raw)) as zin:
+        _reject_duplicate_member_names(zin)
         infos = zin.infolist()
         # preserve the EMITTED entry order — it is already deterministic
         names = [i.filename for i in infos]
@@ -104,9 +135,12 @@ def part_digest(raw: bytes) -> str:
 
     No zip metadata, no XML normalization. This is the implementation-INDEPENDENT assertion: it is
     unaffected by which zlib built the archive, by entry order, and by every timestamp — while still
-    failing loudly if one byte of one part changed.
+    failing loudly if one byte of one part changed. Raises ``ValueError`` on duplicate member
+    names: a digest that silently read only the LAST of two shadowed entries would report two
+    different-content archives as identical — the exact spoof the Phase-4 trust gate must catch.
     """
     with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+        _reject_duplicate_member_names(archive)
         rows = sorted(
             (name, hashlib.sha256(archive.read(name)).hexdigest())
             for name in archive.namelist()
@@ -124,9 +158,12 @@ def differing_parts(a: bytes, b: bytes) -> list[str]:
     """Sorted names of parts whose unzipped BYTES differ between two packages.
 
     A name present in only one package is reported too — a part that appeared or vanished is a
-    content difference, not a metadata one.
+    content difference, not a metadata one. Raises ``ValueError`` if either package shadows a
+    member name (a by-name comparison over duplicates would compare only the LAST entries).
     """
     with zipfile.ZipFile(io.BytesIO(a)) as za, zipfile.ZipFile(io.BytesIO(b)) as zb:
+        _reject_duplicate_member_names(za)
+        _reject_duplicate_member_names(zb)
         names_a, names_b = set(za.namelist()), set(zb.namelist())
         differing = set(names_a ^ names_b)
         for name in names_a & names_b:
@@ -142,9 +179,12 @@ def differing_zipinfo_fields(a: bytes, b: bytes) -> list[str]:
     entry by entry, plus ``filename`` order (reported as ``"filename"`` when the emitted entry-name
     sequences differ). Returns ``[]`` when the two archives carry identical metadata — and
     ``["date_time"]`` for a raw python-pptx double write across a DOS-time boundary, which is the
-    measured shape of the ONE non-determinism.
+    measured shape of the ONE non-determinism. Raises ``ValueError`` if either package shadows a
+    member name (the by-name pairing below is last-wins over duplicates).
     """
     with zipfile.ZipFile(io.BytesIO(a)) as za, zipfile.ZipFile(io.BytesIO(b)) as zb:
+        _reject_duplicate_member_names(za)
+        _reject_duplicate_member_names(zb)
         infos_a, infos_b = za.infolist(), zb.infolist()
         names_a = [i.filename for i in infos_a]
         names_b = [i.filename for i in infos_b]
