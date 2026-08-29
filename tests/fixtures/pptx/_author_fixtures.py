@@ -132,11 +132,14 @@ def _pin_core_xml(data: bytes) -> bytes:
 def _normalize_zip(raw: bytes) -> bytes:
     """Rewrite every ZIP entry's date_time to a fixed constant, preserving entry order + content.
 
-    python-pptx already writes a fixed zip date_time, but two paths still drift cross-process and are
-    pinned here (belt-and-braces, threat T-06-11): (1) the SmartArt fixture rebuilds the archive
-    after XML injection; forcing a fixed `date_time` on every member keeps it stable; (2) the chart
-    fixture embeds a nested `.xlsx` (chart data) whose own `docProps/core.xml` carries an openpyxl
-    wall-clock — we recurse into any embedded `.xlsx` and pin its core props too.
+    python-pptx does NOT write a fixed zip date_time — it stamps ``time.localtime()`` into every
+    entry (str arcname -> stdlib-manufactured `ZipInfo`; measured and corrected 2026-08-29, see the
+    module header) — so this rewrite to `_FIXED_ZIP_DATE_TIME` is what makes ALL nine fixtures
+    byte-stable, not a belt-and-braces extra. Additionally pinned here (threat T-06-11): (1) the
+    SmartArt fixture rebuilds the archive after XML injection, and forcing a fixed `date_time` on
+    every member keeps that rebuild stable too; (2) the chart fixture embeds a nested `.xlsx`
+    (chart data) whose own `docProps/core.xml` carries an openpyxl wall-clock — we recurse into any
+    embedded `.xlsx` via `_normalize_embedded_xlsx` and pin its core props.
     """
     zin = zipfile.ZipFile(io.BytesIO(raw))
     out = io.BytesIO()
