@@ -856,7 +856,7 @@ for the abstraction scanner.
 | A5 | The joining convention for a recognition's `person`/`reason` in a deck slot (two lines vs. one joined line) | Pattern 7 rule 4 | Low-Medium — a joined line is arguably composer-authored connective text; two lines is the conservative reading of faithful-not-suggestive |
 | A6 | Extracting a shared section-assembly helper into `compose.py` will be behaviour-identical under the existing `test_compose.py` | Pattern 5 | Low — the fallback (weekly builds its own strip) is stated |
 
-## Open Questions
+## Open Questions (RESOLVED — see 03-VALIDATION.md "Recorded discretionary decisions": text-only deck; merge-base diff ref; empty-section = its own missing[] disclosure line; fixture names on the denylist)
 
 1. **Does SC-5 require the asset *image* in the deck, or only the composed Surface rendering
    through the writer?**
