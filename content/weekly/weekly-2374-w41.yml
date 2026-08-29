@@ -1,0 +1,61 @@
+# SYNTHETIC SAMPLE DATA — fabricated, Star-Trek-flavored content only (no real org/tool/
+# metric/site/program/colleague names). This is the COMMITTED worked example for WKLY-05: the
+# weekly for the fabricated module that lives in content/module/, authored against the full
+# eight-key schema (docs/weekly-spec.md).
+#
+# THREE ABSENCES ARE PLANTED HERE ON PURPOSE. They are the point of the sample, not defects —
+# a weekly that hides what it does not know teaches the wrong lesson to whoever copies it:
+#   1. a lane with NO KPIs — comes from the bound content/module config (the MOR/IQ lane),
+#      not from this file, and lands in missing[] as the composer's "declares no KPIs" row;
+#   2. `recognitions[1]` carries NO `source:` — credit is still given, the absence of the
+#      evidence is disclosed, and nothing is fabricated to fill the hole;
+#   3. the `manifest-annex-photo` asset OMITS `folder:` — provenance is checked BEFORE the
+#      file is read, so the image is never placed and needs no file on disk at all.
+# The FIRST recognition resolves (its `source:` is the .eml below, whose Source.id IS that
+# repo-relative path), so the absence row above has something honest to contrast against.
+week: "2374-W41"
+module: "Docking Ring Logistics"
+highlights:
+  - "Trimmed the berth handover from six radio confirmations to one written rota line."
+  - |
+    The upper-ring berths ran the whole week on the shared rota board, so no
+    single controller held the only copy of the schedule at any point.
+lowlights:
+  - "The annex manifest photos went unlabelled again; I said I would fix the folder and did not."
+recognitions:
+  - person: "Jadzia Dax"
+    reason: "Spotted that two berths were double-booked before either freighter undocked."
+    source: "content/weekly/inbox/berth-rota-thanks.eml"
+  - person: "Elim Garak"
+    reason: "Rewrote the handover note so the night controller could read it cold."
+team:
+  - name: "Jadzia Dax"
+    role: "Berth Scheduling"
+    lines:
+      - "Holds the upper-ring rota; on call through the turnaround window."
+    photo: "ring-berth-utilisation"
+  - name: "Ezri Tigan"
+    role: "Manifest Control"
+    lines:
+      - "Checked every annex manifest against the arrivals board twice this week."
+      - "Carries the unlabelled-photo cleanup into next week."
+assets:
+  ring-berth-utilisation:
+    file: "content/weekly/assets/ring-berth-utilisation.png"
+    sha256: "84549424e0e59a80b5752b6b4c8d7808aec2455ff1cd3d852ecc6a8960527080"
+    folder: "Ring turnaround pack"
+    date: "2374-10-11"
+    event: "Thursday ring review"
+    caption: "Berth utilisation across the upper ring, week 41."
+    alt: "Bar chart, six berths, week 41."
+  manifest-annex-photo:
+    file: "content/weekly/assets/manifest-annex-photo.png"
+    sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+    date: "2374-10-11"
+    event: "Thursday ring review"
+    caption: "Annex manifest board, unlabelled."
+    alt: "Photograph of a manifest board."
+config:
+  author: "Tora Ziyal"
+  berth_registry: "Upper Ring Berth Registry Nine"
+  turnaround_metric: "Berth Turnaround Cycle Count"

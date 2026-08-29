@@ -40,6 +40,10 @@ from newsletters.modulesite import build_module_site, build_module_surfaces
 from newsletters.semantic import ClaimsBlock, QuoteBlock
 from newsletters.site import Ledger, Site
 
+# Sibling test helper (leading underscore == not collected by pytest). pytest's default
+# "prepend" import mode puts tests/ on sys.path, so this resolves without a tests package.
+from _corpus_scan import scan_real_looking  # noqa: E402
+
 # The committed corpus lives under the repo root (mirror test_worksurface's anchor).
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -302,39 +306,16 @@ def test_no_datetime_now_reachable() -> None:
 # repo's own Star-Trek sample-team names stand in as canonical "real-looking"
 # nomenclature — plus an email-address shape. The allowlist positively asserts the
 # fabricated scheme is the naming actually used.
+#
+# The denylist, the address shape and the scanner were PROMOTED to tests/_corpus_scan.py
+# in Phase 4 (plan 04-01), when the committed content/weekly/ corpus needed exactly the
+# same guard — one scanner, two corpora, so the two cannot drift (the specspan /
+# compose_kpi_item / normalize_opc_zip precedent). Only the module corpus's OWN
+# allowlist is corpus-specific, so only it stays here.
 # --------------------------------------------------------------------------- #
-
-# Representative real-looking nomenclature that must NEVER appear in committed public content.
-# Multi-word / distinctive tokens only, so a substring scan cannot false-positive on ordinary
-# words or the design-system's font-family names.
-_REAL_LOOKING_LITERALS = frozenset(
-    {
-        "Jean-Luc Picard",
-        "William Riker",
-        "Geordi La Forge",
-        "Beverly Crusher",
-        "Starfleet Division",
-        "USS Enterprise",
-        "Warp Core Stability",
-        "Dilithium Efficiency Index",
-        "starfleet.int",
-    }
-)
-
-# A real-name SHAPE: an email address (the committed corpus declares none — its presence would be a
-# confidentiality leak). Bounded so CSS at-rules (@font-face / @media) never match (no word char
-# precedes their '@').
-_EMAIL_RE = re.compile(r"\b[\w.-]+@[\w.-]+\.[A-Za-z]{2,}\b")
 
 # The fabricated worked-example scheme (seed §5) — the naming that SHOULD be present.
 _FABRICATED_MARKERS = ("module-a", "area-bem", "owner-", "eng-", "toolset-")
-
-
-def _scan_real_looking(text: str) -> set[str]:
-    """Return the real-looking nomenclature found in ``text`` (empty == clean/synthetic)."""
-    hits = {tok for tok in _REAL_LOOKING_LITERALS if tok in text}
-    hits.update(_EMAIL_RE.findall(text))
-    return hits
 
 
 def test_committed_content_is_synthetic() -> None:
@@ -360,7 +341,7 @@ def test_committed_content_is_synthetic() -> None:
         ), f"expected committed module content file {f.relative_to(REPO_ROOT)}"
         text = f.read_text(encoding="utf-8")
         corpus += text
-        leaks = _scan_real_looking(text)
+        leaks = scan_real_looking(text)
         assert not leaks, (
             f"real-looking nomenclature in committed {f.relative_to(REPO_ROOT)}: {sorted(leaks)} "
             "— committed public content must be synthetic (T-03-03 / Pitfall 8)"
@@ -374,6 +355,6 @@ def test_committed_content_is_synthetic() -> None:
 
     # Non-vacuous: the SAME scanner catches a planted real-looking name + email.
     planted = "owner: Jean-Luc Picard\ncontact: ops@starfleet.int\n"
-    planted_hits = _scan_real_looking(planted)
+    planted_hits = scan_real_looking(planted)
     assert "Jean-Luc Picard" in planted_hits, planted_hits
     assert any("@" in h for h in planted_hits), planted_hits

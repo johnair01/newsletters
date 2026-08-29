@@ -170,6 +170,36 @@ _WEEKLYSPEC_FIXTURE_VALUES = frozenset(
     }
 )
 
+# (6) The COMMITTED weekly corpus's vocabulary — content/weekly/weekly-2374-w41.yml and its
+#     inbox/.eml. Same rule as (5), one step more serious: (5) guards a test fixture, this guards
+#     PUBLISHED sample content. `src/newsletters/weeklysite.py` may name the GENERIC structural
+#     paths (`content/weekly`, `inbox`, `template.pptx`) and the schema words, and must never
+#     contain one of these authored values — a builder that knows its corpus's crew names has
+#     stopped being a builder.
+_WEEKLYSITE_CORPUS_VALUES = frozenset(
+    {
+        # period label + module name
+        "2374-W41",
+        "Docking Ring Logistics",
+        # crew names (the confidentiality-risk class) — incl. the config-bound byline
+        "Jadzia Dax",
+        "Elim Garak",
+        "Ezri Tigan",
+        "Tora Ziyal",
+        # `assets:` keys — the spec-local handles `photo:` and the provenance rows refer to
+        "ring-berth-utilisation",
+        "manifest-annex-photo",
+        # the recognition source id (the committed .eml's filename == part of its Source.id)
+        "berth-rota-thanks.eml",
+        # provenance labels (folder + event) — org-specific by definition
+        "Ring turnaround pack",
+        "Thursday ring review",
+        # the `config:` subtree's values — registry / metric names
+        "Upper Ring Berth Registry Nine",
+        "Berth Turnaround Cycle Count",
+    }
+)
+
 # All literal tokens, longest-first so an alternation prefers the most specific match.
 _DENY_LITERALS = tuple(
     sorted(
@@ -177,13 +207,14 @@ _DENY_LITERALS = tuple(
         | _SAMPLE_TEAM_NAMES
         | _SEED_SCHEME
         | _CASESPEC_CONFIG_VALUES
-        | _WEEKLYSPEC_FIXTURE_VALUES,
+        | _WEEKLYSPEC_FIXTURE_VALUES
+        | _WEEKLYSITE_CORPUS_VALUES,
         key=len,
         reverse=True,
     )
 )
 
-# (6) Pattern-based ids from the seed scheme: `eng-NN` (numbered engineers) and `toolset-N`. These
+# (7) Pattern-based ids from the seed scheme: `eng-NN` (numbered engineers) and `toolset-N`. These
 #     cover the whole family without enumerating every index.
 _DENY_PATTERNS = (
     re.compile(r"\beng-\d{2,}\b"),
