@@ -49,7 +49,7 @@ import pathlib
 import time
 import zipfile
 from datetime import datetime
-from typing import NamedTuple
+from typing import NamedTuple, Union
 
 import pytest
 
@@ -815,6 +815,55 @@ def test_fill_with_no_lines_raises(tmp_path: pathlib.Path) -> None:
 
     with pytest.raises(ValueError, match="no lines"):
         fill_slot(bound["NL_WEEK_TITLE"].text_frame, [])
+
+
+def test_bare_str_fills_one_paragraph_not_one_per_character(
+    tmp_path: pathlib.Path,
+) -> None:
+    """WR-03, half one: `fill_slot(tf, "hello")` is ONE paragraph, never `['h','e','l','l','o']`.
+
+    `str` IS a `Sequence[str]` of its characters, so neither mypy nor any refusal used to catch
+    the single most likely caller typo — reproduced live in the review as five one-character
+    paragraphs, a silently misrendered deck. A bare string means one line; it is normalized to
+    `[line]` rather than refused, because the input has exactly one sane reading.
+    """
+    path = build_rich_template(tmp_path)
+    prs = Presentation(str(path))
+    bound = bind_slots(prs, RICH_SLOTS)
+
+    fill_slot(bound["NL_WEEK_TITLE"].text_frame, "2026-W35")
+
+    paragraphs = list(bound["NL_WEEK_TITLE"].text_frame.paragraphs)
+    assert len(paragraphs) == 1, (
+        f"a bare str filled {len(paragraphs)} paragraphs — the per-character explosion is back. "
+        f"Texts: {[p.runs[0].text if p.runs else None for p in paragraphs]}"
+    )
+    assert paragraphs[0].runs[0].text == "2026-W35", paragraphs[0].runs[0].text
+
+
+def test_bare_str_slot_value_renders_one_paragraph(tmp_path: pathlib.Path) -> None:
+    """WR-03, half two: a bare-str VALUE in the `slots` mapping renders as one paragraph.
+
+    `render_surface_pptx_bytes` is the entry point a composer actually calls, so the same typo is
+    proven safe end to end, asserted off the WRITTEN bytes per this module's fidelity convention.
+    """
+    path = build_rich_template(tmp_path)
+    str_slots: dict[str, Union[str, list[str]]] = {
+        **RICH_SLOTS,
+        "NL_WEEK_TITLE": "2026-W35",
+    }
+
+    rendered = render_surface_pptx_bytes(
+        _sample_weekly_surface(), template=path, slots=str_slots
+    )
+
+    written = Presentation(io.BytesIO(rendered))
+    paragraphs = _paragraphs(written, "NL_WEEK_TITLE")
+    assert len(paragraphs) == 1, (
+        f"a bare-str slot value shipped {len(paragraphs)} paragraphs through the render path. "
+        f"Texts: {[p.runs[0].text if p.runs else None for p in paragraphs]}"
+    )
+    assert paragraphs[0].runs[0].text == "2026-W35", paragraphs[0].runs[0].text
 
 
 # --- SC-3 (marker + watermark) and SC-4 (the gate is untouched) ---------------------------------

@@ -346,7 +346,9 @@ def _walk(shapes: Any, group_type: Any) -> Iterator[Any]:
             yield from _walk(shape.shapes, group_type)
 
 
-def bind_slots(prs: Any, slots: Mapping[str, Sequence[str]]) -> dict[str, Any]:
+def bind_slots(
+    prs: Any, slots: Mapping[str, Union[str, Sequence[str]]]
+) -> dict[str, Any]:
     """Map every shape name in the deck to its shape, refusing every ambiguity rather than guessing.
 
     Binds over ``slide.shapes`` (recursively — see :func:`_walk`) and NOT ``slide.placeholders``:
@@ -442,8 +444,15 @@ def bind_slots(prs: Any, slots: Mapping[str, Sequence[str]]) -> dict[str, Any]:
     return by_name
 
 
-def fill_slot(text_frame: Any, lines: Sequence[str]) -> None:
+def fill_slot(text_frame: Any, lines: Union[str, Sequence[str]]) -> None:
     """Fill a template slot with N lines, PRESERVING the operator's paragraph and run formatting.
+
+    A BARE ``str`` IS ONE PARAGRAPH (Phase-2 review WR-03). ``str`` is itself a ``Sequence[str]``
+    of its characters, so neither mypy nor any refusal used to catch ``fill_slot(tf, "hello")`` —
+    it silently shipped five paragraphs, ``['h', 'e', 'l', 'l', 'o']``, from the single most likely
+    caller typo. A string is what an author means by "one line", so it is treated as ``[lines]``
+    here (covering both this function and ``render_surface_pptx_bytes``'s ``slots`` mapping) rather
+    than refused: the input is not ambiguous, it has exactly one sane reading.
 
     python-pptx exposes **no bullet API at all** — `_Paragraph`'s entire public surface is
     ``add_line_break, add_run, alignment, clear, font, level, line_spacing, part, runs, space_after,
@@ -485,6 +494,9 @@ def fill_slot(text_frame: Any, lines: Sequence[str]) -> None:
             paragraph 0 carries no run (nothing to inherit — Pitfall 6, an OBSERVED failure: a text
             box with no typed characters really does have a paragraph with zero runs).
     """
+    if isinstance(lines, str):
+        # One paragraph, not one per character — see the docstring (WR-03).
+        lines = [lines]
     if not lines:
         raise ValueError(
             "refusing to fill a slot with no lines — an empty slot ships a blank box to a reader, "
@@ -563,7 +575,7 @@ def render_surface_pptx_bytes(
     surface: "Surface",
     *,
     template: Union[str, Path],
-    slots: Mapping[str, Sequence[str]],
+    slots: Mapping[str, Union[str, Sequence[str]]],
 ) -> bytes:
     """Render a Surface into deterministic `.pptx` bytes through an operator-supplied template.
 
@@ -628,7 +640,7 @@ def render_surface_pptx(
     surface: "Surface",
     *,
     template: Union[str, Path],
-    slots: Mapping[str, Sequence[str]],
+    slots: Mapping[str, Union[str, Sequence[str]]],
     out_path: Union[str, Path],
 ) -> Path:
     """Render a Surface to a `.pptx` on disk in ONE write of complete, already-normalized bytes.
