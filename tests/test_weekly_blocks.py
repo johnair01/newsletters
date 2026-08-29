@@ -353,6 +353,29 @@ def test_authored_markup_is_escaped_in_every_new_branch() -> None:
         assert "&lt;script&gt;" in html, f"{type(block).__name__} did not carry the escaped text"
 
 
+def test_asset_block_always_renders_its_provenance_line() -> None:
+    """WR-06 (03-review): a placed asset is NEVER an information-free box.
+
+    `alt` and `caption` are both optional, so a fully provenance-complete asset whose author
+    wrote neither rendered as an empty bordered `.diagram` — a visible box asserting nothing,
+    against the composer's own rule. The record's provenance line (folder · date · event —
+    guaranteed non-blank for a PLACED asset, now by the type itself per WR-02) is the
+    guaranteed content, in the existing `sg-mono` class (no new CSS), through `_e()`.
+    """
+    bare = _block_html(AssetBlock(asset=_ASSET, evidence=[_trace()]))
+    assert 'figcaption class="sg-mono"' in bare, bare
+    for value in (_ASSET.folder, _ASSET.date, _ASSET.event):
+        assert value in bare, f"{value!r} missing from the provenance line: {bare}"
+
+    # The provenance line is guaranteed content, not a fallback: it renders alongside the
+    # authored heading/caption too, so the record always vouches visibly for its asset.
+    full = _block_html(
+        AssetBlock(heading="Bar chart.", asset=_ASSET, caption="Week 35.", evidence=[_trace()])
+    )
+    assert 'figcaption class="sg-mono"' in full, full
+    assert "Bar chart." in full and "Week 35." in full
+
+
 def test_asset_block_emits_no_image_tag() -> None:
     """Text only this phase: relative-path resolution for the published tree is not solved."""
     html = _block_html(AssetBlock(heading="Throughput", asset=_ASSET, caption="Cap.", evidence=[_trace()]))

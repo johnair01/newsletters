@@ -233,7 +233,7 @@ The classes each new block reuses — named here so Phase 3 had **no visual disc
 | `NarrativeBlock` | `div.block` + `h3.block-h` + one `div.item` per line: the tone label in `span.sg-tag.cat`, the verbatim text in `div.bo` — a drifted or unfaithful item claim carries the same inline `span.claim-badge` every rendered claim gets (03-review WR-03); a healthy line renders byte-identically to the badge-free shape |
 | `RecognitionsBlock` | `div.block` + `h3.block-h` + one `div.item` per recognition: `div.ti` the person, `div.bo` the reason |
 | `TeamBlock` | `div.block` + `h3.block-h` + one `div.chapter` per member: `div.t` the role, `div.ti` the name, `div.bo` the short lines |
-| `AssetBlock` | `div.block` + `figure.diagram` with `div.dh` the heading and `<figcaption>` the caption |
+| `AssetBlock` | `div.block` + `figure.diagram` with `div.dh` the heading (optional), `<figcaption>` the caption (optional), and a **guaranteed** `figcaption.sg-mono` carrying the record's provenance line — `folder · date · event`, always non-blank for a placed asset — so a placed asset is never an information-free box even when the author wrote no `alt`/`caption` (03-review WR-06) |
 
 ## Assets — the evidence record
 

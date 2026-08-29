@@ -672,7 +672,17 @@ def _block_html(b, site: Site | None = None, sources: dict[str, Source] | None =
         # is the renderer's sole raw interpolation and is deliberately NOT a precedent here.
         h = f'<div class="dh">{_e(b.heading)}</div>' if b.heading else ""
         cap = f"<figcaption>{_e(b.caption)}</figcaption>" if b.caption else ""
-        return f'<div class="block"><figure class="diagram">{h}{cap}</figure></div>'
+        # WR-06 (03-review): `alt` and `caption` are both optional, so without this line a fully
+        # provenance-complete asset rendered as an EMPTY bordered box asserting nothing — against
+        # the composer's own "an empty block asserts nothing" rule. The record's provenance
+        # (folder · date · event) is guaranteed non-blank for a PLACED asset (by the type, per
+        # WR-02), so it is the guaranteed content: the box always shows what vouches for it.
+        # Existing `sg-mono` class only (the `_CSS` byte-freeze holds); everything through `_e()`.
+        prov = (
+            f'<figcaption class="sg-mono">{_e(b.asset.folder)} &middot; {_e(b.asset.date)}'
+            f" &middot; {_e(b.asset.event)}</figcaption>"
+        )
+        return f'<div class="block"><figure class="diagram">{h}{cap}{prov}</figure></div>'
     # Unreachable by construction — `Surface.blocks` is a discriminated `list[Block]`, so pydantic
     # guarantees every element is a union member with a branch above. Keeping it unreachable is the
     # point: this raise exists so that adding a kind WITHOUT a branch fails loud here instead of
