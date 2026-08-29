@@ -7,6 +7,27 @@
 
 ## Where we are right now
 
+**2026-08-29 (end of run) — v1.3 BUILD COMPLETE. AUDIT PASSED. THE PR TO `main` IS THE HUMAN
+GATE (branch `claude/new-session-gw8tik`, 139 commits).** All four phases shipped, each through
+the full loop (research → plan → plan-check → execute → code-review → fix → independent verify →
+independent gate re-run): the determinism spike and specs (Phase 1), the deterministic
+template-driven PPTX writer (Phase 2), the weekly compose path with four new block kinds
+(Phase 3), and the fourth corpus + operator recipe (Phase 4). The milestone audit PASSED —
+6/6 requirements, 14/14 cross-phase connections, 6/6 E2E flows, Nyquist-compliant in all four
+phases, 0 blockers (`.planning/v1.3-MILESTONE-AUDIT.md`). Final self-validation closed the
+loop the way the kickoff demanded: **the existing ADAPT-04 reader loaded the writer's own
+committed deck — 7/7 claims content-addressed and entailed, zero silent drops, the author's
+voice byte-verbatim end to end.** Final gates, run by the orchestrator, once each: **871
+passed / 0 skipped** (the milestone's own W21 rule made every skip a failure) · lint-imports
+2 kept · `newsletters check` clean over all FOUR corpora · committed==fresh everywhere,
+ledgers append-only · determinism `--check` green · bare-install byte-untouched ·
+mypy/black/isort no-new-failures. **Milestone completion/cleanup was deliberately NOT run**
+(kickoff Step 3): the EiC reviews the PR first; completion happens after. Open items carried
+honestly to the PR: real-PowerPoint open (no `.pptx` consumer here) · first observed CI green
+of the `pptx`/`weekly` jobs (no `gh` here) · contentStatus tri-state amendment · deck images
+(round two) · AUDIT-W1 template core-properties bleed · AUDIT-W2 recipe prose guards ·
+DEF-15. The sample weekly ships **Draft, watermarked** — the publish gate is untouched.
+
 **2026-08-29 (newest) — v1.3 PHASE 4 IS DONE: THERE IS NOW A WEEKLY YOU CAN READ, AND A RECIPE
 SOMEBODY WHO ISN'T US CAN FOLLOW (plans 04-01, 04-02, 04-03 — the whole phase; branch
 `claude/new-session-gw8tik`).** Phases 1–3 built the machinery. This phase does the two things
