@@ -33,6 +33,11 @@ from typing import Annotated, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+# A separate import statement ON PURPOSE (WR-02, 03-review): this phase's semantic.py changes
+# are policed by an insertion-only diff gate (test_semantic_gate_frozen.py, Half B) — extending
+# the line above would register as a rewrite of an existing line, so the widening is appended.
+from pydantic import ValidationInfo
+
 from .locators import ExtractionRecord, FreeLocator, Locator
 from .templates import ReviewPolicy, SignalColor, SurfaceTemplate
 
@@ -431,6 +436,37 @@ class AssetRecord(BaseModel):
     caption: Optional[str] = None
     alt: Optional[str] = None
 
+    # WR-02 (03-review): the docstring above claims a provenance-less asset is UNREPRESENTABLE,
+    # but a bare ``str`` annotation enforces presence, not non-emptiness — the review proved
+    # ``AssetRecord(..., folder="", date="", event="")`` constructed fine, leaving the whole
+    # D-02 claim to one loader-side ``.strip()`` check any other code path (a future composer,
+    # a hand-built Surface, a tampered JSON round-trip) could bypass. These two validators make
+    # the claim true at the TYPE level, in every code path, both directions tested.
+    @field_validator("key", "file", "sha256", "folder", "date", "event")
+    @classmethod
+    def _required_provenance_is_non_blank(cls, value: str, info: ValidationInfo) -> str:
+        if not value.strip():
+            raise ValueError(
+                f"AssetRecord.{info.field_name} must be non-blank: it is part of the record "
+                "that vouches for the placed file (decision D-02 — provenance-less placement "
+                "is unrepresentable at the type level, never merely policed at load time). "
+                "An absent minimum belongs in missing[], not blanked onto a record."
+            )
+        return value
+
+    @field_validator("link", "caption", "alt")
+    @classmethod
+    def _optional_text_is_none_or_real(
+        cls, value: Optional[str], info: ValidationInfo
+    ) -> Optional[str]:
+        if value is not None and not value.strip():
+            raise ValueError(
+                f"AssetRecord.{info.field_name} is optional but may not be a BLANK string: "
+                "pass None for an absent value. An empty string is neither authored text nor "
+                "a disclosed absence — it would render as content that asserts nothing."
+            )
+        return value
+
 
 class ProseBlock(BaseModel):
     kind: Literal["prose"] = "prose"
@@ -582,6 +618,22 @@ class AssetBlock(BaseModel):
     asset: AssetRecord
     caption: Optional[str] = None
     evidence: list[Trace] = Field(min_length=1)
+
+    # WR-02 (03-review), the same move as ``AssetRecord`` above: ``heading`` (the authored
+    # ``alt``) and ``caption`` are legitimately optional, but a PRESENT empty string is neither
+    # authored text nor a disclosed absence — blank stays unrepresentable in either shape.
+    @field_validator("heading", "caption")
+    @classmethod
+    def _optional_text_is_none_or_real(
+        cls, value: Optional[str], info: ValidationInfo
+    ) -> Optional[str]:
+        if value is not None and not value.strip():
+            raise ValueError(
+                f"AssetBlock.{info.field_name} is optional but may not be a BLANK string: "
+                "pass None for an absent value. An empty string is neither authored text nor "
+                "a disclosed absence — it would render as content that asserts nothing."
+            )
+        return value
 
 
 Block = Annotated[

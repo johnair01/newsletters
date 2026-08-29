@@ -162,6 +162,43 @@ def test_well_formed_asset_block_constructs() -> None:
     assert len(block.evidence) == 1
 
 
+def test_asset_record_refuses_blank_provenance_minimums() -> None:
+    """WR-02 (03-review): the review proved ``folder="", date="", event=""`` CONSTRUCTED fine.
+
+    That left D-02's "unrepresentable" claim resting on one loader-side ``.strip()`` check any
+    other code path could bypass. Every required field now carries a non-blank validator at the
+    TYPE level — asserted field by field, so a validator that silently covers fewer fields than
+    it names fails here.
+    """
+    good = _ASSET.model_dump()
+    for field in ("key", "file", "sha256", "folder", "date", "event"):
+        with pytest.raises(ValidationError, match=f"AssetRecord.{field} must be non-blank"):
+            AssetRecord(**{**good, field: ""})
+        with pytest.raises(ValidationError, match=f"AssetRecord.{field} must be non-blank"):
+            AssetRecord(**{**good, field: "   "})
+
+
+def test_asset_record_optional_fields_are_none_or_real_text() -> None:
+    """The optional half: ``link``/``caption``/``alt`` may be None, never a present blank."""
+    good = _ASSET.model_dump()
+    for field in ("link", "caption", "alt"):
+        with pytest.raises(ValidationError, match=f"AssetRecord.{field} is optional"):
+            AssetRecord(**{**good, field: ""})
+        assert getattr(AssetRecord(**{**good, field: None}), field) is None
+        assert getattr(AssetRecord(**{**good, field: "real text"}), field) == "real text"
+
+
+def test_asset_block_optional_text_is_none_or_real() -> None:
+    """Both directions on the block itself: blank heading/caption refused, real ones carried."""
+    for field in ("heading", "caption"):
+        with pytest.raises(ValidationError, match=f"AssetBlock.{field} is optional"):
+            AssetBlock(asset=_ASSET, evidence=[_trace()], **{field: ""})
+    block = AssetBlock(
+        asset=_ASSET, evidence=[_trace()], heading="Bar chart.", caption="Week 35."
+    )
+    assert block.heading == "Bar chart." and block.caption == "Week 35."
+
+
 def test_recognition_evidence_may_be_empty_by_design() -> None:
     """The deliberate contrast (weekly-spec rule 6): the author's word IS the evidence.
 

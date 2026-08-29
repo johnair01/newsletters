@@ -255,6 +255,16 @@ class AssetRecord(BaseModel):
     alt: Optional[str] = None
 ```
 
+**Blank is unrepresentable, both ways.** Every required field above carries a non-blank
+validator on the type itself, and the optional `link` / `caption` / `alt` (and `AssetBlock`'s
+`heading` / `caption`) must be `None` or real text — `AssetRecord(..., folder="")` and a
+present-but-empty caption are refused at construction with a teaching `ValidationError`. The
+loader's placement routing discloses an *absent* minimum to `missing[]`; the type refuses the
+empty-string impersonation of one, so no code path — a future composer, a hand-built `Surface`,
+a tampered JSON round-trip — can put a provenance-blank asset on a surface. This closes the gap
+between the paragraph below and the code (03-review WR-02): before it, only
+`weeklyspec._place_assets`' runtime `.strip()` check stood between an empty string and a slide.
+
 **Why the record is the evidence, and not the image.** `Source.transcript` is a `str`, and
 `Source.content_hash()` hashes that string — so **an image can never be a `Source`**. Any design
 that tries to make the binary the evidence fights the spine. Instead the *asset record text* is
