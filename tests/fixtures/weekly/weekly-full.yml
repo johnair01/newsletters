@@ -1,0 +1,57 @@
+# SYNTHETIC TEST DATA — fabricated, Star-Trek-flavored content only (no real org/tool/
+# metric/site/program names). A well-formed Weekly Spec exercising the full authoring schema
+# (docs/weekly-spec.md): all eight keys, an ordinary quoted highlight and a BLOCK-SCALAR one
+# (traced to its raw item region), a person named in BOTH `recognitions:` and `team:` (the
+# span-swap regression's non-vacuity), three assets covering complete / deep-link-required /
+# provenance-incomplete, and a `config:` subtree whose values must NEVER become claims.
+# For tests only.
+week: "2374-W35"
+module: "Shuttlebay Operations"
+highlights:
+  - "Cut the bay turnaround checklist from nine manual steps to two."
+  - |
+    A second duty officer joined the rota this week, so no single
+    approval point is left anywhere in the launch sequence.
+lowlights:
+  - "The clamp recalibration slipped a week; the dependency was mine to spot and I did not."
+recognitions:
+  - person: "Miles O'Brien"
+    reason: "Found the launch-ordering fault the drills were blind to."
+    source: "mail:23740824-rota"
+  - person: "Kira Nerys"
+    reason: "Rewrote the turnaround note so the next shift could read it cold."
+team:
+  - name: "Miles O'Brien"
+    role: "Bay Systems"
+    lines:
+      - "Owns the rota; on call through Friday."
+    photo: "bay-cycle-throughput"
+  - name: "Julian Bashir"
+    role: "Crew Readiness"
+    lines:
+      - "Ran the readiness drill twice this week."
+      - "Carries the clamp recalibration into next week."
+assets:
+  bay-cycle-throughput:
+    file: "tests/fixtures/weekly/assets/bay-cycle-throughput.png"
+    sha256: "84549424e0e59a80b5752b6b4c8d7808aec2455ff1cd3d852ecc6a8960527080"
+    folder: "Weekly review pack"
+    date: "2374-08-24"
+    event: "Friday bay review"
+    caption: "Bay cycle throughput, week 35."
+    alt: "Bar chart, four bays, week 35."
+  crew-rota-board:
+    file: "tests/fixtures/weekly/assets/crew-rota-board.png"
+    sha256: "0dca3ba7faab0d6aaadfab602de1677c190004bbc504fa435679eb1ab5e3f9ae"
+    folder: "Weekly review pack"
+    date: "2374-08-24"
+    event: "Friday bay review"
+    stands_in_for: "values"
+  crew-manifest-scan:
+    file: "tests/fixtures/weekly/assets/crew-manifest-scan.png"
+    sha256: "f7f6369354bbf03d6984b0926a89e51219dd1cdb1df3801721331ceecd854e18"
+    date: "2374-08-24"
+    event: "Friday bay review"
+config:
+  rota_registry: "Bay Rotation Registry Delta"
+  turnaround_metric: "Docking Clamp Cycle Count"
