@@ -235,6 +235,14 @@ def part_digest(raw: bytes) -> str:
     failing loudly if one byte of one part changed. Raises ``ValueError`` on duplicate member
     names: a digest that silently read only the LAST of two shadowed entries would report two
     different-content archives as identical — the exact spoof the Phase-4 trust gate must catch.
+
+    THE ROW ENCODING IS LENGTH-PREFIXED, AND THAT IS LOAD-BEARING (Phase-2 review WR-01). Member
+    names are attacker-controlled bytes — a ZIP name may legally contain NUL and newline — so a
+    delimiter-based row encoding (``name + b"\\0" + hex + b"\\n"``) is NOT injective: a single
+    crafted member named ``"a\\0" + <64 hex> + "\\nb"`` can serialize to the same byte stream as a
+    two-member archive, colliding the digest for archives with entirely different part content.
+    Prefixing each name with its 8-byte big-endian length makes the row boundaries unambiguous for
+    EVERY possible name, closing that construction. Do not "simplify" this back to delimiters.
     """
     with zipfile.ZipFile(io.BytesIO(raw)) as archive:
         _reject_duplicate_member_names(archive)
@@ -244,10 +252,10 @@ def part_digest(raw: bytes) -> str:
         )
     digest = hashlib.sha256()
     for name, part in rows:
-        digest.update(name.encode("utf-8"))
-        digest.update(b"\0")
+        encoded = name.encode("utf-8")
+        digest.update(len(encoded).to_bytes(8, "big"))
+        digest.update(encoded)
         digest.update(part.encode("ascii"))
-        digest.update(b"\n")
     return digest.hexdigest()
 
 

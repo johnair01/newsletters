@@ -80,20 +80,32 @@ are **not** re-measured here:
 | `varying_parts` | `[]` | every unzipped part was byte-identical: the deck's content is deterministic |
 | `varying_zip_fields` | `["date_time"]` | the single non-determinism, exactly where the hinge predicted |
 | `normalized_bytes_equal` | `true` | the recorded outcome |
-| `part_digest_a` | `606c24642c74bed9a3514f053489067b7479a12b2212738338066c1cc2822ab9` | content identity, run A |
-| `part_digest_b` | `606c24642c74bed9a3514f053489067b7479a12b2212738338066c1cc2822ab9` | identical to A — this is the cross-environment assertion |
+| `part_digest_a` | `d7ff171a5ea083f01d48e21a405fbf7d8fe1e0ef487a5173959334774a162897` | content identity, run A (see the 2026-08-29 addendum: value superseded once, by an encoding hardening — not a content change) |
+| `part_digest_b` | `d7ff171a5ea083f01d48e21a405fbf7d8fe1e0ef487a5173959334774a162897` | identical to A — this is the cross-environment assertion |
 | `python_pptx` | `1.0.2` | the exercised version — part of the claim's scope |
 | `zlib` | `1.3` | the exercised zlib — the other half of the scope |
 | `seconds_between_writes` | `3` | crosses the 2-second DOS boundary |
 
-`raw_a_sha256` (`68eaa4d4…`) `!= raw_b_sha256` (`1d0d0eae…`) while
+`raw_a_sha256` (`a7e0b25e…`) `!= raw_b_sha256` (`6c36d06a…`) while
 `normalized_a_sha256 == normalized_b_sha256` (`56fa2a61…`). That pair of facts *is* the finding.
 The raw and normalized file hashes are recorded as evidence of what this machine measured; they
 are **never** asserted across environments.
 
-The module that re-proves all of this on every test run is **`tests/test_pptx_determinism.py`**.
-Assertion **C** (the negative control) is what makes the green in **B** attributable to the
-normalizer rather than to two writes landing in the same second.
+#### Addendum (2026-08-29, Phase-2 code review): the `part_digest` row encoding was hardened
+
+The Phase-2 review (**WR-01**) found the original row encoding — `name_utf8 + b"\0" +
+hex_digest_ascii + b"\n"` — was not injective: ZIP member names are attacker-controlled bytes and
+may legally contain NUL and newline, so a single crafted member named `"a\0" + <64 hex> + "\nb"`
+could serialize to the same byte stream as a two-member archive, colliding the exact digest the
+Phase-4 trust gate is built on. The encoding is now **length-prefixed** (8-byte big-endian name
+length, then the name, then the part hash), which is injective for every possible name. The digest
+values quoted in the table above were re-recorded through the sanctioned recorder
+(`_record_determinism_evidence.py`, a real re-measurement): `part_digest_a`/`part_digest_b` moved
+from `606c2464…` to `d7ff171a…` **because the encoding changed, not because any part byte moved** —
+the proof is that `normalized_a_sha256` re-measured byte-for-byte identical to the original
+recording (`56fa2a61…`). The raw file hashes are per-run wall-clock evidence and differ on every
+recording by design. Every other decision in this note is unchanged; this hardening landed before
+Phase 4 builds the committed==fresh gate on the primitive, which is exactly the deadline WR-01 set.
 
 ## The three assertions Phases 2 and 4 inherit
 

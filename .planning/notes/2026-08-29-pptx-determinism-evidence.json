@@ -6,8 +6,8 @@
   "platform": "Linux-6.18.44-fc-v22-x86_64-with-glibc2.39",
   "template_sha256": "4461a6329aa4e74c25e3879a5212d646d7b7816c12e772b15befa70c2e722618",
   "seconds_between_writes": 3,
-  "raw_a_sha256": "68eaa4d42cd8781a7ab6ee6ee96528697cac0e7ce8f1c394cc462704a1755a97",
-  "raw_b_sha256": "1d0d0eae3ef3dcb78bb586e7ba2d26144bc3ab3b9281757f4da433b725882515",
+  "raw_a_sha256": "a7e0b25e5b7fe9423e021407bca1e67f29da9f1630ffeecdf844578c9ae05bf0",
+  "raw_b_sha256": "6c36d06ad6ea4ab369b581d51f56882b0053b1ef650f1c74c7ec96512a7b5ab1",
   "raw_bytes_equal": false,
   "varying_parts": [],
   "varying_zip_fields": [
@@ -16,8 +16,8 @@
   "normalized_a_sha256": "56fa2a61d4993ded9139fafd0cb17f4d30435fdc5ca59efc61acdc812eb6869a",
   "normalized_b_sha256": "56fa2a61d4993ded9139fafd0cb17f4d30435fdc5ca59efc61acdc812eb6869a",
   "normalized_bytes_equal": true,
-  "part_digest_a": "606c24642c74bed9a3514f053489067b7479a12b2212738338066c1cc2822ab9",
-  "part_digest_b": "606c24642c74bed9a3514f053489067b7479a12b2212738338066c1cc2822ab9",
+  "part_digest_a": "d7ff171a5ea083f01d48e21a405fbf7d8fe1e0ef487a5173959334774a162897",
+  "part_digest_b": "d7ff171a5ea083f01d48e21a405fbf7d8fe1e0ef487a5173959334774a162897",
   "outcome": "BYTE-STABLE via a declared post-save zip normalization: two real python-pptx writes 3s apart differ ONLY in zip ['date_time'], every unzipped part is byte-identical, and normalize_opc_zip makes the files byte-identical. Scoped to a fixed (python-pptx, zlib) pair; the implementation-independent assertion is part_digest.",
   "notes": {
     "seconds_between_writes": "DOS zip timestamps have 2-second granularity; a shorter gap can leave two writes inside one tick, which are already byte-identical and would record a false positive.",
