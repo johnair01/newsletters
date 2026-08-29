@@ -35,11 +35,26 @@ committed ledger and assert it is byte-unchanged rather than trusting that.
 
 from __future__ import annotations
 
+import html
+import re
+from collections.abc import Iterator
 from pathlib import Path
 
+from pydantic import BaseModel
+
+from newsletters.adapters._timestamps import EPOCH_ZERO
 from newsletters.adapters.email_adapter import EmailAdapter
+from newsletters.compose import NO_KPIS
+from newsletters.semantic import Claim
+from newsletters.site import Ledger, Site
 from newsletters.specspan import absent
-from newsletters.weeklyspec import _ASSET_PROVENANCE_ABSENT, load_weekly_spec
+from newsletters.templates import REPORT
+from newsletters.weeklyspec import (
+    _ASSET_PROVENANCE_ABSENT,
+    _RECOGNITIONS_KEY,
+    load_weekly_spec,
+)
+from newsletters.weeklysite import build_weekly_site, build_weekly_surfaces
 
 # Sibling test helper (leading underscore == not collected by pytest). pytest's default
 # "prepend" import mode puts tests/ on sys.path, so this resolves without a tests package.
@@ -189,3 +204,300 @@ def test_spec_absences_disclosed() -> None:
     assert not [
         m for m in missing if "does not resolve to a known Source" in m
     ], f"an authored `source:` failed to resolve — fix the id, not the test. missing[]: {missing}"
+
+
+# --------------------------------------------------------------------------- #
+# Plan 04-01 Task 2 — the builder, the honesty path on the rendered page,
+# determinism, ledger stability and committed==fresh over content/weekly/site/.
+# --------------------------------------------------------------------------- #
+
+# The composers' OWN phrasings, DERIVED from their format strings rather than retyped, and used
+# only to LOCATE each disclosure inside surface.missing so the assertion reads the real entry text.
+# Retyping a disclosure sentence here would create a second wording of the honesty rule, and the
+# test would then pass while the reviewer read something else.
+_NO_KPIS_PHRASE = NO_KPIS.split("{heading!r}")[1]
+_ABSENT_PHRASE = absent("<field>").split("'<field>'")[1]
+_PROVENANCE_PHRASE = _ASSET_PROVENANCE_ABSENT.split("{key!r}")[1].split("{field!r}")[0]
+
+
+def _report_page_name() -> str:
+    """The report page's filename, DERIVED from the composed surface identity (content-tracked).
+
+    ``Site.from_surfaces`` uses ``surface.id`` as the slug for a slug-clean id and writes
+    ``{slug}.html`` — so the report page name follows the authored identity, never a hardcode.
+    """
+    return f"{build_weekly_surfaces()[0].id}.html"
+
+
+def _build_and_read_report(out: Path) -> str:
+    """Build the weekly site into ``out`` and return the rendered report page HTML."""
+    written = build_weekly_site(out)
+    report = out / _report_page_name()
+    assert report in written, "build_weekly_site did not emit the weekly report page"
+    return report.read_text(encoding="utf-8")
+
+
+def _iter_claims(obj: object) -> Iterator[Claim]:
+    """Every ``Claim`` reachable from ``obj``, walked structurally rather than block-by-block.
+
+    Walking the typed tree (instead of naming the block kinds that carry claims) means a future
+    block kind cannot quietly escape the config-never-claimed guard below.
+    """
+    if isinstance(obj, Claim):
+        yield obj
+    elif isinstance(obj, BaseModel):
+        for name in type(obj).model_fields:
+            yield from _iter_claims(getattr(obj, name))
+    elif isinstance(obj, (list, tuple)):
+        for item in obj:
+            yield from _iter_claims(item)
+
+
+def _config_leaves(value: object) -> list[str]:
+    """Every string leaf of the authored ``config:`` subtree, at any nesting depth."""
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        return [leaf for v in value.values() for leaf in _config_leaves(v)]
+    if isinstance(value, (list, tuple)):
+        return [leaf for v in value for leaf in _config_leaves(v)]
+    return []
+
+
+def test_every_claim_traced_and_addressed() -> None:
+    """Every claim on the weekly surface is traced AND content-addressed, at Draft/EPOCH_ZERO/R-001.
+
+    The trust gate over the composed sample: every claim that survives onto a block is
+    ``is_traced`` and every one of its traces ``is_addressed`` — anything unprovable was routed to
+    ``surface.missing[]``, never left as a bare/untraced claim. Also asserts the body is real
+    (≥1 kept claim) and the honesty panel is GENUINELY populated, so this is not an empty body
+    dumped into ``missing[]``; that the surface is a Draft ``REPORT`` created at ``EPOCH_ZERO``
+    (no wall clock is reachable through the build); and that a fresh ledger gives it ``R-001``.
+    """
+    surface = build_weekly_surfaces()[0]
+
+    assert (
+        surface.template is REPORT
+    ), "the weekly reuses Surface(REPORT) — decision D-01"
+    assert (
+        not surface.is_published
+    ), "the sample must ship Draft — there is no auto-publish path"
+    assert (
+        surface.created == EPOCH_ZERO
+    ), "Surface.created must be EPOCH_ZERO (no datetime.now() in the weekly build)"
+    for src in surface.traces:
+        assert src.timestamp == EPOCH_ZERO, "the loader must not read the wall clock"
+
+    claim_count = 0
+    for claim in _iter_claims(surface.blocks):
+        assert claim.is_traced, (
+            f"claim {claim.text[:40]!r} is untraced — it should have been routed to "
+            "missing[], never left on a block"
+        )
+        for trace in claim.evidence:
+            assert (
+                trace.is_addressed
+            ), f"claim {claim.text[:40]!r} carries an un-addressed trace (Hole B free pass)"
+        claim_count += 1
+
+    assert claim_count >= 1, "no kept claim on any block — the body is empty"
+    assert (
+        surface.missing
+    ), "the honesty panel is empty — the sample must disclose real gaps"
+
+
+def test_honesty_panel_shows_all_three_planted_absences(tmp_path: Path) -> None:
+    """SC-1: all THREE planted absences reach the RENDERED honesty panel, html-escaped.
+
+    "in ``missing[]``" and "shown to the reviewer" are two different claims, and only the second
+    one is the product's promise. So each disclosure is first located in ``surface.missing`` by its
+    composer's own phrasing — the KPI-less lane via ``compose.NO_KPIS``, the source-less
+    recognition via ``specspan.absent``, the provenance-incomplete asset via
+    ``weeklyspec._ASSET_PROVENANCE_ABSENT`` — asserted non-empty as a fixture invariant, and then
+    asserted ``html.escape``d into the built page. No disclosure sentence is typed into this test.
+    """
+    surface = build_weekly_surfaces()[0]
+
+    no_kpis = [m for m in surface.missing if _NO_KPIS_PHRASE in m]
+    assert no_kpis, (
+        "fixture invariant: the bound module config must declare a lane with NO kpis so the "
+        f"honesty panel carries the no-KPIs disclosure. missing[] was: {surface.missing}"
+    )
+    absent_source = [
+        m
+        for m in surface.missing
+        if _ABSENT_PHRASE in m and m.startswith(f"field '{_RECOGNITIONS_KEY}")
+    ]
+    assert absent_source, (
+        "fixture invariant: a recognition must omit `source:` so the honesty panel carries the "
+        f"absent-source disclosure. missing[] was: {surface.missing}"
+    )
+    no_provenance = [m for m in surface.missing if _PROVENANCE_PHRASE in m]
+    assert no_provenance, (
+        "fixture invariant: an asset must omit a provenance minimum so the honesty panel carries "
+        f"the provenance disclosure. missing[] was: {surface.missing}"
+    )
+
+    page = _build_and_read_report(tmp_path)
+    assert 'class="honesty"' in page, "no honesty panel rendered on the weekly report"
+    assert (
+        'class="claim-span"' in page
+    ), "no verbatim claim-span (claim-beside-trace) rendered"
+    for entry in no_kpis + absent_source + no_provenance:
+        assert (
+            html.escape(entry) in page
+        ), f"disclosure is not visible in the rendered honesty panel: {entry!r}"
+
+
+def test_config_values_never_claimed() -> None:
+    """The authored ``config:`` subtree is BOUND as metadata and never becomes a Claim.
+
+    ``config:`` is org-specific by definition — registry names, metric names, the byline. The
+    loader carries it and never mints it, and the corpus is authored so no config value is repeated
+    in the narrative; this asserts the composed result. The subtree is asserted non-empty first, so
+    the guard cannot pass by having nothing to check.
+    """
+    surface = build_weekly_surfaces()[0]
+    spec_path = sorted(CORPUS.glob("*.yml"))[0]
+    load = load_weekly_spec(
+        spec_path, root=REPO_ROOT, known_sources=[_committed_eml_source()]
+    )
+
+    leaves = _config_leaves(load.spec.config)
+    assert (
+        leaves
+    ), "fixture invariant: the corpus must declare a non-empty `config:` subtree"
+
+    for claim in _iter_claims(surface.blocks):
+        for leaf in leaves:
+            assert leaf not in claim.text, (
+                f"the config value {leaf!r} reached a Claim ({claim.text[:60]!r}) — `config:` is "
+                "bound, never claimed"
+            )
+    assert (
+        surface.byline
+    ), "the config-bound author must reach the Surface byline as METADATA"
+
+
+def test_no_external_calls(tmp_path: Path) -> None:
+    """A2 / T-03-05: the weekly output auto-loads ZERO external resources (self-hosted fonts).
+
+    Mirrors ``test_modulesite.test_no_external_calls`` over the weekly corpus: no Google-Fonts
+    host, no ``@import url(http``, no ``src="http"``, no CSS ``url(http`` (@font-face), no
+    ``<link href="http">`` — and the self-hosted ``fonts/*.woff2`` the relative @font-face urls
+    reference must actually be present.
+    """
+    written = build_weekly_site(tmp_path)
+    pages = sorted(p for p in written if p.suffix == ".html")
+    assert pages, "build_weekly_site produced no HTML to scan"
+
+    forbidden = (
+        "fonts.googleapis.com",
+        "fonts.gstatic.com",
+        "@import url('http",
+        '@import url("http',
+        "@import url(http",
+        'src="http',
+        "src='http",
+    )
+    css_url_fetch = re.compile(r"url\(\s*['\"]?https?://")
+    link_href_http = re.compile(
+        r"<link\b[^>]*\bhref\s*=\s*['\"]https?://", re.IGNORECASE
+    )
+
+    for page in pages:
+        text = page.read_text(encoding="utf-8")
+        for needle in forbidden:
+            assert (
+                needle not in text
+            ), f"{page.name} bakes an auto-loading external resource: {needle!r}"
+        assert not css_url_fetch.search(
+            text
+        ), f"{page.name} has a CSS url(http...) fetch — weekly fonts must be self-hosted"
+        assert not link_href_http.search(
+            text
+        ), f'{page.name} has a <link href="http..."> auto-loaded resource'
+
+    fonts_dir = tmp_path / "fonts"
+    assert (
+        fonts_dir.is_dir()
+    ), "build_weekly_site did not emit the self-hosted fonts/ dir"
+    assert any(
+        fonts_dir.glob("*.woff2")
+    ), "no woff2 fonts in the weekly output fonts/ dir"
+
+
+def test_byte_stable_double_render(tmp_path: Path) -> None:
+    """The weekly build is byte-stable across two renders (no datetime.now(), no set()).
+
+    Two independent builds into separate dirs must produce the IDENTICAL file set and
+    byte-identical contents for EVERY file (HTML + self-hosted fonts). Shared-ledger caveat: both
+    builds re-save the committed ``content/weekly/ids.json`` (idempotent — R-001 already recorded,
+    append-only, byte-stable save), so the double render is stable and leaves it unchanged.
+    """
+    a, b = tmp_path / "a", tmp_path / "b"
+    build_weekly_site(a)
+    build_weekly_site(b)
+
+    files_a = sorted(p.relative_to(a) for p in a.rglob("*") if p.is_file())
+    files_b = sorted(p.relative_to(b) for p in b.rglob("*") if p.is_file())
+    assert files_a == files_b, "the two weekly renders produced a different file set"
+    for rel in files_a:
+        assert (a / rel).read_bytes() == (
+            b / rel
+        ).read_bytes(), f"{rel} is not byte-identical across renders (nondeterminism in the weekly output)"
+
+
+def test_r001_stable_across_rebuild(tmp_path: Path) -> None:
+    """R-001 is stable across a rebuild — the append-only ledger never renumbers on re-sight.
+
+    Uses a FRESH tmp ``ids.json`` (never the committed path) so nothing leaks: a fresh ledger
+    assigns the first report ``R-001``; reloading that populated ledger and rebuilding returns the
+    SAME ref. The stability is PROVEN by rebuild, not by asserting a literal twice.
+    """
+    ids = tmp_path / "ids.json"
+
+    ledger = Ledger.load(ids)  # fresh / empty
+    site = Site.from_surfaces(build_weekly_surfaces(), ledger=ledger)
+    ledger.save()
+    first_ref = site.pages()[0].ref
+    assert (
+        first_ref == "R-001"
+    ), f"a fresh ledger must assign the first report ref R-001, got {first_ref!r}"
+
+    reloaded = Ledger.load(ids)  # re-sight the same, now-populated, ledger
+    site_again = Site.from_surfaces(build_weekly_surfaces(), ledger=reloaded)
+    reloaded.save()
+    assert (
+        site_again.pages()[0].ref == first_ref
+    ), "the append-only ledger renumbered R-001 on rebuild — it must be immutable on re-sight"
+
+
+def test_committed_equals_fresh_build(tmp_path: Path) -> None:
+    """The committed content/weekly/site/ == a fresh build (the committed==fresh-build norm).
+
+    A fresh build into ``tmp_path`` must reproduce every committed file (HTML + fonts) BYTE-for-
+    BYTE. Shared-ledger caveat (Pitfall 6): ``build_weekly_site`` writes its ledger to the FIXED
+    committed ``content/weekly/ids.json``, NOT ``tmp_path`` — harmless only while the save is
+    idempotent, so the committed ledger's bytes are snapshotted first and asserted UNCHANGED
+    rather than assumed.
+    """
+    committed_site = CORPUS / "site"
+    committed_ledger = CORPUS / "ids.json"
+    assert committed_site.is_dir(), "committed content/weekly/site/ is missing"
+
+    ledger_before = committed_ledger.read_bytes()
+    build_weekly_site(tmp_path)
+    assert (
+        committed_ledger.read_bytes() == ledger_before
+    ), "the fresh build mutated the committed ledger — the rebuild must be idempotent (R-001 held)"
+
+    committed_files = sorted(p for p in committed_site.rglob("*") if p.is_file())
+    assert committed_files, "no committed weekly site files to compare against"
+    for src in committed_files:
+        rel = src.relative_to(committed_site)
+        built = tmp_path / rel
+        assert built.exists(), f"fresh build is missing committed file {rel}"
+        assert (
+            built.read_bytes() == src.read_bytes()
+        ), f"{rel} differs between the committed corpus and a fresh build"
