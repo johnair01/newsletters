@@ -64,6 +64,7 @@ __all__ = [
     "compose_kpi_item",
     "compose_module_report",
     "compute_delta",
+    "dedup_in_order",
 ]
 
 # ---------------------------------------------------------------------------- #
@@ -202,8 +203,14 @@ def _title(source_id: str) -> str:
     return label.title() if label else "Module"
 
 
-def _dedup_in_order(items: list[str]) -> list[str]:
-    """Order-preserving union (file order preserved; NO ``set()`` -> no non-total ordering)."""
+def dedup_in_order(items: list[str]) -> list[str]:
+    """Order-preserving union (file order preserved; NO ``set()`` -> no non-total ordering).
+
+    PUBLIC because ``weeklyspec.build_weekly_report`` shares it (IN-01, 03-review): a
+    ``binding.missing`` entry repeating a loader disclosure would render twice in the honesty
+    panel. One implementation, the same promotion move ``addressed`` and ``compose_kpi_item``
+    made — a name two modules import is not private.
+    """
     out: list[str] = []
     for item in items:
         if item not in out:
@@ -416,7 +423,7 @@ def compose_module_report(
         eyebrow="Report · module scope",
         blocks=blocks,
         traces=[load.source],
-        missing=_dedup_in_order(missing),
+        missing=dedup_in_order(missing),
         byline=[author],
         review=Review(policy=REPORT.review_policy, author=author),
         created=EPOCH_ZERO,

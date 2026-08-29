@@ -1313,6 +1313,25 @@ def test_unaddressed_binding_claims_never_reach_a_claims_block() -> None:
     assert not _blocks_of(surface, "kpi")
 
 
+def test_weekly_report_missing_is_deduped_in_order() -> None:
+    """IN-01 (03-review): a binding note repeating a loader disclosure reads ONCE, not twice.
+
+    `compose_module_report` already runs the shared order-preserving dedup; the weekly composer
+    now does too. Nothing is removed — only repeats — and order is preserved.
+    """
+    load = _load(SPARSE)
+    duplicate = load.distillation.missing[0]
+    binding = SectionBinding(heading="Bay throughput", missing=[duplicate])
+    surface = build_weekly_report(load, author=AUTHOR, bindings=[binding])
+    assert surface.missing.count(duplicate) == 1, surface.missing
+    # Order-preserving: the deduped list is the original with repeats dropped, not a re-sort.
+    seen: list[str] = []
+    for note in load.distillation.missing:
+        if note not in seen:
+            seen.append(note)
+    assert [n for n in surface.missing if n in seen] == seen
+
+
 def test_kpi_delta_comes_from_compute_delta_and_is_never_re_derived() -> None:
     """The composer imports the ONE delta derivation; the strip sits before the claims block."""
     load = _load(FULL)

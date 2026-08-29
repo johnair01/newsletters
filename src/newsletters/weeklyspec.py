@@ -64,7 +64,7 @@ from .adapters._timestamps import EPOCH_ZERO
 # the ONE place the endpoint policy and its three disclosure strings live, exactly as `addressed`
 # is the one traced-or-missing predicate. Re-declaring either here re-opens the two-copies drift
 # this phase's own promotions (`specspan`, `addressed`) exist to prevent.
-from .compose import NO_KPIS, addressed, compose_kpi_item
+from .compose import NO_KPIS, addressed, compose_kpi_item, dedup_in_order
 
 # The writer's reserved-prefix constant, IMPORTED rather than re-declared: `weekly_slots` builds
 # the mapping `pptx_writer.bind_slots` validates, and two copies of the prefix drift exactly as
@@ -1049,7 +1049,11 @@ def build_weekly_report(
         eyebrow=spec.module or EYEBROW_FALLBACK,
         blocks=blocks,
         traces=[load.source],
-        missing=missing,
+        # IN-01 (03-review): the SHARED order-preserving dedup, exactly as
+        # `compose_module_report` — a `binding.missing` entry repeating a loader disclosure
+        # (or a dropped claim text equal to an existing note) must not read twice in the
+        # honesty panel. File order is preserved; nothing is removed, only repeats.
+        missing=dedup_in_order(missing),
         byline=[author],
         review=Review(policy=REPORT.review_policy, author=author),
         created=EPOCH_ZERO,
