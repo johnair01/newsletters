@@ -365,7 +365,9 @@ def bind_slots(prs: Any, slots: Mapping[str, Sequence[str]]) -> dict[str, Any]:
     """
     # Lazy on purpose: `pptx` is the optional [pptx] extra and this module must stay importable on
     # a bare install (see the banner above). One import per render, here, for `_walk`'s predicate.
-    from pptx.enum.shapes import MSO_SHAPE_TYPE  # type: ignore[import-untyped]  # noqa: PLC0415
+    # (No `# type: ignore[import-untyped]` needed on this one — mypy resolves the enum module. The
+    # trailing comment is kept to ONE pragma so the line clears isort's width; see DEF-15.)
+    from pptx.enum.shapes import MSO_SHAPE_TYPE  # noqa: PLC0415
 
     by_name: dict[str, Any] = {}
     for slide in prs.slides:
