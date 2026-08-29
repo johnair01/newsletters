@@ -440,6 +440,7 @@ def build_work_site(
             records=(
                 ("The Rev1 record", "../index.html"),
                 ("The module record", "../module/library.html"),
+                ("The weekly record", "../weekly/library.html"),
             ),
             home_href="../index.html",
         ),

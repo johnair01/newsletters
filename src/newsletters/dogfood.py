@@ -807,6 +807,7 @@ def build_site(out_dir: str | Path = "content/rev1/site") -> list[Path]:
 _REV1_RECORDS = (
     ("The work record", "work/library.html"),
     ("The module record", "module/library.html"),
+    ("The weekly record", "weekly/library.html"),
 )
 
 # The stable anchor that closes the Library masthead in render.render_library's output. The
