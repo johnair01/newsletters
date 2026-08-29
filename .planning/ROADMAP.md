@@ -244,7 +244,7 @@ operator through the loop on their own data, read-only and local.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Specify + de-risk | 0/3 | Planned (3 plans, 3 waves) | - |
+| 1. Specify + de-risk | 1/3 | In Progress (3 plans, 3 waves) | - |
 | 2. Renderer | 0/0 | Not started | - |
 | 3. Weekly compose | 0/0 | Not started | - |
 | 4. Sample corpus + recipe | 0/0 | Not started | - |

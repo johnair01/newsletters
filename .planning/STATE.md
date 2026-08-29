@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: milestone
 status: executing
-stopped_at: "Roadmap created. Next: `/gsd-plan-phase 1` (Specify + de-risk), then /gsd-autonomous through all phases."
-last_updated: "2026-08-29T03:30:14.861Z"
-last_activity: 2026-08-29 -- Phase 1 execution started
+stopped_at: "Completed 01-01-PLAN.md (pptx determinism spike). Next: plan 01-02."
+last_updated: "2026-08-29T03:41:12.083Z"
+last_activity: 2026-08-29 -- Phase 1 plan 01-01 complete (pptx determinism spike: BYTE-STABLE, evidence committed)
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -26,15 +26,15 @@ See: .planning/PROJECT.md (updated 2026-08-29)
 ## Current Position
 
 Phase: 1 (Specify + de-risk) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 1
-Last activity: 2026-08-29 -- Phase 1 execution started
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-08-29 -- Phase 1 plan 01-01 complete (pptx determinism spike: BYTE-STABLE, evidence committed)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- v1.3: 0 plans complete (roadmap defined 2026-08-29; 4 phases).
+- v1.3: 1 plan complete (roadmap defined 2026-08-29; 4 phases).
 - v1.2: 2 plans across 2 phases (closed 2026-08-29, archived).
 - v1.1: 12 plans across 4 phases (closed 2026-07-02, archived). v1.0: Phases 1–14 (archived).
 
@@ -42,10 +42,16 @@ Last activity: 2026-08-29 -- Phase 1 execution started
 
 | Phase | Plans | Status |
 |-------|-------|--------|
-| 1. Specify + de-risk | 0/0 (unplanned) | Not started |
+| 1. Specify + de-risk | 1/3 | In Progress |
 | 2. Renderer (WKLY-01) | 0/0 (unplanned) | Not started |
 | 3. Weekly compose (WKLY-02/03/04) | 0/0 (unplanned) | Not started |
 | 4. Sample corpus + recipe (WKLY-05/06) | 0/0 (unplanned) | Not started |
+
+**Per-plan execution:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 1 P01 | 12min | 3 tasks | 6 files |
 
 **Recent Trend:**
 
@@ -57,6 +63,10 @@ Last activity: 2026-08-29 -- Phase 1 execution started
 
 - Roadmap mirrors the seed's approved 4-phase table; phase numbering resets to 1–4 (prior
   phase dirs archived under `.planning/milestones/`, `.planning/phases/` empty — no collision).
+
+- Plan 01-01 landed the `.pptx` determinism spike as a durable test rather than scratch code:
+  the measurement is committed evidence, re-verifiable by `--check`, and the determinism
+  assertion carries a negative control so it can actually fail. Zero production surface touched.
 
 ## Accumulated Context
 
@@ -73,6 +83,8 @@ WHERE-WE-ARE.md):
 - [Run]: Fully autonomous through all v1.3 phases; the human gate is the final PR. Branch: `claude/new-session-gw8tik` serves the seed's `gsd/v1.3-*` integration-branch role (harness-designated; v1.1 precedent). Never touch `main`.
 - [Run]: Milestone-level ecosystem research skipped — the seed encodes it and phase-level research + the Phase 1 determinism spike cover the real unknowns (logged per the no-more-questions contract).
 - [Roadmap, 2026-08-29]: Phase 1 carries no WKLY requirement — it de-risks WKLY-01/02 and ships spec + a recorded determinism decision with evidence. WKLY-01→P2, WKLY-02/03/04→P3, WKLY-05/06→P4.
+- [Phase 1-01]: Determinism outcome recorded as BYTE-STABLE via a declared post-save OPC-zip normalization (not the content-stable fallback), measured on a real 3s-separated python-pptx 1.0.2 double write — raw_bytes_equal=false with varying_parts=[] and varying_zip_fields=[date_time]; normalized_bytes_equal=true. Evidence committed at .planning/notes/2026-08-29-pptx-determinism-evidence.json and re-verifiable via --check.
+- [Phase 1-01]: Byte-identity is scoped in writing to a fixed (python-pptx, zlib) pair; part_digest (sorted name+sha256 of each unzipped part) is the implementation-independent assertion a committed==fresh gate must use — DEFLATE output is zlib-implementation-dependent (zlib vs zlib-ng); a full-file hash across environments would be green locally and red in CI with identical part content.
 
 ### Pending Todos
 
@@ -94,6 +106,9 @@ new at v1.3 open, the ADAPT-05 value-side extension (values come via export this
 
 ## Session Continuity
 
-Last session: 2026-08-29 — v1.2 formally closed; v1.3 opened from seed; ONE discussion round done; v1.3 roadmap written (4 phases, 6/6 mapped)
-Stopped at: Roadmap created. Next: `/gsd-plan-phase 1` (Specify + de-risk), then /gsd-autonomous through all phases.
-Resume file: this file + `.planning/ROADMAP.md` + `.planning/seeds/v1.3-weekly-one-shot.md` + WHERE-WE-ARE.md (kickoff contract)
+Last session: 2026-08-29 — Phase 1 plan 01-01 executed: the `.pptx` determinism spike ran a real
+3s-separated double write, recorded BYTE-STABLE as the outcome with committed evidence, and landed
+as `tests/test_pptx_determinism.py` (5 tests, incl. the negative control). Full suite 565 passed.
+Stopped at: Completed 01-01-PLAN.md (pptx determinism spike). Next: plan 01-02.
+Resume file: `.planning/phases/01-specify-de-risk/01-01-SUMMARY.md` + `01-02-PLAN.md` +
+`.planning/notes/2026-08-29-pptx-determinism-evidence.json` (the measurement 01-02 must not re-run)
