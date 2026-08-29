@@ -39,6 +39,7 @@ import hashlib
 import html
 import re
 import shlex
+import zipfile
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -135,6 +136,73 @@ def test_committed_content_is_synthetic() -> None:
 
     # ...and the allowance itself is real: a reserved-domain address is subtracted.
     assert not _scan_weekly(f"From: Rota Desk <rota-desk{_RESERVED_DOMAIN}>\n")
+
+
+def _pptx_text_parts(pptx: Path) -> list[tuple[str, str]]:
+    """Every human-readable part inside a committed ``.pptx`` zip, decoded for the scanner.
+
+    ``.xml`` parts carry the slide text, the core properties and the author fields; ``.rels``
+    parts carry relationship targets. Both are text a reader of the public repo can extract in
+    one command, so both are scanned. Binary media parts are skipped (a PNG's bytes are not
+    nomenclature — its FILENAME is, and that is scanned separately).
+    """
+    parts: list[tuple[str, str]] = []
+    with zipfile.ZipFile(pptx) as z:
+        for name in sorted(z.namelist()):
+            if name.endswith((".xml", ".rels")):
+                parts.append((name, z.read(name).decode("utf-8", errors="ignore")))
+    return parts
+
+
+def test_committed_binaries_and_asset_names_are_synthetic(tmp_path: Path) -> None:
+    """WR-04: the synthetic-content guard reaches INSIDE the committed ``.pptx`` binaries.
+
+    ``test_committed_content_is_synthetic`` scans the yml/eml/ledger/HTML — but the committed
+    ``template.pptx`` and ``deck/*.pptx`` are ALSO public repo content whose XML parts carry
+    human-readable text (slide text, core properties, author fields), and ``assets/*`` filenames
+    are visible content too. A template footer naming a real person would otherwise land in the
+    public repo with the guard green. Same scanner, same ``@example.invalid`` allowance; a
+    parts-count floor and a planted-zip arm keep the binary scan non-vacuous in both directions.
+    """
+    binaries = [CORPUS / "template.pptx", *sorted((CORPUS / "deck").glob("*.pptx"))]
+    assert len(binaries) >= 2, f"expected the template + ≥1 deck, found {binaries}"
+
+    scanned_parts = 0
+    for pptx in binaries:
+        parts = _pptx_text_parts(pptx)
+        assert parts, f"{pptx.name} yielded no text parts — the binary scan went vacuous"
+        for name, text in parts:
+            leaks = _scan_weekly(text)
+            assert not leaks, (
+                f"real-looking nomenclature in committed {pptx.name}!{name}: {sorted(leaks)} "
+                "— committed public content must be synthetic (T-04-02/WR-04)"
+            )
+            scanned_parts += 1
+    # A .pptx carries dozens of xml/.rels parts; the floor guards the EXTRACTOR, so a rename
+    # of the part suffixes cannot quietly turn this scan into a no-op.
+    assert scanned_parts >= 20, f"only {scanned_parts} parts scanned — extraction looks broken"
+
+    # Asset FILENAMES are published content too (they appear in the spec, the page, the repo).
+    asset_names = sorted(p.name for p in (CORPUS / "assets").rglob("*") if p.is_file())
+    assert asset_names, "no committed assets to scan — the corpus lost its asset arm"
+    for name in asset_names:
+        leaks = _scan_weekly(name)
+        assert not leaks, f"real-looking nomenclature in asset filename {name!r}: {sorted(leaks)}"
+
+    # Non-vacuous: the SAME extraction + scan trips on a planted leak inside a zip's slide xml,
+    # and a binary media part alongside it does not blind the extractor.
+    planted = tmp_path / "planted.pptx"
+    with zipfile.ZipFile(planted, "w") as z:
+        z.writestr("ppt/slides/slide1.xml", "<a:t>owner: Jean-Luc Picard</a:t>")
+        z.writestr("ppt/media/image1.png", b"\x89PNG\r\n\x1a\n not text")
+    hits = {
+        leak
+        for _name, text in _pptx_text_parts(planted)
+        for leak in _scan_weekly(text)
+    }
+    assert "Jean-Luc Picard" in hits, (
+        f"the binary arm does not discriminate — a planted slide-text leak passed: {hits}"
+    )
 
 
 def test_template_is_byte_copy_of_fixture() -> None:
