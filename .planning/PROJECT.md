@@ -20,6 +20,28 @@ surfaces where every claim traces to its evidence and nothing publishes without 
 deterministic, auditable trust layer is what makes that legibility *believable*; AI is an optional
 accelerator, never an authority. If everything else fails, *this* must hold.
 
+## Current Milestone: v1.3 The Weekly, One Shot
+
+**Goal:** A recurring module weekly — the deck an engineering module ships every week — becomes
+a product output: existing adapters populate Sources, a weekly composer builds one
+`Surface(REPORT, Draft)`, a new deterministic PPTX renderer emits the deck through the untouched
+review gate. Same spine, one new output format, a few new block kinds. The author writes the
+story; the engine makes it publishable, traced, and repeatable.
+
+**Target features (seed: `.planning/seeds/v1.3-weekly-one-shot.md`, WKLY-01..06):**
+- PPTX Surface renderer — template-driven (named placeholders), deterministic per a recorded
+  double-render definition, `[pptx]` extra, generated-by marker + Draft watermark
+- Weekly composition + authored Weekly Spec — NarrativeBlock / RecognitionsBlock / TeamBlock /
+  AssetBlock on the Case Spec mechanism (file text is the evidence)
+- Asset evidence path — content-addressed files with required provenance (folder+date+event
+  label minimum; deep link required for BI screenshots standing in for values); no provenance → `missing[]`
+- BI values the cheap way — exported `.xlsx`/`.csv` through ADAPT-03; ADAPT-05 stays definition-side
+- Sample weekly corpus in CI (honesty-path coverage) + `docs/weekly.md` operator recipe
+
+**Recorded decisions (the ONE discussion round, 2026-08-29 — no further questions this build):**
+reuse `REPORT` (renderer is a format, not a kind) · provenance minimum = folder+date+event
+(deep link for WKLY-04 BI screenshots) · named placeholders, fail-loud.
+
 ## Shipped Milestone: v1.2 The Published Record (Live 2026-07-03 · Closed 2026-08-29)
 
 **Delivered:** The published site is a product output. `publish.assemble_site` / `newsletters
