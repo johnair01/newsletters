@@ -266,7 +266,29 @@ operator through the loop on their own data, read-only and local.
      shipped block kinds and renderer, `WHERE-WE-ARE.md` is updated, and the milestone's friction
      is logged in `RETRO.md` with any durable fix encoded as a rule or guard test.
 
-**Plans**: TBD
+**Plans**: 3 plans (waves 1 -> 2 -> 3, strictly ordered by real dependency: some edits are only
+green *together* — `assemble_site` raises `FileNotFoundError` on a `_CORPUS_LAYOUT` row with no
+directory, and the Records-strip constant and its regenerated chrome pages are one commit or
+committed==fresh goes red)
+
+- [ ] `04-01-PLAN.md` — The corpus and its builder: the synthetic weekly (spec · `.eml` · PNG ·
+      template byte-copy) with its three planted absences and the promoted synthetic-content
+      scanner; `weeklysite.py` (surfaces · site · deck) with its own `R-001` ledger and committed
+      `site/`; the committed deck + `part_digest` sidecar and the `newsletters weekly` command that
+      produces them (SC-1, SC-3's Draft half)
+
+- [ ] `04-02-PLAN.md` — Wiring the fourth corpus into everything that knows about three: the
+      publish layout, the CLI selector (module-object import form, so the gate can be proven to
+      BLOCK), both workflow gate lines, the published-tree tests, the Records strip on four
+      builders with its four regenerated chrome pages, and the `[pptx]`-gated
+      `test_weekly_golden.py` (tier-2 fresh==committed + the watermark read-back) in the one CI job
+      that fails on a skip (SC-2, SC-3)
+
+- [ ] `04-03-PLAN.md` — `docs/weekly.md` and the truth: the eight-step operator recipe with two
+      non-vacuous doc-contract tests, the spec deltas across architecture / surfaces / weekly-spec /
+      CLAUDE / content README, the recipe EXECUTED against the synthetic corpus, the full carried
+      gate set re-run independently against the measured baselines, and the compass + RETRO brought
+      current (SC-4, SC-5)
 
 ## Progress
 
@@ -277,7 +299,7 @@ operator through the loop on their own data, read-only and local.
 | 1. Specify + de-risk | 3/3 | Complete    | 2026-08-29 |
 | 2. Renderer | 3/3 | Complete    | 2026-08-29 |
 | 3. Weekly compose | 4/4 | Complete    | 2026-08-29 |
-| 4. Sample corpus + recipe | 0/0 | Not started | - |
+| 4. Sample corpus + recipe | 0/3 | Planned | - |
 
 Plans are created per phase by `/gsd-plan-phase`; `0/0` means "not yet planned", not "no work".
 
