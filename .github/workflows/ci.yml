@@ -222,12 +222,20 @@ jobs:
         # the point of this step: an `importorskip` whose extra silently stopped being installed
         # would turn this job back into the W21 shape — a green that means "not run" — and the
         # only difference a reader would see is an `s` where a `.` was expected.
+        #
+        # `tests/test_weekly_golden.py` (v1.3 Phase 4) is here and NOWHERE ELSE for exactly that
+        # reason. It is the [pptx]-gated tier-2 gate — the committed weekly deck vs a FRESH
+        # render — so it needs an extra that only this job and `pptx` install, and it needs a job
+        # that treats a skip as a failure. In `site-integrity` (which installs [test,config] and
+        # has no skip assertion) it would skip forever and read as green. Its stdlib-only sibling,
+        # `tests/test_weeklysite.py`, is the module that belongs there instead.
         run: |
           set -o pipefail
           python -m pytest tests/test_weeklyspec.py tests/test_weekly_blocks.py \
                            tests/test_weekly_values.py tests/test_semantic_gate_frozen.py \
                            tests/test_casespec.py tests/test_compose.py \
                            tests/test_swimlane.py tests/test_abstraction_guard.py \
+                           tests/test_weekly_golden.py \
                            tests/test_excel_adapter.py -q | tee "$RUNNER_TEMP/weekly.log"
           if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/weekly.log"; then
             echo "::error::this job reported SKIPPED tests. A skipped compose-path module is the" \
