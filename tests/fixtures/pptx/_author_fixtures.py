@@ -141,9 +141,10 @@ def _normalize_zip(raw: bytes) -> bytes:
     (chart data) whose own `docProps/core.xml` carries an openpyxl wall-clock — we recurse into any
     embedded `.xlsx` via `_normalize_embedded_xlsx` and pin its core props.
     """
-    zin = zipfile.ZipFile(io.BytesIO(raw))
     out = io.BytesIO()
-    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zout:
+    with zipfile.ZipFile(io.BytesIO(raw)) as zin, zipfile.ZipFile(
+        out, "w", zipfile.ZIP_DEFLATED
+    ) as zout:
         for item in zin.infolist():  # original entry order -> deterministic
             data = zin.read(item.filename)
             if item.filename == "docProps/core.xml":
@@ -160,9 +161,10 @@ def _normalize_zip(raw: bytes) -> bytes:
 
 def _normalize_embedded_xlsx(raw: bytes) -> bytes:
     """Recurse into an embedded `.xlsx` zip: pin its `docProps/core.xml` + fix its entry mtimes."""
-    zin = zipfile.ZipFile(io.BytesIO(raw))
     out = io.BytesIO()
-    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zout:
+    with zipfile.ZipFile(io.BytesIO(raw)) as zin, zipfile.ZipFile(
+        out, "w", zipfile.ZIP_DEFLATED
+    ) as zout:
         for item in zin.infolist():
             data = zin.read(item.filename)
             if item.filename == "docProps/core.xml":
