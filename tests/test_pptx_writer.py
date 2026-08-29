@@ -65,6 +65,16 @@ from pptx.enum.text import MSO_AUTO_SIZE  # noqa: E402
 from pptx.oxml.ns import qn  # noqa: E402
 from pptx.util import Inches, Pt  # noqa: E402
 
+from newsletters import (  # noqa: E402
+    REPORT,
+    Claim,
+    ClaimsBlock,
+    ProseBlock,
+    Review,
+    ReviewState,
+    Surface,
+    Trace,
+)
 from newsletters.adapters._timestamps import EPOCH_ZERO  # noqa: E402
 from newsletters.pptx_writer import (  # noqa: E402
     DRAFT_STATUS,
@@ -76,6 +86,8 @@ from newsletters.pptx_writer import (  # noqa: E402
     fill_slot,
     normalize_opc_zip,
     part_digest,
+    render_surface_pptx,
+    render_surface_pptx_bytes,
 )
 
 FIXTURE_DIR = pathlib.Path(__file__).parent / "fixtures" / "weekly"
@@ -749,3 +761,197 @@ def test_fill_with_no_lines_raises(tmp_path: pathlib.Path) -> None:
 
     with pytest.raises(ValueError, match="no lines"):
         fill_slot(bound["NL_WEEK_TITLE"].text_frame, [])
+
+
+# --- SC-3 (marker + watermark) and SC-4 (the gate is untouched) ---------------------------------
+
+
+def _sample_weekly_surface(state: ReviewState = ReviewState.DRAFT) -> Surface:
+    """A fabricated `Surface(REPORT)` — D-01: the weekly REUSES the Report, no new semantic kind.
+
+    Built from EXISTING block kinds: the four weekly kinds do not exist yet (Phase 3 owns them), and
+    the writer takes an explicit `slots` mapping anyway (P-03), so the blocks here only have to make
+    the Surface real — they are not the deck's content.
+
+    For the PUBLISHED case the `Review` must satisfy the policy validator or the model refuses to
+    construct at all (`_published_requires_satisfied_policy` — there is no auto-publish path, even
+    in a test fixture). `REPORT.review_policy` is `light()`: one approval, no peer required, so an
+    author plus one approval suffices. Without this, the published half of SC-3 would be untestable
+    and "no watermark when Published" would go unasserted.
+    """
+    review = Review(
+        state=state,
+        policy=REPORT.review_policy,
+        author="fixture author",
+        approvals=["fixture reviewer"] if state is ReviewState.PUBLISHED else [],
+    )
+    return Surface(
+        id="weekly-2026-w35",
+        template=REPORT,
+        title="Week 35 — fabricated sample",
+        blocks=[
+            ProseBlock(
+                heading="Narrative", text="A fabricated week, written for a test."
+            ),
+            ClaimsBlock(
+                claims=[
+                    Claim(
+                        text="the checklist got shorter",
+                        evidence=[Trace(source_id="fixture-source")],
+                    )
+                ]
+            ),
+        ],
+        review=review,
+    )
+
+
+def _watermarks(prs) -> list:
+    """Every watermark-named shape in the deck, found through the RECURSIVE walk."""
+    return [
+        shape
+        for slide in prs.slides
+        for shape in _walk(slide.shapes)
+        if shape.name == WATERMARK_NAME
+    ]
+
+
+def test_marker_reads_back_off_the_written_file(tmp_path: pathlib.Path) -> None:
+    """SC-3: the generated-by marker, asserted by reopening the WRITTEN FILE.
+
+    The assertion block is the decision note's, verbatim. It reopens `out_path` with
+    `Presentation(str(out_path))` — never the writer's return value and never the in-memory object:
+    a writer that returned success without marking would pass any assertion made against itself.
+    The falsifiability control that makes this red-able is that the TEMPLATE carries none of these
+    values (`_FIXED` is 2026-01-01, `category`/`content_status` are empty — P-05).
+    """
+    template = build_rich_template(tmp_path)
+    surface = _sample_weekly_surface()
+    out_path = tmp_path / "weekly.pptx"
+
+    render_surface_pptx(surface, template=template, slots=RICH_SLOTS, out_path=out_path)
+
+    written = Presentation(str(out_path))  # reopen the FILE that was written
+    cp = written.core_properties
+    assert cp.category == MARKER, cp.category
+    assert cp.content_status == DRAFT_STATUS, cp.content_status
+    # dcterms:created serializes as W3CDTF and reads back tz-NAIVE (02-RESEARCH Pitfall 8).
+    assert cp.created == EPOCH_ZERO.replace(tzinfo=None), cp.created
+    assert cp.modified == EPOCH_ZERO.replace(tzinfo=None), cp.modified
+    assert cp.identifier == surface.id, cp.identifier
+
+
+def test_draft_surface_is_watermarked_on_every_slide(tmp_path: pathlib.Path) -> None:
+    """SC-3: a Draft deck carries the watermark on EVERY slide, last in z-order.
+
+    The rich deck has two slides precisely so "every slide" is not a vacuous claim: a writer that
+    watermarked `prs.slides[0]` only would ship a second page that reads as approved.
+    """
+    template = build_rich_template(tmp_path)
+    out_path = tmp_path / "draft.pptx"
+
+    render_surface_pptx(
+        _sample_weekly_surface(),
+        template=template,
+        slots=RICH_SLOTS,
+        out_path=out_path,
+    )
+
+    written = Presentation(str(out_path))
+    assert len(written.slides) == 2, "the template lost a slide in the render"
+    for index, slide in enumerate(written.slides):
+        names = [shape.name for shape in slide.shapes]
+        assert WATERMARK_NAME in names, (
+            f"slide {index} of a DRAFT deck carries no watermark — an unreviewed page that does "
+            f"not look unreviewed. Shapes: {names}"
+        )
+        assert names[-1] == WATERMARK_NAME, (
+            f"the watermark is not LAST in slide {index}'s shape order, so it is not at the top of "
+            f"z-order and the operator's own boxes can paint over it. Shapes: {names}"
+        )
+    for shape in _watermarks(written):
+        assert shape.rotation == 315.0, (
+            f"the watermark's rotation read back as {shape.rotation!r}, not the fixed 315.0 — a "
+            "watermark property that is not a literal is a determinism risk"
+        )
+
+
+def test_published_surface_has_no_watermark_and_empty_content_status(
+    tmp_path: pathlib.Path,
+) -> None:
+    """SC-3's INVERTED half. Without it, "while the Surface is not Published" is half-asserted.
+
+    A writer that watermarked unconditionally would pass every Draft assertion above and still be
+    wrong — it would brand approved work as unreviewed forever.
+    """
+    template = build_rich_template(tmp_path)
+    surface = _sample_weekly_surface(ReviewState.PUBLISHED)
+    assert (
+        surface.is_published
+    ), "the fixture is not actually Published; the inversion is vacuous"
+    out_path = tmp_path / "published.pptx"
+
+    render_surface_pptx(surface, template=template, slots=RICH_SLOTS, out_path=out_path)
+
+    written = Presentation(str(out_path))
+    assert not _watermarks(written), (
+        "a PUBLISHED deck carries the Draft watermark — the gate state is being ignored, so the "
+        "watermark says nothing about whether a human approved this"
+    )
+    assert written.core_properties.content_status == "", (
+        "a PUBLISHED deck still reports a draft contentStatus; the field is written FROM the gate, "
+        f"so this means it is not. Found: {written.core_properties.content_status!r}"
+    )
+
+
+def test_render_does_not_touch_the_gate(tmp_path: pathlib.Path) -> None:
+    """SC-4: rendering a Draft Surface leaves it Draft and `model_dump()`-identical.
+
+    The product's hardest rule is that nothing publishes without a human. The writer READS
+    `is_published`; there is no assignment to any `Surface` field. This is the positive proof of
+    that absence — the negative proof is `git diff --exit-code -- src/newsletters/semantic.py`.
+    """
+    template = build_rich_template(tmp_path)
+    surface = _sample_weekly_surface()
+    before = surface.model_dump()
+
+    render_surface_pptx(
+        surface, template=template, slots=RICH_SLOTS, out_path=tmp_path / "gate.pptx"
+    )
+
+    assert surface.review.state is ReviewState.DRAFT, (
+        "rendering moved the review gate. There must be no write path from the renderer to the "
+        f"gate at all. State is now: {surface.review.state!r}"
+    )
+    assert surface.model_dump() == before, (
+        "the Surface is not bit-for-bit what it was before the render. Even a benign-looking "
+        "mutation here means the writer has a write path into the reviewed record"
+    )
+
+
+def test_render_surface_pptx_writes_the_same_bytes_it_returns(
+    tmp_path: pathlib.Path,
+) -> None:
+    """The disk path is ONE write of complete, already-normalized bytes.
+
+    `prs.save(path)` followed by a rewrite in place would leave an un-normalized deck on disk if the
+    normalization raised, and nothing downstream could tell. Asserting the file equals the in-memory
+    render is how that shape stays enforced rather than merely intended.
+    """
+    template = build_rich_template(tmp_path)
+    surface = _sample_weekly_surface()
+    out_path = tmp_path / "written.pptx"
+
+    returned = render_surface_pptx(
+        surface, template=template, slots=RICH_SLOTS, out_path=out_path
+    )
+    in_memory = render_surface_pptx_bytes(surface, template=template, slots=RICH_SLOTS)
+
+    assert (
+        returned == out_path
+    ), f"the returned path is not the one asked for: {returned}"
+    assert out_path.read_bytes() == in_memory, (
+        "the bytes on disk differ from the bytes the byte-returning entry point produces for the "
+        "same inputs — the two entry points have drifted, or the disk path is doing more than one "
+        "write"
+    )

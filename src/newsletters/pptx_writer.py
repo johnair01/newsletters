@@ -19,10 +19,30 @@ SCOPE OF THE CLAIM (unchanged by the move). Full-file byte identity holds for a 
 (python-pptx, zlib) pair; `part_digest` is the implementation-independent, cross-environment
 assertion. The paragraphs below state this in full and are the canonical explanation in this repo.
 
+THE WRITER READS THE REVIEW GATE AND CANNOT WRITE IT (D-01; the product's hardest rule).
+`render_surface_pptx_bytes` **reads** `surface.is_published` — a computed property over
+`review.state` — to decide the Draft watermark and the `cp:contentStatus` value. There is no
+assignment to `surface.review`, to `surface.review.state`, or to ANY `Surface` field anywhere in
+this module. The gate state is mirrored outward into the deck, never back into the record: there is
+no read-then-fix path, and therefore no auto-publish path. The durable guard is the absence of the
+code path plus `tests/test_pptx_writer.py::test_render_does_not_touch_the_gate` (a Draft Surface is
+`model_dump()`-identical after a render) and the standing `git diff --exit-code --
+src/newsletters/semantic.py` gate.
+
+THE MARKER IS PROVENANCE, NOT AUTHENTICITY (threat T-02-07, accepted and recorded). `cp:category` is
+operator-editable. Nobody may later treat an unmarked deck as proof it was not generated, or a
+marked one as proof it was.
+
+THIS MODULE CONSTRUCTS NO XML PARSER (threat T-02-03). python-pptx already parses with
+``resolve_entities=False``; `copy.deepcopy` and ``getparent().remove()`` operate on ALREADY-PARSED
+trees. Do not add a parse of an XML string here — that would reintroduce the XXE surface upstream
+closed.
+
 AI-OPTIONAL / BARE-INSTALL DISCIPLINE. Everything at module level here is **stdlib only**
-(`hashlib`, `io`, `zipfile`), so `newsletters.pptx_writer` imports on a bare `pip install .` with no
-`[pptx]` extra — which is what lets the duplicate-member and idempotence contracts run on the
-bare-install CI job. The writer half (plan 02-02) obtains python-pptx **lazily**, inside its render
+(`copy`, `hashlib`, `io`, `pathlib`, `zipfile` — the `Surface` annotation is under `TYPE_CHECKING`
+and never imported at runtime), so `newsletters.pptx_writer` imports on a bare `pip install .` with
+no `[pptx]` extra — which is what lets the duplicate-member and idempotence contracts run on the
+bare-install CI job. The writer obtains python-pptx **lazily**, inside its render
 function, through the existing boundary `newsletters.adapters._pptx_loader._load_pptx()` — it does
 not re-implement that boundary and it does not widen it. There must therefore NEVER be a column-0
 ``import pptx`` / ``from pptx ...`` line in this file. That is not a convention; it is enforced by
@@ -97,7 +117,11 @@ import hashlib
 import io
 import zipfile
 from collections.abc import Iterator, Mapping, Sequence
-from typing import Any
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Union
+
+if TYPE_CHECKING:  # pragma: no cover - annotation only; never imported at runtime
+    from .semantic import Surface
 
 __all__ = [
     "DOS_EPOCH",
@@ -112,6 +136,8 @@ __all__ = [
     "WATERMARK_TEXT",
     "bind_slots",
     "fill_slot",
+    "render_surface_pptx_bytes",
+    "render_surface_pptx",
 ]
 
 # The earliest timestamp the DOS date format used inside a ZIP can represent. Any fixed instant
@@ -470,3 +496,130 @@ def fill_slot(text_frame: Any, lines: Sequence[str]) -> None:
 
     for paragraph, line in zip(text_frame.paragraphs, lines):
         paragraph.runs[0].text = line
+
+
+def _add_watermark(slide: Any, pptx: Any) -> Any:
+    """Add the Draft watermark textbox to one slide, LAST so it sits at the top of z-order.
+
+    Every property is a fixed literal — no clock, no randomness — so the watermark contributes
+    nothing to non-determinism (measured W12: normalized bytes and `part_digest` equal across a
+    3-second gap, and it reads back last in `slide.shapes` with `rotation == 315.0`).
+
+    NOTE THE DELIBERATE CONTRAST WITH :func:`fill_slot`: assigning ``text_frame.text`` is CORRECT
+    here. The writer created this shape and owns every property on it, so there is no operator
+    formatting to preserve. Use the cheap API where you own the shape; use the preserving primitive
+    where the operator does. That is the rule, not an inconsistency.
+
+    TWO RECORDED NON-CHOICES, so nobody reopens them:
+
+    (i) **This is not true transparency.** python-pptx has no alpha API and a genuinely see-through
+        watermark needs raw ``a:alpha`` XML. A light-grey rotated run is visible, deterministic and
+        API-supported, and is not worth trading for that fragility.
+    (ii) **The watermark is ADDED, never toggled off an operator-supplied element.** Removal was
+        measured deterministic and exactly reversible (W13), so the decision note's *mechanical*
+        objection is disproved — but the binding objection stands: a toggle would make correct gate
+        behaviour depend on operator template content, and "the watermark is missing" would become a
+        template bug instead of a renderer bug. Adding is unconditional in mechanism and conditional
+        only on the gate.
+    """
+    box = slide.shapes.add_textbox(
+        pptx.util.Inches(1.5),
+        pptx.util.Inches(2.5),
+        pptx.util.Inches(7),
+        pptx.util.Inches(2),
+    )
+    box.name = WATERMARK_NAME
+    box.rotation = 315.0
+    box.text_frame.text = WATERMARK_TEXT
+    run = box.text_frame.paragraphs[0].runs[0]
+    run.font.size = pptx.util.Pt(96)
+    run.font.bold = True
+    run.font.color.rgb = pptx.dml.color.RGBColor(0xD0, 0xD0, 0xD0)
+    return box
+
+
+def render_surface_pptx_bytes(
+    surface: "Surface",
+    *,
+    template: Union[str, Path],
+    slots: Mapping[str, Sequence[str]],
+) -> bytes:
+    """Render a Surface into deterministic `.pptx` bytes through an operator-supplied template.
+
+    Fills the operator's EXISTING slides — it never calls ``add_slide`` (which regenerates
+    placeholder names and would reject every one of the operator's names on first contact). The
+    Surface→`slots` derivation belongs to the composer (Phase 3): only it knows which authored block
+    belongs in which Selection-Pane name, so `slots` is a required keyword argument here (P-03).
+
+    THE GATE IS READ, NEVER WRITTEN. ``surface.is_published`` decides the watermark and
+    ``cp:contentStatus``; nothing here assigns to any `Surface` field (see the module docstring).
+
+    Returns normalized bytes: ``prs.save(BytesIO)`` is the ONLY clock in this function, and
+    :func:`normalize_opc_zip` removes its trace. Nothing is written to disk — see
+    :func:`render_surface_pptx` for that.
+    """
+    # Lazy on purpose ([pptx] extra). We call the EXISTING boundary rather than writing a second
+    # `try: import pptx`: `_load_pptx` already raises the teaching ImportError naming
+    # `pip install '.[pptx]'` and is already covered by
+    # `test_pptx_loader_raises_teaching_error_without_pptx`. A second implementation of "import the
+    # extra safely" drifts from the first exactly as a second normalizer would.
+    from .adapters._pptx_loader import _load_pptx  # noqa: PLC0415
+    from .adapters._timestamps import EPOCH_ZERO  # noqa: PLC0415
+
+    pptx = _load_pptx()
+    prs = pptx.Presentation(str(template))
+
+    by_name = bind_slots(prs, slots)
+    # Fill order does not affect the output bytes (measured, W18: text edits are in-place on
+    # existing elements), so iterate `slots` directly — sorting would imply a guarantee we do not
+    # need and would hide the real ordering variable, which is image ADD order (Phase 3's problem).
+    for name, lines in slots.items():
+        fill_slot(by_name[name].text_frame, lines)
+
+    if not surface.is_published:
+        # Every slide, never `prs.slides[0]`: a two-slide deck with one watermark is a deck whose
+        # second page reads as approved.
+        for slide in prs.slides:
+            _add_watermark(slide, pptx)
+
+    core = prs.core_properties
+    core.category = MARKER
+    # P-04, the decision note's mapping VERBATIM. `ReviewState` has three members, so an IN_REVIEW
+    # deck is also labelled "draft" — deliberately not deviated from here; the tri-state amendment
+    # is raised in the PR body rather than changed silently.
+    core.content_status = "" if surface.is_published else DRAFT_STATUS
+    # Serializes as `dc:identifier`, NOT `cp:identifier` (W20 — a wording correction to the
+    # decision note's field table, with no code consequence). Makes a deck found on somebody's
+    # desktop self-locating: you can get from the file back to the reviewed record it came from.
+    core.identifier = surface.id
+    # `dcterms:created` serializes as W3CDTF but python-pptx reads it back tz-NAIVE, while the
+    # repo-wide `EPOCH_ZERO` sentinel is tz-aware UTC — a plain `==` fails (Pitfall 8). Strip the tz
+    # AT THE OPC BOUNDARY rather than minting a second epoch constant.
+    core.created = EPOCH_ZERO.replace(tzinfo=None)
+    core.modified = EPOCH_ZERO.replace(tzinfo=None)
+
+    buf = io.BytesIO()
+    prs.save(buf)  # the ONLY clock in this function
+    return normalize_opc_zip(buf.getvalue())
+
+
+def render_surface_pptx(
+    surface: "Surface",
+    *,
+    template: Union[str, Path],
+    slots: Mapping[str, Sequence[str]],
+    out_path: Union[str, Path],
+) -> Path:
+    """Render a Surface to a `.pptx` on disk in ONE write of complete, already-normalized bytes.
+
+    Never ``prs.save(path)`` followed by a rewrite in place: a raised normalization would leave an
+    un-normalized deck on disk, and the next reader would have no way to tell.
+
+    SECURITY (threat T-02-08, path traversal): `out_path` is **caller-supplied and never derived
+    from Surface content**. Joining `surface.id` — authored data — to a directory would be a
+    path-traversal primitive. The caller owns the path; this function only writes to it.
+    """
+    raw = render_surface_pptx_bytes(surface, template=template, slots=slots)
+    out = Path(out_path)
+    out.write_bytes(raw)
+    return out
