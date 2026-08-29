@@ -75,6 +75,31 @@ _RECOGNITIONS_KEY = weeklyspec._RECOGNITIONS_KEY
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CORPUS = REPO_ROOT / "content" / "weekly"
 
+# Typer renders --help through Rich, and Rich FORCE-ENABLES ANSI color when it detects
+# GitHub Actions (GITHUB_ACTIONS/CI env) — so the same invoke that yields plain text locally
+# yields escape-code-laden text on a hosted runner, and a regex over it matches nothing
+# (proven live: PR #25's first site-integrity run, 2026-08-29). Every help-TEXT assertion in
+# this file must therefore go through _help_output: it neutralizes the CI color detection for
+# the one invocation and strips any ANSI sequences that got through, so the assertion sees the
+# same bytes in every environment. Exit codes never needed this — only the text did.
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+_PLAIN_HELP_ENV = {
+    "NO_COLOR": "1",
+    "FORCE_COLOR": None,
+    "GITHUB_ACTIONS": None,
+    "CI": None,
+    "TERM": "dumb",
+    "COLUMNS": "200",
+}
+
+
+def _help_output(runner: CliRunner, args: list[str]) -> str:
+    """Invoke the app and return its output with rendering stripped to plain text."""
+    result = runner.invoke(app, args, env=_PLAIN_HELP_ENV)
+    assert result.exit_code == 0, result.output
+    return _ANSI_RE.sub("", result.output)
+
+
 # RFC 6761 reserves ``.invalid`` — a domain that is guaranteed never to resolve, so an address
 # there cannot belong to a real person. This is the ONE allowance the weekly scan takes, and it
 # exists because the corpus commits an ``.eml``: the scanner treats an address SHAPE as its proxy
@@ -783,14 +808,12 @@ def test_weekly_command_is_registered() -> None:
     """
     runner = CliRunner()
 
-    top = runner.invoke(app, ["--help"])
-    assert top.exit_code == 0, top.output
-    assert "weekly" in top.output, top.output
+    top = _help_output(runner, ["--help"])
+    assert "weekly" in top, top
 
-    weekly_help = runner.invoke(app, ["weekly", "--help"])
-    assert weekly_help.exit_code == 0, weekly_help.output
+    weekly_help = _help_output(runner, ["weekly", "--help"])
     for option in ("--spec", "--lanes", "--template", "--author", "--out"):
-        assert option in weekly_help.output, f"{option} missing from `weekly --help`"
+        assert option in weekly_help, f"{option} missing from `weekly --help`"
 
 
 # --------------------------------------------------------------------------- #
@@ -933,7 +956,7 @@ def test_build_weekly_author_flag_is_real_and_plumbed(tmp_path: Path) -> None:
     byline).
     """
     runner = CliRunner()
-    assert "--author" in runner.invoke(app, ["build", "--help"]).output
+    assert "--author" in _help_output(runner, ["build", "--help"])
 
     before = _content_fingerprint()
     out = tmp_path / "signed"
@@ -1048,12 +1071,12 @@ def test_recipe_commands_match_the_shipped_cli() -> None:
         assert tokens[0] == "newsletters", line
         name = tokens[1]
 
-        help_result = runner.invoke(app, [name, "--help"])
+        help_result = runner.invoke(app, [name, "--help"], env=_PLAIN_HELP_ENV)
         assert help_result.exit_code == 0, (
             f"docs/weekly.md documents `newsletters {name}`, which the shipped app does not "
             f"expose:\n{help_result.output}"
         )
-        exposed = set(_OPTION_RE.findall(help_result.output))
+        exposed = set(_OPTION_RE.findall(_ANSI_RE.sub("", help_result.output)))
         for token in tokens[2:]:
             if not token.startswith("--"):
                 continue
@@ -1064,9 +1087,9 @@ def test_recipe_commands_match_the_shipped_cli() -> None:
             )
 
     # Non-vacuity: the same two checks must FAIL for something the app does not have.
-    assert runner.invoke(app, ["weeklyy", "--help"]).exit_code != 0
+    assert runner.invoke(app, ["weeklyy", "--help"], env=_PLAIN_HELP_ENV).exit_code != 0
     assert "--nonesuch" not in set(
-        _OPTION_RE.findall(runner.invoke(app, ["weekly", "--help"]).output)
+        _OPTION_RE.findall(_help_output(runner, ["weekly", "--help"]))
     )
 
 
