@@ -40,7 +40,14 @@ excel = ["openpyxl"]
 # transitive C-extensions (lxml, Pillow, XlsxWriter, typing_extensions) are sandboxed behind the
 # extra and never reachable from core. python-pptx ships no type stubs and we do NOT add a
 # types-* package (mirror the Excel Any-typing decision).
-pptx = ["python-pptx"]
+# FLOOR PIN, not a ceiling (Phase 2 / WKLY-01): python-pptx makes no documented byte-output-
+# stability promise across versions, and the recorded determinism decision
+# (.planning/notes/2026-08-29-pptx-determinism-decision.md) is scoped IN WRITING to a fixed
+# (python-pptx, zlib) pair. 1.0.2 is the exercised version — it is what the committed evidence was
+# measured on. A floor lets a security fix land; a ceiling would pretend we had tested versions we
+# have not. `test_pptx_extra_declared` needs no edit: it compares `_req_name(r)`, which strips
+# version specifiers (verified by executing the live `_req_name` against this exact string, W19).
+pptx = ["python-pptx>=1.0.2"]
 # YAML module-config loader dep (LANE-04) — PyYAML is NON-AI, MIT, pure-Python-capable, and
 # spec-named for the swim-lane config path. It lives behind an extra and is lazy-imported inside
 # the config loader only (mirror the [ai]/[excel]/[pptx] discipline), so bare `pip install .` still

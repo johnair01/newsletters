@@ -580,6 +580,81 @@ def test_pptx_loader_returns_module_when_present() -> None:
     assert "pptx" not in set(AI_MODULES), "python-pptx must never be classed as AI"
 
 
+# --- WKLY-01 / SC-5: the same two gates, for the WRITER module ---------------------------------- #
+#
+# WHY THESE TWO LIVE HERE AND NOT IN tests/test_pptx_writer.py. That module guards itself with a
+# module-scope `pytest.importorskip("pptx")`, so on a bare install the WHOLE file is skipped — and a
+# guard whose entire claim is "this module imports WITHOUT the extra" is worthless in a file that
+# does not run when the extra is absent. `test_ai_optional.py` has no importorskip and is what the
+# CI `bare-install` job runs, which is the only place these two assertions mean anything. Moving
+# them next to the writer's own tests would turn both into `s` in the one environment they exist to
+# police (02-RESEARCH Pitfall 7: "green" that means "not run").
+
+PPTX_WRITER_PATH = REPO_ROOT / "src" / "newsletters" / "pptx_writer.py"
+
+
+def test_pptx_writer_has_no_toplevel_pptx_import() -> None:
+    """The writer module has ZERO top-level (runtime) `import pptx` / `from pptx`.
+
+    `newsletters.pptx_writer` carries the stdlib-only OPC normalizer at module level, so it must
+    stay importable on a bare `pip install .`; the writer half reaches python-pptx lazily, inside
+    its render function, through `adapters._pptx_loader._load_pptx()`. A top-level import here would
+    make the normalizer (and its duplicate-member refusal) unreachable without the extra. (A
+    `TYPE_CHECKING`-guarded import would live under an `if TYPE_CHECKING:` block, indented, not at
+    column 0, so the column-0 check below does not see it.)
+    """
+    source = PPTX_WRITER_PATH.read_text()
+    toplevel_edges = [
+        line
+        for line in source.splitlines()
+        # column-0 (module-top) import statements only — indented ones live inside functions or
+        # the TYPE_CHECKING guard and are not executed on a bare runtime import.
+        if line.startswith("import pptx") or line.startswith("from pptx")
+    ]
+    assert not toplevel_edges, (
+        f"pptx_writer.py has top-level pptx import(s) — breaks the bare install: "
+        f"{toplevel_edges}"
+    )
+
+
+def test_pptx_writer_imports_without_pptx() -> None:
+    """`from newsletters import pptx_writer` SUCCEEDS even when python-pptx cannot be imported.
+
+    Simulates a bare install by installing a `sys.meta_path` finder that blocks `pptx` BEFORE the
+    import (works regardless of whether the dev .venv has python-pptx). A red here means the writer
+    module has acquired an EAGER python-pptx edge: `pip install .` can no longer import it, the
+    normalizer's contracts stop running on the bare-install job, and the AI-optional / minimal-core
+    invariant is broken for a non-AI reason.
+    """
+    code = (
+        "import sys\n"
+        "from importlib.abc import MetaPathFinder\n"
+        "class _Block(MetaPathFinder):\n"
+        "    def find_spec(self, name, path=None, target=None):\n"
+        "        if name == 'pptx' or name.startswith('pptx.'):\n"
+        "            raise ImportError('blocked pptx (simulated bare install)')\n"
+        "        return None\n"
+        "sys.modules.pop('pptx', None)\n"
+        "sys.meta_path.insert(0, _Block())\n"
+        "import newsletters\n"
+        "from newsletters import pptx_writer\n"
+        "assert 'pptx' not in sys.modules, sys.modules.get('pptx')\n"
+        "print('pptx_writer imports clean without pptx')\n"
+    )
+    env = {**os.environ, "PYDANTIC_DISABLE_PLUGINS": "true"}
+    proc = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=REPO_ROOT,
+    )
+    assert proc.returncode == 0, (
+        f"newsletters.pptx_writer failed to import without python-pptx — the writer has an eager "
+        f"pptx edge and a bare install can no longer import it:\n{proc.stdout}{proc.stderr}"
+    )
+
+
 # --- LANE-04 / T-04-02 / T-04-03: the optional [config] (PyYAML) lazy boundary + AI-free swimlane -
 #
 # PyYAML is NOT AI — the forbid-ai contract is unaffected — but the SAME minimal-core / lazy
