@@ -20,7 +20,10 @@ findings:
   warning: 6
   info: 7
   total: 14
-status: issues_found
+status: fixed
+fixed_at: 2026-08-29T08:33:39Z
+fixed: 9
+carried: 5
 ---
 
 # Phase 3: Code Review Report
@@ -318,6 +321,61 @@ catch a module that is never named.
 **Fix:** Consider a marker (`-m weekly`) or a `tests/weekly/` directory glob so new
 modules are collected by construction; at minimum, note the maintenance duty in the job
 comment.
+
+---
+
+## Fix Outcomes (2026-08-29T08:33:39Z)
+
+Scope: CR-01 + all six Warnings, plus the two trivial/zero-risk Info findings (IN-01, IN-03).
+Each fix landed as one atomic commit on `claude/new-session-gw8tik`; red-path regressions were
+observed RED before each fix where the finding was behavioral.
+
+| Finding | Outcome | Commit | Notes |
+|---------|---------|--------|-------|
+| CR-01 | **fixed** | `2892a14` | Duplicate-key refusal in `_yaml_loader.load_config` (SafeLoader subclass, safe-only unchanged); teaching error names the key + both line numbers; all three loaders inherit it, proven by `tests/test_yaml_loader.py`; committed fixtures carry no duplicates (full suite green). |
+| WR-01 | **fixed** | `dfa5af9` | `SpanMinter` precomputes comment intervals (quote-aware); exact-find skips matches starting inside one. Full-line and inline bait regressions observed red first; `tests/test_casespec.py` green **unmodified**. |
+| WR-02 | **fixed** | `d861dd0` | Non-blank validators on `AssetRecord` (required fields) and none-or-real-text on optional `link`/`caption`/`alt` + `AssetBlock.heading`/`caption` — PURE INSERTIONS, Half-B insertion-only gate green; both directions tested field-by-field; doc updated. |
+| WR-03 | **fixed** | `bd956ce` | `Surface._published_claims` walks `NarrativeBlock` claims (pure insertion; pin updated in the same commit, reason in the pin comment); `review_blockers` re-checks narrative claims + `AssetBlock.evidence` via `Trace.is_stale_against`; narrative render gets `_claim_badge`. Pin-mutation observation re-run — see below. |
+| WR-04 | **fixed** | `873db21` | `compose_kpi_item` promoted public with wording as module constants (`NO_KPIS`/`UNCOMPUTABLE_DELTA`/`ONE_ENDPOINT`); `weeklyspec._kpi_item` + three duplicated constants deleted. Zero behavior change — existing suites green unmodified. |
+| WR-05 | **fixed** | `ebee372` | Present-but-blank list items disclosed by position via `absent("{key}[{i}]")` (rule 4 implies disclosure, not refusal — doc already states it); `weekly_slots` docstring contradiction resolved. |
+| WR-06 | **fixed** | `e89b55b` | Guaranteed `figcaption.sg-mono` provenance line (folder · date · event) on every placed asset; no new CSS (`_CSS` sha unchanged); class map updated in the same change. |
+| IN-01 | **fixed** | `dc23f2c` | `dedup_in_order` promoted public; `build_weekly_report` dedupes `missing[]` like the module composer. |
+| IN-03 | **fixed** | `5631ad5` | `pptx_writer` banner now points at `tests/test_semantic_gate_frozen.py` instead of the removed byte-freeze. |
+| IN-02 | carried | — | `weekly-weekly` id cosmetics — not in this pass's trivial/zero-risk set. |
+| IN-04 | carried | — | Non-string asset keys teaching error — carried to the next window. |
+| IN-05 | carried | — | `ReviewPolicy` data pin — deliberately deferred (directed). |
+| IN-06 | carried | — | Empty `ClaimsBlock` convention asymmetry — pre-existing Phase-2 behavior. |
+| IN-07 | carried | — | CI weekly job hand-enumerated module list — deliberately deferred (directed). |
+
+**WR-03 pin-mutation observation (re-run after the pin update, recorded verbatim).** A single
+appended blank line planted inside the updated `Surface._published_claims` (verified applied:
+`git diff --stat` → `1 insertion(+)`) flipped the pin red:
+
+```
+FAILED tests/test_semantic_gate_frozen.py::test_gate_function_source_is_frozen[Surface._published_claims]
+E         - ea523ffe913c29956b1f38da5688c7a2a1a61498285ff9f1af66ce58c2bb5fa9
+E         + f4f4a1824ce38dc4d29d6a6e730bc047dfc85a6d91c32256140120624db1dfad
+1 failed in 0.03s
+```
+
+The mutation was reverted by editing (never `checkout --` over uncommitted work, RETRO W24);
+the suite returned green and the tree clean.
+
+**Gates (run once each, after all fixes):**
+
+- full pytest: **837 passed, 0 skipped** (baseline 812 + 25 new tests)
+- `lint-imports`: 2 contracts kept, 0 broken
+- `newsletters check --corpus rev1|work|module`: all three "All published surfaces clean", exit 0
+- determinism evidence `--check`: exit 0 — `part_digest_a == part_digest_b: True`,
+  `raw_bytes_equal: False` (negative control holds), `varying_zip_fields: ['date_time']`,
+  `normalized_bytes_equal: True`
+- `git diff $(git merge-base HEAD origin/main) -- content/`: **empty**
+- committed binaries: unchanged by every fix commit (the two binaries in the milestone diff were
+  added by prior reviewed phase commits)
+- `render._CSS` sha256: unchanged — `d9eeca3a40f1bd1d7b1920ad5bbe0ef0699560a2aa589856f83bd016a9f025b6`
+
+_Fixed: 2026-08-29T08:33:39Z_
+_Fixer: Claude (gsd-code-fixer)_
 
 ---
 
