@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 01-01-PLAN.md (pptx determinism spike). Next: plan 01-02."
-last_updated: "2026-08-29T03:41:12.083Z"
-last_activity: 2026-08-29 -- Phase 1 plan 01-01 complete (pptx determinism spike: BYTE-STABLE, evidence committed)
+stopped_at: "Completed 01-02-PLAN.md (recorded determinism decision); next: 01-03-PLAN.md"
+last_updated: "2026-08-29T03:49:46.495Z"
+last_activity: "2026-08-29 -- Phase 1 plan 01-01 complete (pptx determinism spike: BYTE-STABLE, evidence committed)"
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -26,15 +26,15 @@ See: .planning/PROJECT.md (updated 2026-08-29)
 ## Current Position
 
 Phase: 1 (Specify + de-risk) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
-Last activity: 2026-08-29 -- Phase 1 plan 01-01 complete (pptx determinism spike: BYTE-STABLE, evidence committed)
+Last activity: 2026-08-29 -- Phase 1 plan 01-02 complete (the determinism/marker/template-contract decision recorded; contradicting docstring claims superseded)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- v1.3: 1 plan complete (roadmap defined 2026-08-29; 4 phases).
+- v1.3: 2 plans complete (roadmap defined 2026-08-29; 4 phases).
 - v1.2: 2 plans across 2 phases (closed 2026-08-29, archived).
 - v1.1: 12 plans across 4 phases (closed 2026-07-02, archived). v1.0: Phases 1–14 (archived).
 
@@ -42,7 +42,7 @@ Last activity: 2026-08-29 -- Phase 1 plan 01-01 complete (pptx determinism spike
 
 | Phase | Plans | Status |
 |-------|-------|--------|
-| 1. Specify + de-risk | 1/3 | In Progress |
+| 1. Specify + de-risk | 2/3 | In Progress |
 | 2. Renderer (WKLY-01) | 0/0 (unplanned) | Not started |
 | 3. Weekly compose (WKLY-02/03/04) | 0/0 (unplanned) | Not started |
 | 4. Sample corpus + recipe (WKLY-05/06) | 0/0 (unplanned) | Not started |
@@ -52,6 +52,7 @@ Last activity: 2026-08-29 -- Phase 1 plan 01-01 complete (pptx determinism spike
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 1 P01 | 12min | 3 tasks | 6 files |
+| Phase 1 P02 | 14min | 2 tasks | 3 files |
 
 **Recent Trend:**
 
@@ -67,6 +68,11 @@ Last activity: 2026-08-29 -- Phase 1 plan 01-01 complete (pptx determinism spike
 - Plan 01-01 landed the `.pptx` determinism spike as a durable test rather than scratch code:
   the measurement is committed evidence, re-verifiable by `--check`, and the determinism
   assertion carries a negative control so it can actually fail. Zero production surface touched.
+
+- Plan 01-02 turned that measurement into the recorded decision (one outcome, one scope, one
+  normalizer contract) and closed the two places where the repo said something different — the
+  ADAPT-06 golden-fixture docstring's byte-stability claim was measurably false and is corrected
+  and superseded in writing, not silently contradicted.
 
 ## Accumulated Context
 
@@ -85,6 +91,10 @@ WHERE-WE-ARE.md):
 - [Roadmap, 2026-08-29]: Phase 1 carries no WKLY requirement — it de-risks WKLY-01/02 and ships spec + a recorded determinism decision with evidence. WKLY-01→P2, WKLY-02/03/04→P3, WKLY-05/06→P4.
 - [Phase 1-01]: Determinism outcome recorded as BYTE-STABLE via a declared post-save OPC-zip normalization (not the content-stable fallback), measured on a real 3s-separated python-pptx 1.0.2 double write — raw_bytes_equal=false with varying_parts=[] and varying_zip_fields=[date_time]; normalized_bytes_equal=true. Evidence committed at .planning/notes/2026-08-29-pptx-determinism-evidence.json and re-verifiable via --check.
 - [Phase 1-01]: Byte-identity is scoped in writing to a fixed (python-pptx, zlib) pair; part_digest (sorted name+sha256 of each unzipped part) is the implementation-independent assertion a committed==fresh gate must use — DEFLATE output is zlib-implementation-dependent (zlib vs zlib-ng); a full-file hash across environments would be green locally and red in CI with identical part content.
+- [Phase 01-specify-de-risk]: Determinism recorded as BYTE-STABLE via a declared post-save OPC-zip normalization, scoped in writing to a fixed (python-pptx, zlib) pair; the committed==fresh gate asserts the implementation-independent part_digest, never a full-file hash
+- [Phase 01-specify-de-risk]: Generated-by marker lives in OPC core properties (cp:category / cp:contentStatus / dcterms EPOCH_ZERO / cp:identifier), not a notes slide — zero new parts, asserted by reopening the WRITTEN file
+- [Phase 01-specify-de-risk]: Template contract: fill existing template slides (add_slide regenerates placeholder names); NL_ reserved prefix; the name-to-shape map raises on duplicate names; bind over slide.shapes
+- [Phase 01-specify-de-risk]: ONE normalizer contract: _determinism.normalize_opc_zip is canonical and _author_fixtures._normalize_zip delegates to it in Phase 2, not in a spec phase that would rebuild the golden corpus
 
 ### Pending Todos
 
@@ -106,9 +116,14 @@ new at v1.3 open, the ADAPT-05 value-side extension (values come via export this
 
 ## Session Continuity
 
-Last session: 2026-08-29 — Phase 1 plan 01-01 executed: the `.pptx` determinism spike ran a real
-3s-separated double write, recorded BYTE-STABLE as the outcome with committed evidence, and landed
-as `tests/test_pptx_determinism.py` (5 tests, incl. the negative control). Full suite 565 passed.
-Stopped at: Completed 01-01-PLAN.md (pptx determinism spike). Next: plan 01-02.
-Resume file: `.planning/phases/01-specify-de-risk/01-01-SUMMARY.md` + `01-02-PLAN.md` +
-`.planning/notes/2026-08-29-pptx-determinism-evidence.json` (the measurement 01-02 must not re-run)
+Last session: 2026-08-29 — Phase 1 plan 01-02 executed: plan 01-01's committed measurement became
+the recorded decision (`.planning/notes/2026-08-29-pptx-determinism-decision.md`, 340 lines) —
+BYTE-STABLE via a declared post-save OPC-zip normalization, scoped to a fixed (python-pptx, zlib)
+pair; the core-properties marker with its literal read-back assertion; the fill-existing-slides
+template contract with the `NL_` prefix and the duplicate-name raise; D-01/D-02/D-03 each with a
+testable consequence; Q1–Q5 closed. The two contradicting claims in
+`tests/fixtures/pptx/_author_fixtures.py` were corrected and superseded in place (docstring only —
+no golden binary regenerated). Full suite 565 passed, 64 skipped.
+Stopped at: Completed 01-02-PLAN.md (recorded determinism decision); next: 01-03-PLAN.md
+Resume file: `.planning/phases/01-specify-de-risk/01-02-SUMMARY.md` + `01-03-PLAN.md` +
+`.planning/notes/2026-08-29-pptx-determinism-decision.md` (the decision 01-03 writes the spec from)
