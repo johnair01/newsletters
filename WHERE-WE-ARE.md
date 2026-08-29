@@ -7,6 +7,46 @@
 
 ## Where we are right now
 
+**2026-08-29 (later still) — v1.3 PHASE 2 STARTED: THE RENDERER'S FOUNDATION IS IN `src/`, AND IT
+IS GUARDED BEFORE IT DOES ANYTHING (plan 02-01 of 3, branch `claude/new-session-gw8tik`).** Still no
+deck is rendered — that is plan 02-02 — but the ground it stands on is now real production surface
+instead of a spike fixture:
+
+- **One normalizer, and you can prove nobody tidied it.** The OPC-zip normalizer moved *verbatim*
+  out of `tests/fixtures/weekly/_determinism.py` into **`src/newsletters/pptx_writer.py`**, and the
+  fixture copy is deleted. Git recorded the move as a rename, so the review that matters — "did
+  anything change in the security-critical in-memory read/write loop?" — is a one-command diff, and
+  the answer is no. Zip-slip stays closed *by construction*, not by a validation somebody could
+  weaken later. Three `sys.path.insert` lines went with it, which is what actually closes the
+  module-shadowing hazard the Phase 1 review flagged: we removed the mechanism, not the symptom.
+- **The module is stdlib-only at import time, and two guards say so.** `newsletters.pptx_writer`
+  imports on a bare `pip install .` with python-pptx *blocked on `sys.meta_path`* — proved in a real
+  subprocess, in `tests/test_ai_optional.py`, which is the file the bare-install CI job runs. The
+  guards deliberately do **not** live next to the writer's own tests: that module skips itself when
+  the extra is missing, so a guard proving "this imports without the extra" would never run in the
+  one environment it exists for.
+- **Five test decks now stand in for an operator's real templates** — a rich happy-path deck with a
+  slot *nested inside a group*, plus one deck each for duplicate shape names, a template that
+  already owns the watermark name, an `NL_` shape that cannot hold text, and a slot left blank with
+  zero runs. Every one of them is a case the fail-loud contract must refuse teachingly rather than
+  crash on, and each was reopened and checked by hand rather than trusted to a green test.
+- **A research claim became a repo-owned fact.** `slide.shapes` does *not* descend into groups — so
+  a grouped slot is invisible in both directions, and an operator would swear the box is right there
+  in their Selection Pane. There is now a test that says so, which is what makes the writer's
+  group-recursive binding map falsifiable instead of merely well-intentioned.
+- **`python-pptx>=1.0.2` is a floor, not a ceiling,** and the reason is on the line: a floor lets a
+  security fix land; a ceiling would pretend we had tested versions we have not.
+
+Two things were deliberately *not* done, both because doing them would have bought convenience with
+evidence: the committed `template.pptx` was **not** regenerated (its part digests *are* the recorded
+determinism evidence), and the fixture template's `2026-01-01` timestamp was **not** consolidated
+onto `EPOCH_ZERO` — the difference is what will let plan 02-02's marker read-back actually fail if
+the writer forgets to write it. A test that cannot fail is not a test.
+
+Honest about the green: **no CI job installs `[pptx]` yet**, so every pptx test — including the two
+new ones — is skipped in CI today. Plan 02-03 adds that job. Until then this is a local green, and
+saying so is cheaper than discovering it at the PR.
+
 **2026-08-29 (later) — v1.3 PHASE 1 DONE: THE TWO EXPENSIVE UNKNOWNS ARE SETTLED, ON PAPER,
 WITH EVIDENCE (branch `claude/new-session-gw8tik`).** Phase 1 shipped spec text and a recorded
 decision — deliberately **no** renderer or composer code (`git diff --exit-code --

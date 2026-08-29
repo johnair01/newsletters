@@ -4,6 +4,59 @@
 > (in `CLAUDE.md`) or a guard, not a vibe. A recurring friction you haven't hardened is a bug.
 > Newest on top.
 
+## 2026-08-29 (later) — Promoting a spike: the frictions were a self-contradicting gate, a
+## formatter civil war, and the state handlers mangling records again
+
+**Friction observed (v1.3 plan 02-01 — the renderer foundation)**
+
+1. **A plan acceptance criterion contradicted itself.** Task 1 required
+   `git diff --exit-code -- tests/fixtures/pptx/` to exit 0 *and* required a docstring edit to a
+   file in that directory. Both cannot hold. The intent was obvious from the criterion two lines
+   later ("`git diff -- …_author_fixtures.py` touches **only** lines inside the module docstring"),
+   so it was resolved in favour of the load-bearing half — *no committed binary changed* — and
+   verified with the narrower gate `git diff --exit-code -- 'tests/fixtures/pptx/*.pptx'`. Recorded
+   rather than silently "passed": a gate you reinterpret without saying so is a gate you have
+   disabled.
+2. **`isort` and `black` disagree repo-wide and always have.** The repo declares `isort` in `[dev]`
+   but sets no `profile = "black"`, so isort wants grid-wrapped imports and black wants
+   vertical-hanging-indent: *any* parenthesized multi-line import fails one of them. Adding one
+   import to `test_pptx_determinism.py` therefore produced an "isort failure" that had nothing to do
+   with the change — `HEAD` already failed on that file, and on `test_ai_optional.py`,
+   `_record_determinism_evidence.py` and (for black) `_author_fixtures.py`. Ten minutes went into
+   proving the failure was pre-existing instead of into the work.
+3. **The GSD state handlers mangled the records again — the same defect class as 01-02.**
+   `state.advance-plan` errored outright ("Cannot parse Current Plan or Total Plans"),
+   `state.update-progress` wrote plan counts (3→6, 3→4) while leaving `percent: 25` untouched even
+   though it *printed* 67%, `state.record-metric` rejected its documented positional arguments, and
+   `roadmap.update-plan-progress` again produced a malformed table row (`In Progress|  |`). All
+   repaired by hand.
+4. **The plan's frontmatter would have over-claimed a requirement.** `requirements: [WKLY-01]` on a
+   plan that renders nothing — following the state step literally would have ticked WKLY-01
+   complete two plans early.
+
+**Rules hardened**
+
+- *When two acceptance criteria of the same task contradict each other, satisfy the one that
+  protects committed evidence, verify it with a narrower command, and say in the summary that you
+  reinterpreted a gate.* Silent reinterpretation is how a gate becomes decorative.
+- *Formatter noise is only news if `HEAD` was clean.* Before "fixing" a lint failure on a file you
+  touched, run the same check against `git show HEAD:<file>`. If it already failed, log it as
+  pre-existing debt and match the house style (**black**, which the repo's own files follow) rather
+  than starting a repo-wide reformat inside an unrelated plan. The durable fix — adding
+  `[tool.isort] profile = "black"` and reformatting once — is now a named deferred item, not a
+  recurring tax.
+- *Never let a plan's `requirements:` frontmatter tick a requirement the plan did not deliver.*
+  A requirement is complete when its behaviour is provable, not when the last plan mentioning it
+  runs. WKLY-01 stays "in progress" in `REQUIREMENTS.md` until 02-03 renders a deck in CI.
+- *Treat every GSD state/roadmap handler as needing a diff review.* This is the second consecutive
+  phase where they corrupted the files they were asked to maintain. The standing practice is now:
+  run the handler, `git diff` the result, repair by hand, and log it — and, when it errors, update
+  the file directly rather than leaving the machine-state stale.
+- *A promotion out of `tests/` into `src/` is a verbatim move or it is a rewrite.* Promote first,
+  diff to prove nothing was tidied (git's rename detection makes this one command), and only then
+  add new material — in this case a WHY-first preamble and the shared constants, appended around the
+  untouched original. The security review of a zip handler is only cheap while that is true.
+
 ## 2026-08-29 — A spike is only evidence if the environment can run it and the clock can move
 
 **Friction observed**

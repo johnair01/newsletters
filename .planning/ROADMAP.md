@@ -249,7 +249,7 @@ operator through the loop on their own data, read-only and local.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Specify + de-risk | 3/3 | Complete    | 2026-08-29 |
-| 2. Renderer | 0/0 | Not started | - |
+| 2. Renderer | 1/3 | In Progress | - |
 | 3. Weekly compose | 0/0 | Not started | - |
 | 4. Sample corpus + recipe | 0/0 | Not started | - |
 

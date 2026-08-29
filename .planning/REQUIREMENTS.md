@@ -78,7 +78,7 @@ contract = named placeholders, fail-loud on missing/unknown names.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WKLY-01 | Phase 2 — Renderer | Pending |
+| WKLY-01 | Phase 2 — Renderer | In progress (02-01 foundation done; the writer is 02-02, the proof + CI job 02-03) |
 | WKLY-02 | Phase 3 — Weekly compose | Pending |
 | WKLY-03 | Phase 3 — Weekly compose | Pending |
 | WKLY-04 | Phase 3 — Weekly compose | Pending |
