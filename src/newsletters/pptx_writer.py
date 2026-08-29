@@ -26,8 +26,11 @@ assignment to `surface.review`, to `surface.review.state`, or to ANY `Surface` f
 this module. The gate state is mirrored outward into the deck, never back into the record: there is
 no read-then-fix path, and therefore no auto-publish path. The durable guard is the absence of the
 code path plus `tests/test_pptx_writer.py::test_render_does_not_touch_the_gate` (a Draft Surface is
-`model_dump()`-identical after a render) and the standing `git diff --exit-code --
-src/newsletters/semantic.py` gate.
+`model_dump()`-identical after a render) and the gate-pin suite
+`tests/test_semantic_gate_frozen.py` (source-hash pins on the eight gate functions + the
+insertion-only diff shape — the replacement, since v1.3 Phase 3, for the old
+`git diff --exit-code -- src/newsletters/semantic.py` blanket freeze, which could never fail in a
+clean CI checkout).
 
 THE MARKER IS PROVENANCE, NOT AUTHENTICITY (threat T-02-07, accepted and recorded). `cp:category` is
 operator-editable. Nobody may later treat an unmarked deck as proof it was not generated, or a
