@@ -78,14 +78,21 @@ contract = named placeholders, fail-loud on missing/unknown names.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WKLY-01 | (roadmap pending) | Pending |
-| WKLY-02 | (roadmap pending) | Pending |
-| WKLY-03 | (roadmap pending) | Pending |
-| WKLY-04 | (roadmap pending) | Pending |
-| WKLY-05 | (roadmap pending) | Pending |
-| WKLY-06 | (roadmap pending) | Pending |
+| WKLY-01 | Phase 2 — Renderer | Pending |
+| WKLY-02 | Phase 3 — Weekly compose | Pending |
+| WKLY-03 | Phase 3 — Weekly compose | Pending |
+| WKLY-04 | Phase 3 — Weekly compose | Pending |
+| WKLY-05 | Phase 4 — Sample corpus + recipe | Pending |
+| WKLY-06 | Phase 4 — Sample corpus + recipe | Pending |
 
-**Coverage:** v1.3 requirements: 6 total · Mapped to phases: pending roadmap · Unmapped: 6 ⚠️
+**Coverage:** v1.3 requirements: 6 total · Mapped to phases: 6 · Unmapped: 0 ✓
+
+**Phase 1 (Specify + de-risk) carries no requirement of its own.** It de-risks WKLY-01 (the
+`.pptx` determinism definition, the generated-by-marker mechanism, the named-placeholder contract)
+and WKLY-02 (the Weekly Spec schema + the four new block kinds). Its outputs are spec text and a
+recorded, evidence-backed determinism decision — the requirements themselves are satisfied in
+Phases 2–4. See `.planning/ROADMAP.md`.
 
 ---
 *Requirements defined: 2026-08-29 from the committed seed after verifying its current-state claims against the live repo.*
+*Traceability mapped: 2026-08-29 when `.planning/ROADMAP.md` (4 phases) was created.*
