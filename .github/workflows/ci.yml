@@ -10,6 +10,14 @@
 #     the spine + AI-optional tests under that bare interpreter. This is the runtime source-of-truth.
 #   import-linter (PKG-04) — `pip install .[dev]`; `lint-imports` fails on any static core->AI edge.
 #     The fast complementary STATIC check (necessary-but-not-sufficient; misses plugin activation).
+#
+# Plus the guarantee jobs that ride on the same install discipline:
+#   merge-block (PROV-04) — `newsletters check` on every corpus; an unsafe PUBLISHED surface
+#     cannot merge.
+#   site-integrity (PUB-01..05) — the published-tree guarantees, via the same tests the deploy
+#     workflow re-runs before publishing.
+#   pptx (WKLY-01) — the ONLY job that installs the non-AI `[pptx]` extra, so the renderer's tests
+#     actually execute instead of skipping themselves.
 
 name: CI — AI-optional invariant
 
@@ -133,6 +141,37 @@ jobs:
         run: |
           python -m pytest tests/test_publish.py tests/test_render.py tests/test_site.py \
                            tests/test_worksurface.py tests/test_modulesite.py -q
+
+  pptx:
+    # WKLY-01 (v1.3, W21): the job that makes a pptx green MEAN something. Until this existed, NO
+    # CI job installed the `[pptx]` extra, so all four pptx test modules `importorskip`-skipped
+    # themselves on every run — a CI log with `s` where a `.` was expected, and a "green" that
+    # meant "not run". WKLY-01 SC-5 requires that a sample Surface renders through the synthetic
+    # template *in CI*, which is not satisfiable without a job that installs the extra.
+    #
+    # Why a SEPARATE job rather than adding the extra above (the merge-block precedent): `[pptx]`
+    # is a non-AI optional extra whose python-pptx never imports at module top level, so the
+    # AI-optional property is untouched — and the `bare-install` job remains the canonical AI-free,
+    # extra-free source of truth (PKG-03) and deliberately does NOT get this.
+    name: pptx renderer + adapter (WKLY-01)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install with test + pptx extras (python-pptx — non-AI, lazy-imported)
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[test,pptx]"
+
+      - name: Run the renderer, determinism, golden, adapter and loader tests
+        run: |
+          python -m pytest tests/test_pptx_writer.py tests/test_pptx_determinism.py \
+                           tests/test_pptx_golden.py tests/test_pptx_adapter.py \
+                           tests/test_pptx_loader.py -q
 
   import-linter:
     # PKG-04 (static contract, standing every push): forbid any core->AI import edge.
