@@ -1,0 +1,26 @@
+{
+  "newsletter-fixture-week1": {
+    "date": "2026-11-02",
+    "issue": 1,
+    "ref": "",
+    "type": "newsletter"
+  },
+  "report-fixture-draft": {
+    "date": null,
+    "issue": null,
+    "ref": "R-002",
+    "type": "report"
+  },
+  "report-fixture-gate": {
+    "date": null,
+    "issue": null,
+    "ref": "R-001",
+    "type": "report"
+  },
+  "report-fixture-missing-html": {
+    "date": null,
+    "issue": null,
+    "ref": "R-003",
+    "type": "report"
+  }
+}
