@@ -1,4 +1,4 @@
-# Lane D decisions (all candidate until JJ's gate)
+# Lane D decisions (all candidate until the Editor-in-Chief's gate)
 
 ## D1. A Library is the folder the engine already writes: `ids.json` + `site/<slug>.html`
 
@@ -18,11 +18,11 @@
 - Why (a): the product's most important rule is no auto-publish. A client's Claude quoting a
   Draft as if it were the Library would route around the review gate. `withheld_unpublished`
   keeps it honest that the list is filtered.
-- What would change it: JJ wants an operator mode where reviewers ask Claude about drafts. That
+- What would change it: the Editor-in-Chief wants an operator mode where reviewers ask Claude about drafts. That
   would be a separate, clearly named tool or server, not a default.
 - Status: candidate.
 
-## D3. Fixture Library for tests, the engine's own `content/rev1` for JJ's hands-on test
+## D3. Fixture Library for tests, the engine's own `content/rev1` for the Editor-in-Chief's hands-on test
 
 - Options considered: (a) fixture only; (b) `content/rev1` only; (c) both.
 - Why (c): the kickoff asks for a clearly labelled fixture when no Pulse IQ Library exists, and
@@ -45,8 +45,8 @@
 ## D5. Support MCP Python SDK 1.x and 2.x
 
 - Options considered: pin one major version; support both with a two-line import fallback.
-- Why: this container has `mcp` 2.3 (where `FastMCP` was renamed `MCPServer`). JJ's machine may
-  have 1.x. A fallback import costs two lines and avoids a setup failure on his first try.
+- Why: this container has `mcp` 2.3 (where `FastMCP` was renamed `MCPServer`). The Editor-in-Chief's machine may
+  have 1.x. A fallback import costs two lines and avoids a setup failure on their first try.
 - What would change it: we pin dependencies when the connector becomes a packaged extra.
 - Status: candidate.
 
@@ -64,7 +64,7 @@
   embeddings.
 - Why (a): a Library is tens of editions, so a scan per query is instant. It is deterministic and
   explainable. Claude does the reasoning on top. (c) would also break the zero-AI spirit.
-- What would change it: Libraries grow to thousands of editions, or JJ finds answers missed
+- What would change it: Libraries grow to thousands of editions, or the Editor-in-Chief finds answers missed
   because of wording. Then (b).
 - Status: candidate.
 
@@ -73,6 +73,16 @@
 - Options considered: update the compass as CLAUDE.md asks; keep notes in the lane folder.
 - Why: those are shared root files and Lane B is in the same repo. Two branches editing the top of
   the same file is a guaranteed merge conflict. The lane folder holds everything; the compass gets
-  one entry when JJ merges.
-- What would change it: JJ says lanes should write the compass directly.
+  one entry when the Editor-in-Chief merges.
+- What would change it: the Editor-in-Chief says lanes should write the compass directly.
+- Status: candidate.
+
+## D9. Roles, not names, in every file on this branch; no real Library loaded
+
+- Options considered: (a) keep names already public elsewhere in the repo; (b) replace every
+  person and client name with a role, and load no real issues.
+- Why (b): the Orchestrator's ruling, and the repo is public. "Already public somewhere" is not a
+  reason to repeat it. A real Library waits for the name filter (spec O1).
+- What would change it: the client-name filter exists and is tested, and the Editor-in-Chief
+  approves serving a real Library locally. Loading real issues into this public repo stays out.
 - Status: candidate.

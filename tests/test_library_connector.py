@@ -192,3 +192,15 @@ def test_stdio_round_trip():
     assert "recorded reviewer" in read_["text"]
     assert found["results"][0]["slug"] == "report-fixture-gate"
     assert _field(refused, "is_error", "isError") and "not published" in refused.content[0].text
+
+
+@pytest.mark.skip(reason="candidate (spec O1): client-name filter not built; required before serving a real Library")
+def test_candidate_client_name_filter(tmp_path):
+    """Names on a local redaction list never appear in any tool output, and search will not match
+    them. Uses an invented name only; real names never enter this public repo."""
+    invented = "Examplecorp Fixture Ltd"
+    library = Library(FIXTURE)  # future: Library(FIXTURE, redact=[invented])
+    outputs = [library.list_editions(), library.search("gate")]
+    outputs += [library.read_edition(e["slug"]) for e in library.list_editions()["editions"]]
+    assert all(invented.lower() not in json.dumps(o).lower() for o in outputs)
+    assert library.search(invented)["results"] == []
