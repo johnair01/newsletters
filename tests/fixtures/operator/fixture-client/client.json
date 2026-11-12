@@ -1,0 +1,53 @@
+{
+  "id": "fixture-client",
+  "name": "Client 1 (fixture)",
+  "fixture": true,
+  "note": "Invented test data. Not a real client, not copied from any client record. Replace by pointing the loader at the real client directory.",
+  "surfaces": [
+    {
+      "id": "fixture-report-onboarding",
+      "kind": "report",
+      "title": "FIXTURE: Onboarding review, first month",
+      "summary": "Placeholder text for a fixture report. No real findings.",
+      "gate": "published",
+      "author": "Fixture Author",
+      "reviewer": "Fixture Reviewer"
+    },
+    {
+      "id": "fixture-newsletter-issue-1",
+      "kind": "newsletter",
+      "title": "FIXTURE: Issue 1, what changed this week",
+      "summary": "Placeholder text for a fixture newsletter issue.",
+      "gate": "published",
+      "author": "Fixture Author",
+      "reviewer": "Fixture Reviewer"
+    },
+    {
+      "id": "fixture-newsletter-issue-2",
+      "kind": "newsletter",
+      "title": "FIXTURE: Issue 2, open questions",
+      "summary": "Placeholder text for a fixture newsletter issue awaiting review.",
+      "gate": "in_review",
+      "author": "Fixture Author"
+    },
+    {
+      "id": "fixture-article-draft",
+      "kind": "article",
+      "title": "FIXTURE: A lesson in progress",
+      "summary": "Placeholder text for a fixture article still in draft.",
+      "gate": "draft",
+      "author": "Fixture Author"
+    }
+  ],
+  "editions": [
+    {"issue": 1, "date": "2026-10-24", "surface_id": "fixture-newsletter-issue-1", "note": "Fixture edition, sent."},
+    {"issue": 2, "date": "2026-11-07", "surface_id": "fixture-newsletter-issue-2", "note": "Fixture edition, held for review."}
+  ],
+  "interactions": [
+    {"direction": "received", "date": "2026-10-20", "channel": "email", "summary": "FIXTURE: kickoff notes received from the client."},
+    {"direction": "received", "date": "2026-11-03", "channel": "call", "summary": "FIXTURE: feedback on Issue 1.", "surface_id": "fixture-newsletter-issue-1"},
+    {"direction": "sent", "date": "2026-10-24", "channel": "email", "summary": "FIXTURE: Issue 1 delivered.", "surface_id": "fixture-newsletter-issue-1"},
+    {"direction": "sent", "date": "2026-10-30", "channel": "email", "summary": "FIXTURE: onboarding report shared.", "surface_id": "fixture-report-onboarding"},
+    {"direction": "pending", "date": "2026-11-07", "channel": "review", "summary": "FIXTURE: Issue 2 waiting on reviewer approval.", "surface_id": "fixture-newsletter-issue-2"}
+  ]
+}

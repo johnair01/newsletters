@@ -11,6 +11,7 @@ Typed config drives the structure; only the prose lives in templated strings (De
 from __future__ import annotations
 
 import html
+import re
 from collections.abc import Sequence
 from typing import TypedDict
 
@@ -1513,3 +1514,170 @@ def render_404(*, base_path: str = "/newsletters/", theme: str = "light") -> str
     html_out = html_out.replace("url('fonts/", f"url('{bp}fonts/")
     html_out = html_out.replace('href="library.html"', f'href="{bp}library.html"')
     return html_out
+
+
+# --------------------------------------------------------------------------- #
+# Operator view ("my view") — the private surface over the engine (lane B, v0)
+# --------------------------------------------------------------------------- #
+#
+# One engine renders what a tester sees and what ships: this function's output for a client
+# directory IS the preview, and a byte-identity test guards the committed copy. It reuses the
+# public Library's board (``_board``), gate tags and design tokens (``_CSS``), but has its own
+# shell: the public nav would point a private page at public destinations. The extra CSS is
+# local to this page so no public page changes by a single byte.
+
+_OPERATOR_CSS = """
+.op-fixture{background:var(--color-amber);color:#111;font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:10px 44px}
+.op-private{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);margin-top:10px}
+.op-scroll{overflow-x:auto;max-width:100%}
+.op-table{width:100%;border-collapse:collapse;margin-top:18px;font-size:14px}
+.op-table th{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-dim);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+.op-table td{padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.op-table td.n{font-family:var(--font-mono);text-align:right}
+.op-client{margin-top:56px;border-top:3px solid var(--color-brand-primary);padding-top:22px}
+.op-client h2{font-family:var(--font-display);font-size:30px;line-height:1.1;margin:8px 0 6px}
+.op-sub{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--text-dim);margin:34px 0 0}
+.op-list{list-style:none;padding:0;margin:14px 0 0}
+.op-list li{display:grid;grid-template-columns:70px 110px 1fr auto;gap:14px;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.op-list .m{font-family:var(--font-mono);font-size:11px;color:var(--text-dim)}
+.op-inter{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:14px;align-items:start}
+.op-item{background:var(--card);border:1px solid var(--line);padding:12px 14px;margin-bottom:10px;font-size:14px;line-height:1.45}
+.op-item .m{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:4px}
+@media(max-width:820px){.op-inter{grid-template-columns:1fr}.op-list li{grid-template-columns:1fr}.op-fixture{padding:10px 22px}.op-table{font-size:13px}}
+"""
+
+_DIRECTION_LABELS = (
+    ("received", "Received", "var(--text)"),
+    ("sent", "Sent", "var(--color-brand-primary)"),
+    ("pending", "Pending", "var(--color-amber)"),
+)
+
+
+# Real interaction logs carry client email addresses. The operator page never renders one:
+# every interaction string passes through this filter (guarded by a test). Deliberately broad.
+_EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+")
+
+
+def _redact_emails(text: str) -> str:
+    return _EMAIL_RE.sub("[email hidden]", text or "")
+
+
+def _operator_client_site(client) -> Site:
+    """The client's Library Site with each card's href pointed into ``<client-id>/``."""
+    site = client.site()
+    return Site(
+        collections=[
+            Collection(
+                kind=c.kind,
+                display_name=c.display_name,
+                pages=[p.model_copy(update={"href": f"{client.id}/{p.href}"}) for p in c.pages],
+            )
+            for c in site.collections
+        ]
+    )
+
+
+def _operator_client_section(client) -> str:
+    by_dir = client.interactions_by_direction()
+    site = _operator_client_site(client)
+    hrefs = {p.slug: p.href for p in site.pages()}
+    surfaces = {s.id: s for s in client.surfaces}
+
+    editions = "".join(
+        f'<li><span class="m">#{e.issue:02d}</span><span class="m">{e.date.isoformat()}</span>'
+        f'<a href="{_e(hrefs.get(e.surface_id, "#"))}">{_e(client.surface_title(e.surface_id))}</a>'
+        f"{_status_tag(surfaces[e.surface_id])}</li>"
+        for e in client.editions_newest_first()
+    ) or '<li><span class="m">No editions yet.</span></li>'
+
+    cols = []
+    for key, label, accent in _DIRECTION_LABELS:
+        items = by_dir[key]
+        body = "".join(
+            f'<div class="op-item"><span class="m">{i.date.isoformat()} &middot; {_e(_redact_emails(i.channel))}</span>'
+            f"{_e(_redact_emails(i.summary))}</div>"
+            for i in items
+        ) or '<div class="lib-col-empty">Nothing here.</div>'
+        cols.append(
+            '<div class="lib-col"><div class="lib-col-head">'
+            f'<span class="lib-col-label" style="--col-accent:{accent}">{label}</span>'
+            f'<span class="lib-col-count">({len(items)})</span></div>{body}</div>'
+        )
+
+    fixture = '<span class="sg-tag review">Fixture data</span> ' if client.fixture else ""
+    note = f'<div class="prose"><p>{_e(client.note)}</p></div>' if client.note else ""
+    return (
+        f'<section class="op-client" id="client-{_e(client.id)}">'
+        f'<div class="sg-eyebrow">Client</div>{fixture}'
+        f"<h2>{_e(client.name)}</h2>{note}"
+        f'<div class="op-sub">Library</div>{_board(site)}'
+        f'<div class="op-sub">Editions</div><ul class="op-list">{editions}</ul>'
+        f'<div class="op-sub">Interactions</div><div class="op-inter">{"".join(cols)}</div>'
+        "</section>"
+    )
+
+
+def render_operator_view(view, *, theme: str = "light") -> str:
+    """Render the operator view: client list, then each client's Library, editions and
+    interactions. ``view`` is a :class:`newsletters.operator.OperatorView`. Pure, no I/O,
+    deterministic (same view in, same bytes out)."""
+    rows = []
+    for c in view.clients:
+        d = c.interactions_by_direction()
+        rows.append(
+            f'<tr><td><a href="#client-{_e(c.id)}">{_e(c.name)}</a></td>'
+            f'<td class="n">{len(c.surfaces)}</td><td class="n">{len(c.editions)}</td>'
+            f'<td class="n">{len(d["received"])}</td><td class="n">{len(d["sent"])}</td>'
+            f'<td class="n">{len(d["pending"])}</td></tr>'
+        )
+    table = (
+        '<div class="op-scroll"><table class="op-table"><thead><tr><th>Client</th><th>Library</th><th>Editions</th>'
+        "<th>Received</th><th>Sent</th><th>Pending</th></tr></thead>"
+        f'<tbody>{"".join(rows)}</tbody></table></div>'
+    )
+    banner = (
+        '<div class="op-fixture">Fixture data: invented for testing, not a real client record</div>'
+        if view.has_fixture
+        else ""
+    )
+    intro = (
+        '<div class="masthead"><div class="sg-eyebrow">My view &middot; operator</div>'
+        '<h1 class="sg-display mast-title">Clients, their Library, what came in and went out.</h1>'
+        '<div class="op-private">Private operator view. Not part of the published site.</div></div>'
+    )
+    sections = "".join(_operator_client_section(c) for c in view.clients)
+    nav = (
+        '<nav class="nl-nav"><div class="nl-brand">Newsletters '
+        '<span class="sub">my view</span></div><div class="nl-links"></div>'
+        f'<button class="nl-toggle" id="tg">{"&#9790; Dark" if theme == "dark" else "&#9728; Light"}</button></nav>'
+    )
+    return (
+        "<!doctype html><html lang=en><head><meta charset=utf-8>"
+        "<!-- generated by newsletters.render; do not hand-edit -->"
+        '<meta name=viewport content="width=device-width,initial-scale=1">'
+        f"<title>My view — Newsletters</title><style>{_CSS}{_OPERATOR_CSS}</style></head><body>"
+        f'<div class="signals" id="root" data-theme="{theme}" style="--signal:var(--color-brand-primary)">'
+        f'{nav}{banner}<main class="wrap">{intro}{table}{sections}</main></div>{_TOGGLE_JS}</body></html>'
+    )
+
+
+def write_operator_preview(view, out_dir) -> list:
+    """Write the operator view preview: ``operator.html`` plus each client's Library
+    surfaces at ``<client-id>/<slug>.html`` (rendered by :func:`render_surface`, the same
+    function the public Library uses). Returns written paths in deterministic order."""
+    from pathlib import Path
+
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    written = []
+    index = out / "operator.html"
+    index.write_text(render_operator_view(view), encoding="utf-8")
+    written.append(index)
+    for client in view.clients:
+        cdir = out / client.id
+        cdir.mkdir(exist_ok=True)
+        for page in client.site().pages():
+            target = cdir / page.href
+            target.write_text(render_surface(page.surface), encoding="utf-8")
+            written.append(target)
+    return written
